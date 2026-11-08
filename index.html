@@ -517,6 +517,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
         <button class="chipbtn" aria-pressed="true" data-o="cur">현재고</button>
         <button class="chipbtn" aria-pressed="false" data-o="cmp">이전→현재</button>
       </div>
+      <div class="filters" id="outScope" hidden></div>
       <div class="filters">
         <button class="chipbtn" aria-pressed="false" id="noNote">괄호 특이사항 빼기</button>
       </div>
@@ -1146,14 +1147,36 @@ function renderItems(){
   $("itemList").innerHTML=h||'<p class="hint" style="padding:12px 0">조건에 맞는 품목이 없습니다.</p>';
   renderUnits();
 }
+/* 보낼 범위: 전체 또는 구역 하나(예: 실내만) */
+var outMaps={}; try{ outMaps=JSON.parse(localStorage.getItem("stockmap-outmap")||"{}")||{}; }catch(e){}
+function areaTotal(it,mapId){
+  var st=ST();
+  if(it.kind==="info"){ if(it.code.replace(/\s+/g,"")==="공용기"){ var n=st.boxes.filter(function(b){return b.mark==="공용기"&&b.mapId===mapId;}).length; if(!n) return it.cur; var suf=String(it.prev||"").replace(/^[\d\s]+/,"").trim(); return n+suf; } return it.cur; }
+  var has=false, sum=0;
+  st.boxes.forEach(function(b){ if(b.mapId!==mapId) return;
+    if(b.itemId===it.id&&b.cur!==null){ has=true; sum+=sumA(b.cur); }
+    (b.mix||[]).forEach(function(m){ if(m.itemId===it.id&&m.cur!==null){ has=true; sum+=sumA(m.cur); } });
+    if(b.mark===SEQ&&b.seq&&b.seq[it.id]){ sum-=b.seq[it.id]; }
+  });
+  return has?sum:null;
+}
+function inArea(it,mapId){ return ST().boxes.some(function(b){ return b.mapId===mapId&&(b.itemId===it.id||(b.mix||[]).some(function(m){return m.itemId===it.id;})||(b.mark===SEQ&&b.seq&&b.seq[it.id])); }); }
 function renderShare(){
-  var c=C(), lines=[];
+  var c=C(), lines=[], maps=ST().maps, om=outMaps[ui.cid]||"";
+  if(om&&!maps.some(function(m){return m.id===om;})) om="";
+  var sc=$("outScope");
+  if(maps.length>1){
+    sc.hidden=false;
+    sc.innerHTML='<button class="chipbtn" aria-pressed="'+(!om)+'" data-om="">전체 ('+maps.map(function(m){return esc(m.name);}).join("+")+')</button>'+maps.map(function(m){ return '<button class="chipbtn" aria-pressed="'+(om===m.id)+'" data-om="'+m.id+'">'+esc(m.name)+'만</button>'; }).join("");
+    Array.prototype.forEach.call(sc.querySelectorAll("[data-om]"),function(x){ x.onclick=function(){ outMaps[ui.cid]=x.dataset.om; try{ localStorage.setItem("stockmap-outmap",JSON.stringify(outMaps)); }catch(e){} renderShare(); }; });
+  } else { sc.hidden=true; sc.innerHTML=""; om=""; }
+  var areaName=om?(maps.filter(function(m){return m.id===om;})[0]||{}).name:"";
   c.groups.forEach(function(g){
-    var rows=ST().items.filter(function(it){return it.group===g.k;}); if(!rows.length) return;
+    var rows=ST().items.filter(function(it){return it.group===g.k&&(!om||it.kind==="info"||inArea(it,om));}); if(!rows.some(function(it){return it.kind!=="info";})&&om) return; if(!rows.length) return;
     if(lines.length) lines.push("");
-    lines.push(c.name+" ("+g.name+")");
+    lines.push(c.name+(areaName?" "+areaName:"")+" ("+g.name+")");
     rows.forEach(function(it){
-      var t=total(it), v;
+      var t=om?areaTotal(it,om):total(it), v;
       if(ui.out==="cmp") v=(it.prev===null?"-":it.prev)+"→"+(t===null?"?":t);
       else v=t===null?"":String(t);
       if(it.kind==="info"){ lines.push(it.code+" : "+v); return; }
