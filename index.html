@@ -914,7 +914,20 @@ function syncLabel(){
   setSync(GAS?"저장됨 · "+(EDIT.name||""):"저장됨","ok");
 }
 function who(){ return (typeof GAS!=="undefined"&&GAS&&EDIT&&EDIT.name)?EDIT.name:""; }
-function persist(){ var st=S[ui.cid]&&S[ui.cid].state; if(st&&st.survey&&!ui.snap){ st.survey.editedAt=Date.now(); st.survey.editedBy=who(); } persistId(ui.cid); }
+/* 마지막 수정: 상자가 생기거나 지워졌거나, 수량·숫자가 바뀌었을 때만 (마감·이동·색 등은 제외) */
+function editFp(st){
+  var bx=st.boxes.map(function(b){ return b.id+"="+JSON.stringify(b.cur)+"|"+JSON.stringify((b.mix||[]).map(function(m){return [m.itemId,m.cur];}))+"|"+JSON.stringify(b.seq||null); }).sort();
+  var it=st.items.map(function(i){ return i.id+"="+JSON.stringify(i.cur); }).sort();
+  return bx.join(",")+"#"+it.join(",");
+}
+function persist(){
+  var st=S[ui.cid]&&S[ui.cid].state;
+  if(st&&st.survey&&!ui.snap&&!PRACTICE){
+    var before=null; try{ var raw=localStorage.getItem(lsKey(ui.cid)); if(raw){ var o=JSON.parse(raw); if(o&&o.survey&&o.survey.date===st.survey.date&&o.survey.round===st.survey.round) before=editFp(normalize(CMAP[ui.cid],o)); } }catch(e){}
+    if(before!==null&&before!==editFp(st)){ st.survey.editedAt=Date.now(); st.survey.editedBy=who(); }
+  }
+  persistId(ui.cid);
+}
 function persistId(id){
   var x=S[id];
   if(PRACTICE){ renderAll(); return; } // 연습 모드: 저장하지 않음
