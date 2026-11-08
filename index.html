@@ -1930,7 +1930,8 @@ function resize(axis,side,delta){
   } else {
     if(mp[key]<=2) return;
     var edge=side==="start"?0:mp[key]-1;
-    if(bs.some(function(b){return b[axis]===edge;})){ toast("맨 "+sideName+" 줄에 상자가 있어 지울 수 없습니다"); return; }
+    if(!clearLine(mp,axis,edge,"맨 "+sideName+" 줄")) return;
+    bs=ST().boxes.filter(function(b){return b.mapId===mp.id;});
     if(side==="start") bs.forEach(function(b){ b[axis]--; });
     if(axis==="r") shiftTiers(mp,edge,-1); shiftPaint(mp,axis,edge,-1);
     mp[key]--;
@@ -1961,10 +1962,23 @@ function insertLine(axis,idx){
   if(mp[key]>=max){ toast("더 늘릴 수 없습니다"); return false; }
   ST().boxes.forEach(function(b){ if(b.mapId===mp.id&&b[axis]>=idx) b[axis]++; }); if(axis==="r") shiftTiers(mp,idx,1); shiftPaint(mp,axis,idx,1); mp[key]++; return true;
 }
+/* 줄을 지울 때: 품목·표시·수량이 없는 빈렉 상자는 같이 지우고, 내용 있는 상자가 있으면 막음 */
+function emptyBox(b){ return !b.itemId&&!b.mark&&b.cur===null&&!(b.mix&&b.mix.length)&&!b.seq; }
+function clearLine(mp,axis,idx,name){
+  var st=ST(), on=st.boxes.filter(function(b){ return b.mapId===mp.id&&b[axis]===idx; });
+  var block=on.filter(function(b){ return !emptyBox(b); });
+  if(block.length){
+    var nm=block.slice(0,3).map(function(b){ return b.mark?b.mark:(b.itemId&&item(b.itemId)?label(item(b.itemId)):"빈렉"); }).join(", ");
+    toast(name+"에 상자 "+block.length+"개("+nm+(block.length>3?" 등":"")+")가 있어 지울 수 없습니다"); return false;
+  }
+  if(on.length){ var ids={}; on.forEach(function(b){ ids[b.id]=1; }); st.boxes=st.boxes.filter(function(b){ return !ids[b.id]; }); }
+  return true;
+}
 function deleteLine(axis,idx){
   var mp=MAP(), key=axis==="c"?"cols":"rows", bs=ST().boxes.filter(function(b){return b.mapId===mp.id;});
   if(mp[key]<=2){ toast("더 줄일 수 없습니다"); return false; }
-  if(bs.some(function(b){return b[axis]===idx;})){ toast((axis==="c"?"가로 ":"세로 ")+(idx+1)+"번 줄에 상자가 있어 지울 수 없습니다"); return false; }
+  if(!clearLine(mp,axis,idx,(axis==="c"?"가로 ":"세로 ")+(idx+1)+"번 줄")) return false;
+  bs=ST().boxes.filter(function(b){return b.mapId===mp.id;});
   bs.forEach(function(b){ if(b[axis]>idx) b[axis]--; }); if(axis==="r") shiftTiers(mp,idx,-1); shiftPaint(mp,axis,idx,-1); mp[key]--; return true;
 }
 function renderIns(s){
