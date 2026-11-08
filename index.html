@@ -205,7 +205,8 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .box.seqbox .t3.seqno{opacity:1;font-weight:800;font-size:13px;line-height:1.15;word-break:break-all}
 .box.seqbox .t4{font-size:10px;opacity:.9;color:inherit}
 .seqnum{display:flex;gap:8px;align-items:stretch;margin-bottom:12px}
-.seqnum .prevnum{flex:0 0 auto}
+.seqnum .prevnum{flex:0 0 34%;min-width:0}
+.seqnum .prevnum .ro{font-size:15px;word-break:break-all;line-height:1.25}
 .seqnum input{flex:1;min-width:0;font-size:20px;font-weight:700;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
 .seqnum select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 .mkown{margin-top:8px}
@@ -1348,7 +1349,8 @@ function renderSeq(b){
   var sInfos=seqInfos(), sIt=seqInfoOf(b);
   var h='<div class="notebox" style="margin-bottom:8px"><label>시퀀스 번호'+(sInfos.length>1?' · <select id="sqWhich" aria-label="연동할 시컨스">'+sInfos.map(function(x){ var g=grp(x.group); return '<option value="'+x.id+'"'+(sIt&&x.id===sIt.id?' selected':'')+'>'+esc((g&&g.name?g.name+' ':'')+x.code)+'</option>'; }).join("")+'</select>':'')+'</label>'+
       '<div class="seqnum"><div class="prevnum"><label>이전</label><div class="ro">'+esc(sIt&&sIt.prev!=null&&sIt.prev!==""?sIt.prev:"-")+'</div></div>'+
-      (rov?'<div class="prevnum" style="flex:1"><label>지금</label><div class="ro">'+esc(seqNoOf(b)||"-")+'</div></div>':'<input id="sqNo" inputmode="text" autocomplete="off" placeholder="예: 912799 또는 789~852" value="'+esc(seqNoOf(b))+'" aria-label="시퀀스 번호">')+'</div>'+
+      (rov?'<div class="prevnum" style="flex:1"><label>지금</label><div class="ro">'+esc(seqNoOf(b)||"-")+'</div></div>':'<input id="sqNo" inputmode="text" autocomplete="off" placeholder="'+esc(sIt&&sIt.note?sIt.note:"예: 912799 또는 789~852")+'" value="'+esc(seqNoOf(b))+'" aria-label="시퀀스 번호">')+'</div>'+
+      (sIt&&sIt.note?'<p style="margin:0 0 6px;font-weight:700">특이사항 · '+esc(sIt.note)+'</p>':'')+
       '<p class="hint" style="margin:0">품목 탭의 "'+esc(sIt?sIt.code:"시컨스")+'" 칸과 연결되어 있어, 어느 쪽에 적어도 같이 바뀌고 카톡 보내기에도 들어갑니다.</p></div>';
   h+='<div class="curhead"><span class="lbl">조정 합계</span><span class="d '+(adj<0?"neg":adj>0?"pos":"zero")+'">'+cnt+'품목</span><span class="total">'+sgn(adj)+'</span></div>'+
     '<p class="hint"><b>+</b> 버튼은 재고를 더하고, <b>−</b> 버튼은 뺍니다. 이 탭의 현재고 합계(카톡 전송)에 그대로 반영됩니다. 숫자를 직접 적을 때는 +5(더하기), −5 또는 5(빼기)로 적으세요.</p>'+
