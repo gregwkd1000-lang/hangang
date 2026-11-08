@@ -342,6 +342,9 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .p-navy{--cbg:#283593;--cfg:#fff;--cbd:#1a237e;--plt:#d3d6ee}
 .p-purple{--cbg:#8e24aa;--cfg:#fff;--cbd:#6a1b9a;--plt:#ecd3f2}
 .cell.empty.painted{background:var(--plt);border:1.5px solid var(--cbd)}
+.times{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin-top:2px}
+.times b{color:var(--ink);font-weight:700}
+.times .tmc b{color:var(--warn,#c2410c)}
 .emptylbl{line-height:1.15;text-align:center}
 .box.colored.mark,.box.colored.unset,.box.colored.seqbox{background-image:none;color:var(--cfg)}
 .box.colored.seqbox .t2,.box.colored.seqbox .t3{color:var(--cfg)}
@@ -641,7 +644,7 @@ function normalize(c,s){
   var oldMaps=Array.isArray(s.maps)?s.maps:[{id:c.maps[0].id,cols:s.cols,rows:s.rows}];
   var maps=c.maps.map(function(m,mi){ var o=oldMaps.filter(function(x){return x&&x.id===m.id;})[0]||(mi===0&&!oldMaps.some(function(x){return x&&c.maps.some(function(cm){return cm.id===x.id;});})?oldMaps[0]:null)||{}; return {id:m.id,name:m.name,cols:Math.max(2,Math.min(30,+o.cols||6)),rows:Math.max(2,Math.min(60,+o.rows||10)),tiers:normTiers(o.tiers),paint:normPaint(o.paint)}; });
   var mk={}; maps.forEach(function(m){mk[m.id]=1;});
-  var sv=s.survey&&/^\d{4}-\d{2}-\d{2}$/.test(s.survey.date)&&+s.survey.round>0?{date:s.survey.date,round:+s.survey.round,closed:!!s.survey.closed,manual:!!s.survey.manual,filled:!!s.survey.filled}:{date:today(),round:1};
+  var sv=s.survey&&/^\d{4}-\d{2}-\d{2}$/.test(s.survey.date)&&+s.survey.round>0?{date:s.survey.date,round:+s.survey.round,closed:!!s.survey.closed,manual:!!s.survey.manual,filled:!!s.survey.filled,closedAt:+s.survey.closedAt||null,closedBy:s.survey.closedBy?String(s.survey.closedBy):"",editedAt:+s.survey.editedAt||null,editedBy:s.survey.editedBy?String(s.survey.editedBy):""}:{date:today(),round:1};
   var st={v:4,seedV:+s.seedV||1,survey:sv,maps:maps,
     items:s.items.filter(function(i){return i&&i.id&&i.code;}).map(function(i){
       var info=i.kind==="info";
@@ -910,7 +913,8 @@ function syncLabel(){
   if(!x.got) return setSync("불러오는 중…");
   setSync(GAS?"저장됨 · "+(EDIT.name||""):"저장됨","ok");
 }
-function persist(){ persistId(ui.cid); }
+function who(){ return (typeof GAS!=="undefined"&&GAS&&EDIT&&EDIT.name)?EDIT.name:""; }
+function persist(){ var st=S[ui.cid]&&S[ui.cid].state; if(st&&st.survey&&!ui.snap){ st.survey.editedAt=Date.now(); st.survey.editedBy=who(); } persistId(ui.cid); }
 function persistId(id){
   var x=S[id];
   if(PRACTICE){ renderAll(); return; } // 연습 모드: 저장하지 않음
@@ -1030,11 +1034,19 @@ function renderCtabs(){
   $("ctabs").innerHTML=COMPANIES.map(function(c){ var k=counts(c.id);
     return '<button class="ctab" role="tab" aria-selected="'+(c.id===ui.cid)+'" data-c="'+c.id+'">'+esc(c.name)+'<span class="cnt'+(k.todo?"":" zero")+'" aria-label="미입력 '+k.todo+'개">'+(k.todo||"✓")+'</span></button>'; }).join("");
 }
+function fmtTime(t){ if(!t) return ""; var d=new Date(t), td=new Date(); var hm=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  return (d.toDateString()===td.toDateString()?"오늘 ":(d.getMonth()+1)+"/"+d.getDate()+" ")+hm; }
+function timesHTML(sv){
+  var a=[];
+  if(sv.closed) a.push('<span class="tm tmc">마감 <b>'+(sv.closedAt?fmtTime(sv.closedAt):"시간 기록 없음")+'</b>'+(sv.closedBy?' · '+esc(sv.closedBy):'')+'</span>');
+  a.push('<span class="tm">마지막 수정 <b>'+(sv.editedAt?fmtTime(sv.editedAt):"없음")+'</b>'+(sv.editedBy?' · '+esc(sv.editedBy):'')+'</span>');
+  return '<div class="times">'+a.join("")+'</div>';
+}
 function renderHeader(){
   var c=C(); document.title=c.name+" 재고 약도";
   $("title").innerHTML=esc(c.name)+' 재고 약도<small>'+esc(c.groups.map(function(g){return g.name;}).join(" · "))+'</small>';
   var k=countsSt(ST()), sv=ST().survey, old=!ui.snap&&sv.date!==today(), manualTxt=sv.manual?' · 지정 날짜':' · 지난 날짜';
-  $("summary").innerHTML='<button class="survey'+(old?" old":"")+(ui.snap?" snap":"")+(locked()?" locked":"")+'" id="surveyBtn">'+fmtDate(sv.date)+' '+sv.round+(ui.snap?'차 기록 ✕':'차 조사'+(old?manualTxt:'')+(locked()?' · 마감':'')+' ▾')+'</button>'+(ui.snap?'':'<button class="closebtn'+(locked()?' on':'')+'" id="closeRound">'+(locked()?'마감 해제':'마감')+'</button>')+'<span>품목 <b>'+k.n+'</b></span><span>· 입력 <b>'+(k.done+k.diff)+'</b></span><span>· 차이 <b>'+k.diff+'</b></span><span>· 미입력 <b>'+k.todo+'</b></span><span>· 약도 상자 <b>'+k.boxes+'</b></span>';
+  $("summary").innerHTML='<button class="survey'+(old?" old":"")+(ui.snap?" snap":"")+(locked()?" locked":"")+'" id="surveyBtn">'+fmtDate(sv.date)+' '+sv.round+(ui.snap?'차 기록 ✕':'차 조사'+(old?manualTxt:'')+(locked()?' · 마감':'')+' ▾')+'</button>'+(ui.snap?'':'<button class="closebtn'+(locked()?' on':'')+'" id="closeRound">'+(locked()?'마감 해제':'마감')+'</button>')+'<span>품목 <b>'+k.n+'</b></span><span>· 입력 <b>'+(k.done+k.diff)+'</b></span><span>· 차이 <b>'+k.diff+'</b></span><span>· 미입력 <b>'+k.todo+'</b></span><span>· 약도 상자 <b>'+k.boxes+'</b></span>'+timesHTML(sv);
   $("snapBanner").innerHTML=PRACTICE?'<div class="banner pracb"><span>연습 모드 · 입력해도 실제 재고에 저장되지 않습니다</span><button id="pracEnd">연습 끝내기</button></div>':'';
   if(PRACTICE&&$("pracEnd")) $("pracEnd").onclick=endPractice;
   $("legend").innerHTML=c.groups.map(function(g){return '<span><i style="background:'+g.color+'"></i>'+esc(g.name)+'</span>';}).join("")+
@@ -2068,7 +2080,7 @@ $("summary").addEventListener("click",function(e){
   if(e.target.closest("#closeRound")){
     if(ui.snap) return; var st=S[ui.cid].state, sv=st.survey, on=!sv.closed, nm=fmtDate(sv.date)+" "+sv.round+"차";
     ask(on?nm+" 조사를 마감할까요? 마감하면 상자 배치와 수량을 고칠 수 없습니다.":nm+" 조사 마감을 해제할까요? 다시 고칠 수 있게 됩니다.",on?"마감":"마감 해제",function(){
-      sv.closed=on; ui.moving=null; ui.insMode=false; closeSheet(); persist(); toast(on?nm+" 마감했습니다":nm+" 마감을 해제했습니다");
+      sv.closed=on; sv.closedAt=on?Date.now():null; sv.closedBy=on?who():""; ui.moving=null; ui.insMode=false; closeSheet(); persist(); toast(on?nm+" 마감했습니다":nm+" 마감을 해제했습니다");
     },"취소");
   }
 });
