@@ -202,6 +202,12 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .box.seqbox{background:var(--seq-bg);border-color:var(--seq-bg);--grp:var(--seq-stripe);color:#fff}
 .box.seqbox .t2,.box.seqbox .t3,.box.seqbox .t3 b{color:#fff}
 .box.seqbox .t3{opacity:.9}
+.box.seqbox .t3.seqno{opacity:1;font-weight:800;font-size:13px;line-height:1.15;word-break:break-all}
+.box.seqbox .t4{font-size:10px;opacity:.9;color:inherit}
+.seqnum{display:flex;gap:8px;align-items:stretch;margin-bottom:12px}
+.seqnum .prevnum{flex:0 0 auto}
+.seqnum input{flex:1;min-width:0;font-size:20px;font-weight:700;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.seqnum select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 .mkown{margin-top:8px}
 .mkown[hidden]{display:none}
 .btn.mkseq{background:var(--seq-bg);border-color:var(--seq-bg);color:#fff}
@@ -641,7 +647,7 @@ function normalize(c,s){
         note:String(i.note||""),
         cur:info?(i.cur===null||i.cur===undefined?null:String(i.cur)):(Array.isArray(i.cur)?i.cur.map(Number).filter(function(n){return n>0;}):null),
         unit:info?null:(+i.unit>0?+i.unit:null)};}),
-    boxes:(Array.isArray(s.boxes)?s.boxes:[]).filter(function(b){return b&&b.id;}).map(function(b){return {id:String(b.id),mapId:mk[b.mapId]?String(b.mapId):maps[0].id,r:+b.r,c:+b.c,t:b.t===1?1:0,fixed:!!b.fixed,bg:PAL.some(function(p){return p[0]===b.bg;})?b.bg:null,mix:normMix(b.mix),itemId:b.itemId?String(b.itemId):null,mark:b.mark?String(b.mark):null,cur:Array.isArray(b.cur)?b.cur.map(Number).filter(function(n){return n>0;}):null,seq:normSeq(b.seq)};})};
+    boxes:(Array.isArray(s.boxes)?s.boxes:[]).filter(function(b){return b&&b.id;}).map(function(b){return {id:String(b.id),mapId:mk[b.mapId]?String(b.mapId):maps[0].id,r:+b.r,c:+b.c,t:b.t===1?1:0,fixed:!!b.fixed,bg:PAL.some(function(p){return p[0]===b.bg;})?b.bg:null,mix:normMix(b.mix),itemId:b.itemId?String(b.itemId):null,mark:b.mark?String(b.mark):null,cur:Array.isArray(b.cur)?b.cur.map(Number).filter(function(n){return n>0;}):null,seq:normSeq(b.seq),seqInfo:b.seqInfo?String(b.seqInfo):null};})};
   if((+s.v||1)<4){ // 예전엔 수량이 품목에 하나로 저장됨 → 첫 자리 상자로 옮김
     st.items.forEach(function(i){ if(i.kind==="info"||i.cur===null) return; var b0=st.boxes.filter(function(b){return b.itemId===i.id;})[0]; if(b0){ b0.cur=i.cur; i.cur=null; } });
   }
@@ -973,6 +979,10 @@ function total(it,st){
   return sumA(it.cur)+bs.reduce(function(a,b){return a+sumA(b.cur);},0)+ms.reduce(function(a,m){return a+sumA(m.cur);},0)-seqDed(it.id,st);
 }
 var SEQ="시퀀스";
+/* 시퀀스 번호: 품목 탭의 "시컨스" 정보 칸과 연동 */
+function seqInfos(st){ return (st||ST()).items.filter(function(it){ return it.kind==="info"&&/시[컨퀀]스/.test(it.code); }); }
+function seqInfoOf(b,st){ var a=seqInfos(st); if(!a.length) return null; if(b.seqInfo){ for(var i=0;i<a.length;i++) if(a[i].id===b.seqInfo) return a[i]; } return a[0]; }
+function seqNoOf(b,st){ var it=seqInfoOf(b,st); return it&&it.cur!==null&&String(it.cur).trim()!==""?String(it.cur):""; }
 function seqDed(id,st){ return (st||ST()).boxes.reduce(function(a,b){ return a+(b.mark===SEQ&&b.seq&&b.seq[id]?b.seq[id]:0); },0); }
 function status(it,st){ var t=total(it,st); if(t===null) return "todo"; if(it.kind==="info") return "done"; if(it.prev!==null&&t===it.prev) return "done"; if(it.prev===null&&t===0) return "done"; return "diff"; }
 function placedCount(id){ return ST().boxes.filter(function(b){return b.itemId===id;}).length; }
@@ -1056,7 +1066,8 @@ function renderMap(){
     if(!b){ return '<button class="cell empty'+half+(pnt?' painted p-'+pnt:'')+(ui.multi&&ui.multi[pk]?' picked':'')+(ui.place?' place':'')+(ui.moving?' target':'')+'" data-r="'+r+'" data-c="'+c+'"'+ta+' aria-label="빈칸 '+posTxt(r,c,two?tr:null)+'"></button>'; }
     var sel=(ui.moving===b.id?" sel":"")+hitOf(b)+(ui.multi&&ui.multi["b:"+b.id]?" bpicked":"")+(ui.groupMove&&ui.groupMove.indexOf(b.id)>=0?" gmove":""), pc=b.bg?" colored p-"+b.bg:"";
     if(b.mark===SEQ){ var sq=b.seq?Object.keys(b.seq).reduce(function(a,k){return a+b.seq[k];},0):0;
-      return '<button class="cell box seqbox'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'<span class="stripe"></span><span class="t2 s">시퀀스</span><span class="t3">'+(sq>0?'차감 <b>−'+sq+'</b>':sq<0?'추가 <b>+'+(-sq)+'</b>':'조정 0')+'</span></button>'; }
+      return '<button class="cell box seqbox'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'<span class="stripe"></span><span class="t2 s">시퀀스</span>'+(function(){ var no=seqNoOf(b), adjT=sq>0?'차감 <b>−'+sq+'</b>':sq<0?'추가 <b>+'+(-sq)+'</b>':'';
+        return no?'<span class="t3 seqno">'+esc(no)+'</span>'+(adjT?'<span class="t4">'+adjT+'</span>':''):'<span class="t3">'+(adjT||'번호 없음')+'</span>'; })()+'</button>'; }
     if(b.mark){ return '<button class="cell box mark'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+esc(b.mark)+'</button>'; }
     var it=b.itemId?item(b.itemId):null;
     if(!it){ return '<button class="cell box unset'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'타업체</button>'; }
@@ -1311,7 +1322,12 @@ function renderSeq(b){
   if(!b.seq) b.seq=null;
   var ded=b.seq?Object.keys(b.seq).reduce(function(a,k){return a+b.seq[k];},0):0, adj=-ded, cnt=b.seq?Object.keys(b.seq).length:0;
   $("shTitle").innerHTML='시퀀스 · 재고 더하기/빼기<small>'+esc(C().name)+' · '+esc(spotName(b))+(rov?' · 보기 전용':'')+'</small>';
-  var h='<div class="curhead"><span class="lbl">조정 합계</span><span class="d '+(adj<0?"neg":adj>0?"pos":"zero")+'">'+cnt+'품목</span><span class="total">'+sgn(adj)+'</span></div>'+
+  var sInfos=seqInfos(), sIt=seqInfoOf(b);
+  var h='<div class="notebox" style="margin-bottom:8px"><label>시퀀스 번호'+(sInfos.length>1?' · <select id="sqWhich" aria-label="연동할 시컨스">'+sInfos.map(function(x){ var g=grp(x.group); return '<option value="'+x.id+'"'+(sIt&&x.id===sIt.id?' selected':'')+'>'+esc((g&&g.name?g.name+' ':'')+x.code)+'</option>'; }).join("")+'</select>':'')+'</label>'+
+      '<div class="seqnum"><div class="prevnum"><label>이전</label><div class="ro">'+esc(sIt&&sIt.prev!=null&&sIt.prev!==""?sIt.prev:"-")+'</div></div>'+
+      (rov?'<div class="prevnum" style="flex:1"><label>지금</label><div class="ro">'+esc(seqNoOf(b)||"-")+'</div></div>':'<input id="sqNo" inputmode="text" autocomplete="off" placeholder="예: 912799 또는 789~852" value="'+esc(seqNoOf(b))+'" aria-label="시퀀스 번호">')+'</div>'+
+      '<p class="hint" style="margin:0">품목 탭의 "'+esc(sIt?sIt.code:"시컨스")+'" 칸과 연결되어 있어, 어느 쪽에 적어도 같이 바뀌고 카톡 보내기에도 들어갑니다.</p></div>';
+  h+='<div class="curhead"><span class="lbl">조정 합계</span><span class="d '+(adj<0?"neg":adj>0?"pos":"zero")+'">'+cnt+'품목</span><span class="total">'+sgn(adj)+'</span></div>'+
     '<p class="hint"><b>+</b> 버튼은 재고를 더하고, <b>−</b> 버튼은 뺍니다. 이 탭의 현재고 합계(카톡 전송)에 그대로 반영됩니다. 숫자를 직접 적을 때는 +5(더하기), −5 또는 5(빼기)로 적으세요.</p>'+
     '<input class="search" id="sqQ" data-sq="q" type="search" placeholder="품번 검색" value="'+esc(seqQ)+'" aria-label="품번 검색"><div id="sqList"></div>';
   if(!rov) h+='<div class="acts" style="margin-top:12px"><button class="btn" id="sqClear">조정 모두 지우기</button><button class="btn" id="sqChange">뒤로가기</button><button class="btn fixbtn'+(b.fixed?" on":"")+'" id="sqFix">'+(b.fixed?"고정 해제":"고정")+'</button><button class="btn danger" id="sqDel">상자 삭제</button></div>';
@@ -1339,6 +1355,12 @@ function renderSeq(b){
   }
   list();
   $("sqQ").oninput=function(){ seqQ=this.value; list(); };
+  if($("sqWhich")) $("sqWhich").onchange=function(){ if(rov) return; b.seqInfo=this.value; persist(); };
+  if($("sqNo")) $("sqNo").onchange=function(){
+    var v=String(this.value).trim(), it=seqInfoOf(b), st=ST();
+    if(!it){ if(!v) return; var g0=(C().groups[0]||{}).k||"A"; it={id:uid(),kind:"info",code:"시컨스",alias:"",group:g0,prev:null,note:"",cur:null,unit:null}; st.items.push(it); b.seqInfo=it.id; }
+    it.cur=v===""?null:v; this.blur(); persist(); toast(v?"시퀀스 번호 "+v+" 저장":"시퀀스 번호를 지웠습니다");
+  };
   if(!rov){
     $("sqClear").onclick=function(){ ask("이 시퀀스의 조정("+sgn(adj)+")을 모두 지울까요?","지우기",function(){ b.seq=null; persist(); }); };
     $("sqChange").onclick=function(){ closeSheet(); };
@@ -1627,7 +1649,7 @@ function wrapText(ctx,txt,w){ var out=[], cur=""; Array.from(String(txt)).forEac
 function detailLines(b,ctx,w){
   var L=[], F=function(wt,sz){ return wt+" "+sz+"px "+IMGFONT; };
   function add(t,wt,sz,col){ ctx.font=F(wt,sz); wrapText(ctx,t,w).forEach(function(x){ L.push({t:x,font:F(wt,sz),sz:sz,col:col}); }); }
-  if(b.mark===SEQ){ var sq=b.seq?Object.keys(b.seq).reduce(function(a,k){return a+b.seq[k];},0):0; add("시퀀스","700",14); add(sq>0?"차감 −"+sq:sq<0?"추가 +"+(-sq):"조정 0","500",13); return L; }
+  if(b.mark===SEQ){ var sq=b.seq?Object.keys(b.seq).reduce(function(a,k){return a+b.seq[k];},0):0; add("시퀀스","700",14); var sn=seqNoOf(b); if(sn) add(sn,"800",16); if(sq||!sn) add(sq>0?"차감 −"+sq:sq<0?"추가 +"+(-sq):"조정 0","500",13); return L; }
   if(b.mark){ add(b.mark,"700",14); return L; }
   var it=b.itemId?item(b.itemId):null;
   if(!it){ add("타업체","500",13); return L; }
