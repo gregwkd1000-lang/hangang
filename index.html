@@ -342,6 +342,7 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .p-navy{--cbg:#283593;--cfg:#fff;--cbd:#1a237e;--plt:#d3d6ee}
 .p-purple{--cbg:#8e24aa;--cfg:#fff;--cbd:#6a1b9a;--plt:#ecd3f2}
 .cell.empty.painted{background:var(--plt);border:1.5px solid var(--cbd)}
+.emptylbl{line-height:1.15;text-align:center}
 .box.colored.mark,.box.colored.unset,.box.colored.seqbox{background-image:none;color:var(--cfg)}
 .box.colored.seqbox .t2,.box.colored.seqbox .t3{color:var(--cfg)}
 .box.bpicked{outline:4px solid var(--accent);outline-offset:1px;box-shadow:0 0 0 7px color-mix(in srgb,var(--accent) 35%,transparent)}
@@ -1058,7 +1059,7 @@ function renderMap(){
   var fq=flipOf(); $("flipV").classList.toggle("on",fq.v); $("flipV").setAttribute("aria-pressed",fq.v); $("flipH").classList.toggle("on",fq.h); $("flipH").setAttribute("aria-pressed",fq.h);
   var g=$("grid"); g.classList.toggle("insmode",!!ui.insMode); g.classList.toggle("locked",locked()); g.style.gridTemplateColumns="var(--hdw) repeat("+mp.cols+",var(--cell))";
   var bq=(ui.bq||"").trim().toLowerCase().replace(/\s+/g,"");
-  function hitOf(b){ if(!bq) return ""; var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return txt.toLowerCase().replace(/\s+/g,"").indexOf(bq)>=0?" hit":" dim"; }
+  function hitOf(b){ if(!bq) return ""; var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return txt.toLowerCase().replace(/\s+/g,"").indexOf(bq)>=0?" hit":" dim"; }
   var fl=flipOf();
   var h='<span class="hd corner" aria-hidden="true"><i>'+(fl.h?'←가':'가→')+'</i><i>'+(fl.v?'세↑':'세↓')+'</i></span>';
   for(var hci=0;hci<mp.cols;hci++){ var hc=fl.h?mp.cols-1-hci:hci; h+='<span class="hd hc" aria-hidden="true">'+(hc+1)+'</span>'; }
@@ -1072,7 +1073,7 @@ function renderMap(){
         return no?'<span class="t3 seqno">'+esc(no)+'</span>'+(adjT?'<span class="t4">'+adjT+'</span>':''):'<span class="t3">'+(adjT||'번호 없음')+'</span>'; })()+'</button>'; }
     if(b.mark){ return '<button class="cell box mark'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+esc(b.mark)+'</button>'; }
     var it=b.itemId?item(b.itemId):null;
-    if(!it){ return '<button class="cell box unset'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'빈렉</button>'; }
+    if(!it){ return '<button class="cell box unset'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'<span class="emptylbl">빈렉or<br>타업체</span></button>'; }
     var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":"";
     var mixN=(b.mix||[]).length, mixSum=(b.mix||[]).reduce(function(a,m){return a+(m.cur?sumA(m.cur):0);},0), mixHas=(b.mix||[]).some(function(m){return m.cur!==null;});
     var multi=boxesOf(it.id).length>1||it.cur!==null||seqDed(it.id)!==0||mixOf(it.id).length>0, mine=b.cur===null?null:sumA(b.cur), line;
@@ -1094,7 +1095,7 @@ function renderMap(){
   var info=$("bqInfo");
   if(!bq){ info.innerHTML=""; }
   else {
-    var all=ST().boxes.filter(function(b){ var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return txt.toLowerCase().replace(/\s+/g,"").indexOf(bq)>=0; });
+    var all=ST().boxes.filter(function(b){ var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return txt.toLowerCase().replace(/\s+/g,"").indexOf(bq)>=0; });
     var here=all.filter(function(b){return b.mapId===mp.id;}).length, other=ST().maps.filter(function(m){return m.id!==mp.id;}).map(function(m){ return {m:m,n:all.filter(function(b){return b.mapId===m.id;}).length}; }).filter(function(x){return x.n;});
     info.innerHTML=(all.length?('이 약도에서 <b>'+here+'</b>개 찾음'):'일치하는 상자가 없습니다')+other.map(function(x){ return ' · <button class="linkbtn" data-gomap="'+x.m.id+'">'+esc(x.m.name)+'에 '+x.n+'개 보기</button>'; }).join("");
     if(ui.bqScroll){ ui.bqScroll=false; var f=g.querySelector(".hit"); if(f){ var w=document.querySelector(".mapwrap"), wr=w.getBoundingClientRect(), fr=f.getBoundingClientRect(); w.scrollTop+=fr.top-wr.top-wr.height/2+fr.height/2; w.scrollLeft+=fr.left-wr.left-wr.width/2+fr.width/2; } }
@@ -1400,7 +1401,7 @@ function renderMulti(){
   $("shTitle").innerHTML=all.length+'칸 한번에 바꾸기<small>'+esc(C().name)+(ST().maps.length>1?' · '+esc(MAP().name):'')+' · 빈칸 '+keys.length+' · 상자 '+bkeys.length+'</small>';
   $("shBody").innerHTML=(bkeys.length?'<button class="btn primary gmbtn" id="gmStart">고른 상자 '+bkeys.length+'개 한번에 이동</button>':'')+'<p class="hint">배경색 (고른 빈칸·상자 모두)</p><div class="palette">'+PAL.map(function(p){return '<button class="sw p-'+p[0]+'" data-pc="'+p[0]+'">'+p[1]+'</button>';}).join("")+'<button class="sw none" data-pc="">색 없음</button></div>'+
     (keys.length?'':'<p class="hint">상자만 골랐습니다. 품목·표시 칸은 빈칸을 고를 때 넣을 수 있습니다.</p>')+
-    '<div id="mlPlace"'+(keys.length?'':' hidden')+'><p class="hint" style="margin-top:12px">빈칸에 약도 표시용 칸 넣기</p><div class="marks">'+["통로","기둥","출입구","벽","시퀀스","공용기","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":"")+'" data-mm="'+m+'">'+m+'</button>';}).join("")+'<button class="btn" data-mm="">빈렉</button></div>'+
+    '<div id="mlPlace"'+(keys.length?'':' hidden')+'><p class="hint" style="margin-top:12px">빈칸에 약도 표시용 칸 넣기</p><div class="marks">'+["통로","기둥","출입구","벽","시퀀스","공용기","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":"")+'" data-mm="'+m+'">'+m+'</button>';}).join("")+'<button class="btn" data-mm="">빈렉or타업체</button></div>'+
     '<div class="manual mkown"><input id="mlOwn" maxlength="12" placeholder="직접입력 (예: 지게차, 랙A)" aria-label="표시 칸 이름 직접 입력"><button class="btn primary" id="mlOwnOk">표시</button></div>'+
     '<p class="hint" style="margin-top:12px">품목으로 채우기</p><input class="search" id="mlQ" type="search" placeholder="품번 검색" value="'+esc(mlQ)+'" aria-label="품번 검색"><div id="mlList"></div></div>';
   if($("gmStart")) $("gmStart").onclick=function(){
@@ -1419,7 +1420,7 @@ function renderMulti(){
     keys.forEach(function(k){ var a=k.split(","), r=+a[0], c=+a[1], t=+a[2]; if(boxAt(r,c,t)) return; st.boxes.push({id:uid(),mapId:mp.id,r:r,c:c,t:t,itemId:itemId||null,mark:mark||null,cur:null,seq:null,bg:(mp.paint||{})[k]||null}); n++; });
     if(itemId) useRecent(ui.cid,itemId);
     ui.multi=null; mlQ=""; closeSheet(); persist();
-    toast(n+"칸에 "+(itemId?label(item(itemId)):(mark||"빈렉"))+" 표시");
+    toast(n+"칸에 "+(itemId?label(item(itemId)):(mark||"빈렉or타업체"))+" 표시");
   }
   function list(){
     var q=mlQ.trim().toLowerCase().replace(/\s+/g,""), out="";
@@ -1514,7 +1515,7 @@ function endDrag(){
   if(!drag) return; var d=drag; drag=null; suppressClick=Date.now();
   d.ghost.remove(); d.el.classList.remove("dragging"); if(d.over) d.over.classList.remove("dropto"); clearGhosts();
   var b=box(d.id), t=d.over; if(!b||!t) return;
-  function nm(x){ return x.mark?x.mark:(x.itemId&&item(x.itemId)?label(item(x.itemId)):"빈렉"); }
+  function nm(x){ return x.mark?x.mark:(x.itemId&&item(x.itemId)?label(item(x.itemId)):"빈렉or타업체"); }
   if(t.dataset.b){
     var o=box(t.dataset.b); if(!o) return; if(o.fixed){ toast("고정된 상자와는 자리를 바꿀 수 없습니다"); return; }
     t.classList.add("dropto"); d.el.classList.add("dropfrom");
@@ -1677,7 +1678,7 @@ function detailLines(b,ctx,w){
   if(b.mark===SEQ){ var sq=b.seq?Object.keys(b.seq).reduce(function(a,k){return a+b.seq[k];},0):0; add("시퀀스","700",14); var sn=seqNoOf(b); if(sn) add(sn,"800",16); if(sq||!sn) add(sq>0?"차감 −"+sq:sq<0?"추가 +"+(-sq):"조정 0","500",13); return L; }
   if(b.mark){ add(b.mark,"700",14); return L; }
   var it=b.itemId?item(b.itemId):null;
-  if(!it){ add("빈렉","500",13); return L; }
+  if(!it){ add("빈렉or","500",13); add("타업체","500",13); return L; }
   add(it.code,"700",14); if(it.alias) add("("+it.alias+")","500",12,"muted");
   if(b.cur===null) add("미입력","500",13,"muted");
   else { add(sumA(b.cur)+"개","800",18); if(b.cur.length>1) add(b.cur.join("+")+" ("+b.cur.length+"파렛)","500",12,"muted"); }
@@ -1968,7 +1969,7 @@ function clearLine(mp,axis,idx,name){
   var st=ST(), on=st.boxes.filter(function(b){ return b.mapId===mp.id&&b[axis]===idx; });
   var block=on.filter(function(b){ return !emptyBox(b); });
   if(block.length){
-    var nm=block.slice(0,3).map(function(b){ return b.mark?b.mark:(b.itemId&&item(b.itemId)?label(item(b.itemId)):"빈렉"); }).join(", ");
+    var nm=block.slice(0,3).map(function(b){ return b.mark?b.mark:(b.itemId&&item(b.itemId)?label(item(b.itemId)):"빈렉or타업체"); }).join(", ");
     toast(name+"에 상자 "+block.length+"개("+nm+(block.length>3?" 등":"")+")가 있어 지울 수 없습니다"); return false;
   }
   if(on.length){ var ids={}; on.forEach(function(b){ ids[b.id]=1; }); st.boxes=st.boxes.filter(function(b){ return !ids[b.id]; }); }
