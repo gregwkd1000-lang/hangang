@@ -2431,15 +2431,17 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
       '<p class="hint" style="text-align:left;margin:0 0 6px">이 주소로 들어오면 누구나 볼 수 있습니다. (수정은 수정 코드가 있는 사람만)</p>'+
       '<input id="shareUrl" readonly value="'+URL_+'" aria-label="앱 주소" style="width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink)">'+
       '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">'+
-      '<button class="btn primary" id="shCopy">링크 복사</button>'+
-      '<a class="btn" id="shOpen" href="'+URL_+'" target="_blank" rel="noopener" style="text-align:center;text-decoration:none;color:var(--ink)">링크로 들어가기</a>'+
-      (navigator.share?'<button class="btn" id="shSend">카톡·문자로 보내기</button>':'')+
-      '<button class="btn" id="shClose">닫기</button></div>';
+      '<button class="btn primary" id="spCopy">링크 복사</button>'+
+      '<a class="btn" id="spOpen" href="'+URL_+'" target="_blank" rel="noopener" style="text-align:center;text-decoration:none;color:var(--ink)">링크로 들어가기</a>'+
+      (navigator.share&&!(window.claude&&window.claude.use)?'<button class="btn" id="spSend">카톡·문자로 보내기</button>':'<p class="hint" style="margin:0">카톡으로 보낼 때는 <b>링크 복사</b>를 누른 뒤 카톡 대화창에 붙여넣으세요.</p>')+
+      '<button class="btn" id="spClose">닫기</button></div>';
     dlg.classList.add("on");
-    $("shClose").onclick=function(){ dlg.classList.remove("on"); $("imgBox").innerHTML=""; };
+    function close(){ dlg.classList.remove("on"); $("imgBox").innerHTML=""; dlg.onclick=null; }
+    $("spClose").onclick=close;
+    dlg.onclick=function(e){ if(e.target===dlg) close(); };
     $("shareUrl").onclick=function(){ this.select(); };
-    $("shCopy").onclick=function(){ var b=this; copyTxt(URL_).then(function(){ b.textContent="복사했습니다 ✓"; toast("링크를 복사했습니다"); setTimeout(function(){ if(b.isConnected) b.textContent="링크 복사"; },2000); },function(){ $("shareUrl").select(); toast("주소를 길게 눌러 복사해 주세요"); }); };
-    if($("shSend")) $("shSend").onclick=function(){ navigator.share({title:"재고 약도",text:"재고 약도",url:URL_}).catch(function(){}); };
+    $("spCopy").onclick=function(){ var b=this; copyTxt(URL_).then(function(){ b.textContent="복사했습니다 ✓"; toast("링크를 복사했습니다"); setTimeout(function(){ if(b.isConnected) b.textContent="링크 복사"; },2000); },function(){ $("shareUrl").select(); toast("주소를 길게 눌러 복사해 주세요"); }); };
+    if($("spSend")) $("spSend").onclick=function(){ var b=this; try{ navigator.share({title:"재고 약도",url:URL_}).then(close,function(){ copyTxt(URL_).then(function(){ toast("링크를 복사했습니다 · 카톡에 붙여넣으세요"); },function(){}); }); }catch(e){ copyTxt(URL_).then(function(){ toast("링크를 복사했습니다 · 카톡에 붙여넣으세요"); },function(){}); } };
   };
 })();
 })();
