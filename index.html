@@ -449,7 +449,13 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .shots{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .shots::-webkit-scrollbar{display:none}
 .shot{flex:0 0 100%;scroll-snap-align:center;margin:0;display:flex;align-items:flex-start;justify-content:center}
-.shot img{max-height:62vh;object-fit:contain}
+.shot img{max-height:62vh;object-fit:contain;cursor:zoom-in}
+.zv{position:fixed;inset:0;z-index:70;background:#0f1216;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.zv[hidden]{display:none}
+#zvClose{background:#fff;color:#111827;border:0;font-weight:800}
+.zvbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;color:#cbd2d9;font-size:13px}
+.zvwrap{flex:1;min-height:0;overflow:auto;display:flex;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+.zvwrap img{display:block;margin:auto;max-width:none;flex:none;background:#fff}
 .shotbar{display:flex;justify-content:space-between;align-items:center;font-size:15px;padding:0 4px}
 .shotbar span{color:var(--muted)}
 .shotdots{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:4px 0}
@@ -581,6 +587,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
       <div class="filters" id="outFind" hidden></div>
       <div class="filters">
         <button class="chipbtn" aria-pressed="false" id="noNote">괄호 특이사항 빼기</button>
+        <button class="chipbtn" aria-pressed="false" id="noGong" hidden>공용기 멘트 빼기</button>
       </div>
       <textarea id="out" readonly aria-label="보낼 내용"></textarea>
       <div class="toolbar" style="margin:10px 0 0"><button class="btn primary" id="copyBtn">복사하기</button><button class="btn" id="outImg">이미지로 저장</button></div>
@@ -614,9 +621,10 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
   <p class="hint ovfoot">상자나 빈칸을 누르면 여기서 바로 수정할 수 있습니다</p>
 </div>
 <div class="dlg imgdlg" id="imgDlg"><div class="panel" id="imgBox"></div></div>
+<div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110062328";</script>
+<script>window.HG_BUILD="20261110063457";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1285,6 +1293,10 @@ function renderShare(){
       lines.push(label(it)+":"+v+(it.note&&!ui.noNote?"("+it.note+")":""));
     });
   });
+  /* 세종공업: 약도에 공용기 칸이 있으면 맨 밑에 멘트 */
+  var gn=ui.cid==="sejong"?ST().boxes.filter(function(b){ return String(b.mark||"").replace(/\s+/g,"")==="공용기"&&(!om||b.mapId===om); }).length:0;
+  $("noGong").hidden=!gn;
+  if(gn&&!ui.noGong){ if(lines.length) lines.push(""); lines.push("공용기 "+gn+"개 있습니다."); }
   $("out").value=lines.join("\n");
 }
 /* 검색한 파렛트만: 상자 위치별 한 줄 + 품목 합계 */
@@ -2029,7 +2041,7 @@ function showShots(shots){
   $("imgBox").innerHTML=(n>1?'<div class="shotbar"><b id="shotLbl">'+esc(shots[0].name)+'</b><span id="shotNo">1 / '+n+'</span></div>':'')+
     '<div class="shots" id="shots">'+shots.map(function(s,i){ return '<figure class="shot"><img alt="'+esc(s.name)+' 약도 이미지" src="'+s.cv.toDataURL("image/png")+'"></figure>'; }).join("")+'</div>'+
     (n>1?'<div class="shotdots">'+shots.map(function(s,i){ return '<button data-shot="'+i+'" aria-label="'+esc(s.name)+'"'+(i?'':' aria-current="true"')+'>'+esc(s.name)+'</button>'; }).join("")+'</div>':'')+
-    '<p class="hint">'+(n>1?'옆으로 넘겨서 보세요 · ':'')+'이미지를 길게 눌러도 저장됩니다</p>'+
+    '<p class="hint">'+(n>1?'옆으로 넘겨서 보세요 · ':'')+'사진을 누르면 크게 볼 수 있어요 · 길게 눌러도 저장됩니다</p>'+
     '<div class="toolbar" style="justify-content:center"><button class="btn primary" id="shotDl">'+(n>1?n+'장 모두 다운로드':'다운로드')+'</button><button class="btn" id="imgClose">닫기</button></div>';
   $("imgDlg").classList.add("on");
   var box=$("shots");
@@ -2039,8 +2051,42 @@ function showShots(shots){
   box.addEventListener("scroll",function(){ clearTimeout(box._t); box._t=setTimeout(upd,60); });
   Array.prototype.forEach.call($("imgBox").querySelectorAll("[data-shot]"),function(b){ b.onclick=function(){ box.scrollTo({left:+b.dataset.shot*box.clientWidth,behavior:"smooth"}); }; });
   $("shotDl").onclick=function(){ downloadShots(shots); };
+  Array.prototype.forEach.call(box.querySelectorAll("img"),function(im){ im.onclick=function(){ openZoom(im.src); }; });
   $("imgClose").onclick=function(){ $("imgDlg").classList.remove("on"); $("imgBox").innerHTML=""; };
 }
+/* 사진 크게 보기: 두 손가락 확대 · 두 번 톡 */
+var ZV={z:1,base:1,nw:1,nh:1};
+function zvApply(z,cx,cy){
+  var w=$("zvWrap"), im=$("zvImg"), r=w.getBoundingClientRect();
+  z=Math.max(1,Math.min(8,z)); if(cx===undefined){ cx=r.left+r.width/2; cy=r.top+r.height/2; }
+  var ox=cx-r.left, oy=cy-r.top, oW=im.offsetWidth||1, oH=im.offsetHeight||1;
+  var fx=(w.scrollLeft+ox-im.offsetLeft)/oW, fy=(w.scrollTop+oy-im.offsetTop)/oH;
+  ZV.z=z; im.style.width=Math.round(ZV.nw*ZV.base*z)+"px"; im.style.height=Math.round(ZV.nh*ZV.base*z)+"px";
+  w.scrollLeft=fx*im.offsetWidth+im.offsetLeft-ox; w.scrollTop=fy*im.offsetHeight+im.offsetTop-oy;
+}
+function openZoom(src){
+  var im=$("zvImg"), w=$("zvWrap"); $("zv").hidden=false;
+  im.onload=function(){ ZV.nw=im.naturalWidth||1; ZV.nh=im.naturalHeight||1; ZV.base=Math.min((w.clientWidth-8)/ZV.nw,(w.clientHeight-8)/ZV.nh); w.scrollLeft=0; w.scrollTop=0; zvApply(1); };
+  im.src=src; if(im.complete&&im.naturalWidth) im.onload();
+}
+$("zvClose").onclick=function(){ $("zv").hidden=true; $("zvImg").removeAttribute("src"); };
+(function(){
+  var w=$("zvWrap"), pz=null, lastTap=0, gz=null;
+  function dist(t){ var dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy)||1; }
+  w.addEventListener("touchstart",function(e){ if(e.touches.length===2){ pz={d:dist(e.touches),z:ZV.z}; e.preventDefault(); } },{passive:false});
+  w.addEventListener("touchmove",function(e){ if(pz&&e.touches.length===2){ e.preventDefault(); zvApply(pz.z*dist(e.touches)/pz.d,(e.touches[0].clientX+e.touches[1].clientX)/2,(e.touches[0].clientY+e.touches[1].clientY)/2); } },{passive:false});
+  w.addEventListener("touchend",function(e){
+    if(pz){ if(e.touches.length<2) pz=null; return; }
+    if(e.changedTouches.length===1&&!e.touches.length){ var now=Date.now(), t=e.changedTouches[0];
+      if(now-lastTap<300){ e.preventDefault(); zvApply(ZV.z>1.2?1:2.5,t.clientX,t.clientY); lastTap=0; } else lastTap=now; }
+  },{passive:false});
+  w.addEventListener("dblclick",function(e){ zvApply(ZV.z>1.2?1:2.5,e.clientX,e.clientY); });
+  w.addEventListener("wheel",function(e){ if(e.ctrlKey){ e.preventDefault(); zvApply(ZV.z*Math.exp(-e.deltaY/200),e.clientX,e.clientY); } },{passive:false});
+  w.addEventListener("gesturestart",function(e){ gz=ZV.z; });
+  w.addEventListener("gesturechange",function(e){ if(gz!==null&&!pz) zvApply(gz*e.scale,e.clientX,e.clientY); });
+  w.addEventListener("gestureend",function(){ gz=null; });
+  window.addEventListener("resize",function(){ if(!$("zv").hidden&&$("zvImg").naturalWidth){ ZV.base=Math.min((w.clientWidth-8)/ZV.nw,(w.clientHeight-8)/ZV.nh); zvApply(ZV.z); } });
+})();
 $("ovSave").onclick=function(){ askImgOpt(this); };
 $("navImg").onclick=function(){ askImgOpt(this); };
 /* 프로그램이 안 도는 미리보기(아이폰 파일 앱 등)용: 모든 탭 약도·현황을 그림으로 미리 만들어 둠 */
@@ -2191,10 +2237,11 @@ $("itemList").addEventListener("click",function(e){ var r=e.target.closest("[dat
 $("q").oninput=function(){ ui.q=this.value; renderItems(); };
 Array.prototype.forEach.call(document.querySelectorAll("[data-f]"),function(b){ b.onclick=function(){ ui.filter=b.dataset.f; document.querySelectorAll("[data-f]").forEach(function(x){x.setAttribute("aria-pressed",x===b);}); renderItems(); }; });
 Array.prototype.forEach.call(document.querySelectorAll("[data-o]"),function(b){ b.onclick=function(){ ui.out=b.dataset.o; document.querySelectorAll("[data-o]").forEach(function(x){x.setAttribute("aria-pressed",x===b);}); renderShare(); }; });
-try{ var so=JSON.parse(localStorage.getItem("stockmap-shareopt")||"{}"); ui.noNote=!!so.noNote; }catch(e){}
-function shareOpts(){ $("noNote").setAttribute("aria-pressed",!!ui.noNote); try{localStorage.setItem("stockmap-shareopt",JSON.stringify({noNote:!!ui.noNote}));}catch(e){} renderShare(); }
+try{ var so=JSON.parse(localStorage.getItem("stockmap-shareopt")||"{}"); ui.noNote=!!so.noNote; ui.noGong=!!so.noGong; }catch(e){}
+function shareOpts(){ $("noNote").setAttribute("aria-pressed",!!ui.noNote); $("noGong").setAttribute("aria-pressed",!!ui.noGong); try{localStorage.setItem("stockmap-shareopt",JSON.stringify({noNote:!!ui.noNote,noGong:!!ui.noGong}));}catch(e){} renderShare(); }
+$("noGong").onclick=function(){ ui.noGong=!ui.noGong; shareOpts(); };
 $("noNote").onclick=function(){ ui.noNote=!ui.noNote; shareOpts(); };
-$("noNote").setAttribute("aria-pressed",!!ui.noNote);
+$("noNote").setAttribute("aria-pressed",!!ui.noNote); $("noGong").setAttribute("aria-pressed",!!ui.noGong);
 /* 보낼 재고 내용을 그림(PNG)으로 저장 */
 function drawTextCanvas(txt){
   var sc=2, W=720, pad=28, fs=17, lh=26, font='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif';
