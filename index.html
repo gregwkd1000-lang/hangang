@@ -249,7 +249,7 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .sqc input{width:52px;color:var(--warn);font-weight:600;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);text-align:center;font-family:var(--font-num);font-size:15px}
 .sqv{font-family:var(--font-num);color:var(--warn)}
 .box{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
-body.android #grid .box{touch-action:none}
+body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .box.dragging{opacity:.35}
 .box.dropfrom{outline:3px dashed var(--accent);outline-offset:1px}
 .ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;opacity:.92;box-shadow:0 10px 24px rgba(0,0,0,.3);margin:0}
@@ -1582,8 +1582,9 @@ var ANDROID=/Android/i.test(navigator.userAgent); if(ANDROID) document.body.clas
 /* 안드로이드: 상자 위에서는 브라우저 스크롤을 끄고(꾹 눌러 옮기기용) 손가락으로 밀면 직접 스크롤 */
 var apan=null;
 function panBy(el,dx,dy){
-  var w=el.closest(".mapwrap"), rx=dx, ry=dy;
+  var w=el.closest(".mapwrap,.ovwrap"), rx=dx, ry=dy;
   if(w){ var l=w.scrollLeft, t=w.scrollTop; w.scrollLeft+=rx; w.scrollTop+=ry; rx-=w.scrollLeft-l; ry-=w.scrollTop-t; }
+  if(w&&w.classList.contains("ovwrap")) return;
   if(Math.abs(ry)>0||Math.abs(rx)>0){ var m=document.querySelector("main"); if(m&&m.scrollHeight>m.clientHeight&&getComputedStyle(m).overflowY!=="visible"){ var t2=m.scrollTop; m.scrollTop+=ry; ry-=m.scrollTop-t2; } if(ry||rx) window.scrollBy(rx,ry); }
 }
 function startDrag(bEl,x,y){
@@ -1593,17 +1594,18 @@ function startDrag(bEl,x,y){
   var fb=box(bEl.dataset.b); if(fb&&fb.fixed){ toast("고정된 상자는 옮길 수 없습니다"); return; }
   var r=bEl.getBoundingClientRect(), g=bEl.cloneNode(true);
   g.classList.add("ghost"); g.style.width=r.width+"px"; g.style.height=r.height+"px"; document.body.appendChild(g);
-  drag={id:bEl.dataset.b,el:bEl,ghost:g,dx:x-r.left,dy:y-r.top,over:null};
+  var root=bEl.closest("#ovGrid")?$("ovGrid"):$("grid"); g.style.setProperty("--cell",r.width+"px");
+  drag={id:bEl.dataset.b,el:bEl,ghost:g,dx:x-r.left,dy:y-r.top,over:null,root:root,wrap:root.parentNode};
   bEl.classList.add("dragging"); moveDrag(x,y);
   try{ if(navigator.vibrate) navigator.vibrate(15); }catch(e){}
 }
 function moveDrag(x,y){
   if(!drag) return;
   drag.ghost.style.transform="translate("+(x-drag.dx)+"px,"+(y-drag.dy)+"px)";
-  var el=document.elementFromPoint(x,y), c=el&&el.closest?el.closest("#grid .cell"):null;
+  var el=document.elementFromPoint(x,y), c=el&&el.closest?el.closest(".cell"):null; if(c&&!drag.root.contains(c)) c=null;
   if(drag.over&&drag.over!==c) drag.over.classList.remove("dropto");
   drag.over=(c&&c!==drag.el)?c:null; if(drag.over) drag.over.classList.add("dropto");
-  var w=document.querySelector(".mapwrap"), wr=w.getBoundingClientRect(), m=36;
+  var w=drag.wrap||document.querySelector(".mapwrap"), wr=w.getBoundingClientRect(), m=36;
   if(y<wr.top+m) w.scrollTop-=12; else if(y>wr.bottom-m) w.scrollTop+=12;
   if(x<wr.left+m) w.scrollLeft-=12; else if(x>wr.right-m) w.scrollLeft+=12;
 }
@@ -1635,12 +1637,13 @@ $("grid").addEventListener("mousedown",function(e){ if(Date.now()-lastTouch<1500
 document.addEventListener("mousemove",function(e){ if(lp&&(Math.abs(e.clientX-lp.x)>6||Math.abs(e.clientY-lp.y)>6)) lpCancel(); });
 document.addEventListener("mouseup",lpCancel);
 $("grid").addEventListener("contextmenu",function(e){ if(e.target.closest(".cell.empty")) e.preventDefault(); });
-$("grid").addEventListener("touchstart",function(e){
+function dragTouchStart(e){
   lastTouch=Date.now(); if(drag||e.touches.length>1){ if(pend){ clearTimeout(pend.timer); pend=null; } return; }
   var bEl=e.target.closest(".box"); if(!bEl||viewOnly()) return;
   if(pend&&pend.timer) clearTimeout(pend.timer);
   var t=e.touches[0]; pend={el:bEl,x:t.clientX,y:t.clientY,timer:setTimeout(function(){ if(pend){ startDrag(pend.el,pend.x,pend.y); pend=null; } },350)};
-},{passive:true});
+}
+$("grid").addEventListener("touchstart",dragTouchStart,{passive:true}); $("ovGrid").addEventListener("touchstart",dragTouchStart,{passive:true});
 document.addEventListener("touchmove",function(e){
   var t=e.touches[0];
   if(drag){ e.preventDefault(); moveDrag(t.clientX,t.clientY); return; }
@@ -1651,13 +1654,14 @@ document.addEventListener("touchmove",function(e){
 document.addEventListener("touchend",function(e){ if(apan&&!e.touches.length){ apan=null; suppressClick=Date.now(); } if(pend){ clearTimeout(pend.timer); pend=null; } if(drag){ e.preventDefault(); endDrag(); } else if(!e.touches.length) setTimeout(function(){ if(!drag) clearGhosts(); },0); },{passive:false});
 document.addEventListener("touchcancel",function(){ apan=null; if(pend){ clearTimeout(pend.timer); pend=null; } if(drag){ var d=drag; d.over=null; endDrag(); } });
 $("grid").addEventListener("mousedown",function(e){ if(Date.now()-lastTouch<1500) return; var bEl=e.target.closest(".box"); if(!bEl||e.button!==0||viewOnly()) return; pend={el:bEl,x:e.clientX,y:e.clientY,mouse:true}; });
+$("ovGrid").addEventListener("mousedown",function(e){ if(Date.now()-lastTouch<1500) return; var bEl=e.target.closest(".box"); if(!bEl||e.button!==0||viewOnly()) return; pend={el:bEl,x:e.clientX,y:e.clientY,mouse:true}; });
 document.addEventListener("mousemove",function(e){
   if(drag){ moveDrag(e.clientX,e.clientY); return; }
   if(pend&&pend.mouse&&(Math.abs(e.clientX-pend.x)>6||Math.abs(e.clientY-pend.y)>6)){ var p0=pend; pend=null; startDrag(p0.el,e.clientX,e.clientY); }
 });
 document.addEventListener("mouseup",function(){ if(pend&&pend.mouse) pend=null; if(drag) endDrag(); else clearGhosts(); });
 document.addEventListener("visibilitychange",function(){ if(document.hidden&&drag){ var d=drag; d.over=null; endDrag(); } });
-$("grid").addEventListener("contextmenu",function(e){ if(e.target.closest(".box")) e.preventDefault(); });
+$("grid").addEventListener("contextmenu",function(e){ if(e.target.closest(".box")) e.preventDefault(); }); $("ovGrid").addEventListener("contextmenu",function(e){ if(e.target.closest(".box")) e.preventDefault(); });
 function gridClick(e){
   if(Date.now()-suppressClick<500) return;
   if(lpFired){ lpFired=false; return; }
