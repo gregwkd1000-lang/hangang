@@ -536,7 +536,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
     </div>
     <div class="mapwrap"><div class="grid" id="grid"></div></div>
     <div class="boxfind">
-      <input class="search" id="bq" type="search" placeholder="상자 찾기 · 품번 입력 (예: N2P, 9360)" aria-label="약도에서 상자 찾기" autocomplete="off">
+      <input class="search" id="bq" type="search" placeholder="상자 찾기 · 여러 개는 쉼표·띄어쓰기 (예: N2P, 9360)" aria-label="약도에서 상자 찾기" autocomplete="off">
       <div id="bqInfo" class="hint"></div>
     </div>
     <div class="legend" id="legend"></div>
@@ -613,7 +613,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
   <div class="ovhead">
     <div class="ovtop"><b id="ovTitle">전체보기</b><button class="btn ovsave" id="ovSave">이미지 저장</button><button class="x" id="ovClose" aria-label="전체보기 닫기">×</button></div>
     <div id="ovTabs"></div>
-    <input class="search" id="ovq" type="search" placeholder="상자 찾기 · 품번 입력" aria-label="전체보기에서 상자 찾기" autocomplete="off">
+    <input class="search" id="ovq" type="search" placeholder="상자 찾기 · 여러 개는 쉼표·띄어쓰기" aria-label="전체보기에서 상자 찾기" autocomplete="off">
     <div id="ovInfo" class="hint"></div>
   </div>
   <div class="ovwrap" id="ovWrap"><div class="grid ovgrid" id="ovGrid"></div></div>
@@ -624,7 +624,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110072714";</script>
+<script>window.HG_BUILD="20261110073022";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1164,8 +1164,8 @@ function renderMap(){
   else mb.innerHTML="";
   var fq=flipOf(); $("flipV").classList.toggle("on",fq.v); $("flipV").setAttribute("aria-pressed",fq.v); $("flipH").classList.toggle("on",fq.h); $("flipH").setAttribute("aria-pressed",fq.h);
   var g=$("grid"); g.classList.toggle("insmode",!!ui.insMode); g.classList.toggle("locked",locked()); g.style.gridTemplateColumns="var(--hdw) repeat("+mp.cols+",var(--cell))";
-  var bq=(ui.bq||"").trim().toLowerCase().replace(/\s+/g,"");
-  function hitOf(b){ if(!bq) return ""; var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return txt.toLowerCase().replace(/\s+/g,"").indexOf(bq)>=0?" hit":" dim"; }
+  var bq=qNorm(ui.bq);
+  function hitOf(b){ if(!bq) return ""; var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return qHas(txt,bq)?" hit":" dim"; }
   var fl=flipOf();
   var h='<span class="hd corner" aria-hidden="true"><i>'+(fl.h?'←가':'가→')+'</i><i>'+(fl.v?'세↑':'세↓')+'</i></span>';
   for(var hci=0;hci<mp.cols;hci++){ var hc=fl.h?mp.cols-1-hci:hci; h+='<span class="hd hc" aria-hidden="true">'+(hc+1)+'</span>'; }
@@ -1201,7 +1201,7 @@ function renderMap(){
   var info=$("bqInfo");
   if(!bq){ info.innerHTML=""; }
   else {
-    var all=ST().boxes.filter(function(b){ var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return txt.toLowerCase().replace(/\s+/g,"").indexOf(bq)>=0; });
+    var all=ST().boxes.filter(function(b){ var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return qHas(txt,bq); });
     var here=all.filter(function(b){return b.mapId===mp.id;}).length, other=ST().maps.filter(function(m){return m.id!==mp.id;}).map(function(m){ return {m:m,n:all.filter(function(b){return b.mapId===m.id;}).length}; }).filter(function(x){return x.n;});
     info.innerHTML=(all.length?('이 약도에서 <b>'+here+'</b>개 찾음'):'일치하는 상자가 없습니다')+other.map(function(x){ return ' · <button class="linkbtn" data-gomap="'+x.m.id+'">'+esc(x.m.name)+'에 '+x.n+'개 보기</button>'; }).join("");
     if(ui.bqScroll){ ui.bqScroll=false; var f=g.querySelector(".hit"); if(f){ var w=document.querySelector(".mapwrap"), wr=w.getBoundingClientRect(), fr=f.getBoundingClientRect(); w.scrollTop+=fr.top-wr.top-wr.height/2+fr.height/2; w.scrollLeft+=fr.left-wr.left-wr.width/2+fr.width/2; } }
@@ -1852,9 +1852,12 @@ function gcol(k){ var c=grp(k).color||""; var m=/^var\((--[\w-]+)\)$/.exec(c); i
 var IMGFONT='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif';
 /* 검색한 파렛트만 (이미지·보내기) */
 var IMGQ=null;
-function qNorm(v){ return String(v||"").toLowerCase().replace(/\s+/g,""); }
-function itemHit(it,q){ return !!it&&qNorm(it.code+(it.alias||"")).indexOf(q)>=0; }
-function boxHit(b,q){ if(!q) return true; var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+(item(b.itemId).alias||"")):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+(x.alias||""):""; }).join(""); return qNorm(txt).indexOf(q)>=0; }
+/* 검색어: 쉼표나 띄어쓰기로 여러 개 → 하나라도 맞으면 찾음 */
+function qNorm(v){ return String(v||"").toLowerCase().split(/[\s,，、]+/).filter(function(x){return x;}).join(","); }
+function tNorm(v){ return String(v||"").toLowerCase().replace(/\s+/g,""); }
+function qHas(txt,q){ if(!q) return true; var t=tNorm(txt); return q.split(",").some(function(w){ return w&&t.indexOf(w)>=0; }); }
+function itemHit(it,q){ return !!it&&qHas(it.code+(it.alias||""),q); }
+function boxHit(b,q){ if(!q) return true; var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+(item(b.itemId).alias||"")):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+(x.alias||""):""; }).join(""); return qHas(txt,q); }
 /* 상자 안에서 검색어에 맞는 품목들의 파렛트 [{it,cur}] (상자 이름표 자체가 맞으면 상자 전체) */
 function hitParts(b,q){
   var parts=[]; if(b.itemId) parts.push({it:item(b.itemId),cur:b.cur}); (b.mix||[]).forEach(function(m){ parts.push({it:item(m.itemId),cur:m.cur}); });
