@@ -733,9 +733,12 @@ ui.cid=COMPANIES[0].id;
 try{ var cc=localStorage.getItem("stockmap-company"); if(cc&&CMAP[cc]) ui.cid=cc; }catch(e){}
 function C(){ return CMAP[ui.cid]; } function ST(){ return ui.snap?ui.snap.state:S[ui.cid].state; }
 var PRACTICE=false, PRAC_REAL={};
+/* Claude 앱은 이제 입구(보기 전용) — 입력은 GitHub 링크에서 */
+var APP_URL="https://gregwkd1000-lang.github.io/hangang/";
+function retired(){ return !!(window.claude&&window.claude.use); }
 function locked(){ return !PRACTICE&&!ui.snap&&!!(S[ui.cid].state.survey&&S[ui.cid].state.survey.closed); }
-function viewOnly(){ return !!ui.snap||locked()||(!PRACTICE&&typeof GAS!=="undefined"&&GAS&&!canEdit()); }
-function ro(){ if(!PRACTICE&&GAS&&!canEdit()&&!ui.snap){ askCode(); return true; } if(ui.snap){ toast("지난 기록은 볼 수만 있습니다"); return true; } if(locked()){ toast("마감된 회차입니다. 마감 해제 후 고칠 수 있습니다"); return true; } return false; }
+function viewOnly(){ return !!ui.snap||(retired()&&!PRACTICE)||locked()||(!PRACTICE&&typeof GAS!=="undefined"&&GAS&&!canEdit()); }
+function ro(){ if(retired()&&!PRACTICE&&!ui.snap){ showMoved(); return true; } if(!PRACTICE&&GAS&&!canEdit()&&!ui.snap){ askCode(); return true; } if(ui.snap){ toast("지난 기록은 볼 수만 있습니다"); return true; } if(locked()){ toast("마감된 회차입니다. 마감 해제 후 고칠 수 있습니다"); return true; } return false; }
 function MAP(){ var ms=ST().maps, id=ui.map[ui.cid]; for(var i=0;i<ms.length;i++) if(ms[i].id===id) return ms[i]; return ms[0]; }
 function mapName(id){ var ms=ST().maps; for(var i=0;i<ms.length;i++) if(ms[i].id===id) return ms[i].name; return ""; }
 var dbReady=false, readOnly=false;
@@ -930,6 +933,7 @@ function setSync(t,cls){ var el=$("sync"); el.textContent=t; el.className="pill"
 function syncLabel(){
   var x=S[ui.cid];
   if(PRACTICE) return setSync("연습 중 · 저장 안 됨","bad");
+  if(retired()) return setSync("보기 전용 · 입력은 링크에서","bad");
   if(!dbReady) return setSync("이 기기에 저장");
   if(GAS&&!canEdit()) return setSync(x.got?"보기 전용 · 수정하려면 누르기":"불러오는 중…",x.got?"bad":"");
   if(readOnly) return setSync("보기 전용","bad");
@@ -956,6 +960,7 @@ function persist(){
 function persistId(id){
   var x=S[id];
   if(PRACTICE){ renderAll(); return; } // 연습 모드: 저장하지 않음
+  if(retired()){ renderAll(); return; } // Claude 앱은 보기 전용
   if(GAS&&!canEdit()){ if(SHADOW[id]) x.state=normalize(CMAP[id],JSON.parse(JSON.stringify(SHADOW[id]))); renderAll(); askCode(); return; }
   x.fresh=false; localSave(id); renderAll();
   if(!x.ref||readOnly){ syncLabel(); return; }
@@ -1578,7 +1583,7 @@ function endDrag(){
 }
 /* 빈칸 1초 꾹 누르기 → 여러 칸 선택 */
 var lp=null, lpFired=false, lastTouch=0;
-function lpStart(el,x,y){ lpFired=false; if(!el||viewOnly()||ui.moving||ui.insMode||ui.multi) return; lp={el:el,x:x,y:y,timer:setTimeout(function(){ if(!lp) return; var c=lp.el; lp=null; lpFired=true; enterMulti(c); },1000)}; }
+function lpStart(el,x,y){ if(viewOnly()) return;  lpFired=false; if(!el||viewOnly()||ui.moving||ui.insMode||ui.multi) return; lp={el:el,x:x,y:y,timer:setTimeout(function(){ if(!lp) return; var c=lp.el; lp=null; lpFired=true; enterMulti(c); },1000)}; }
 function lpCancel(){ if(lp){ clearTimeout(lp.timer); lp=null; } }
 function cellKey(el){ return el.dataset.r+","+el.dataset.c+","+(el.dataset.t||0); }
 function enterMulti(el){ ui.multi={}; ui.multi[cellKey(el)]=1; try{ if(navigator.vibrate) navigator.vibrate(25); }catch(e){} renderMap(); toast("여러 칸 선택 · 빈칸을 더 눌러 고르세요"); }
@@ -1629,6 +1634,7 @@ function gridClick(e){
   }
   var r=+t.dataset.r, c=+t.dataset.c, tr=+(t.dataset.t||0);
   if(ui.snap) return;
+  if(!PRACTICE&&(retired()||(GAS&&!canEdit()))){ ro(); return; }
   if(locked()){ toast("마감된 회차입니다"); return; }
   if(ui.moving){ var mb=box(ui.moving); if(mb){mb.r=r; mb.c=c; mb.t=tr; mb.mapId=MAP().id;} ui.moving=null; persist(); return; }
   if(!ui.place) return;
@@ -2255,7 +2261,7 @@ renderAll();
 setTimeout(function(){ var a=document.querySelector('.ctab[aria-selected="true"]'); if(a&&a.scrollIntoView) a.scrollIntoView({inline:"center",block:"nearest"}); },0);
 /* 날짜가 바뀌면 그날 1차 조사로 자동 전환 (전날 회차는 기록에 남고, 수량은 비움 · 지난 기록에서 불러오기 가능) */
 function autoRoll(id){
-  if(PRACTICE) return false;
+  if(PRACTICE||retired()) return false;
   if(GAS&&!canEdit()) return false;
   var x=S[id], st=x.state, d=today();
   if(!st||!st.survey||st.survey.manual||st.survey.date>=d||x.dirty||x.saving) return false;
@@ -2287,7 +2293,7 @@ function copyCounts(st,src){
 }
 var filling={};
 async function fillFromLast(id){
-  if(PRACTICE) return;
+  if(PRACTICE||retired()) return;
   if(GAS&&!canEdit()) return;
   var x=S[id], st=x&&x.state; if(!st||!st.survey||st.survey.filled||st.survey.closed||st.survey.round!==1||filling[id]) return;
   if(!emptyCounts(st)){ return; }
@@ -2444,6 +2450,20 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
     if($("spSend")) $("spSend").onclick=function(){ var b=this; try{ navigator.share({title:"재고 약도",url:URL_}).then(close,function(){ copyTxt(URL_).then(function(){ toast("링크를 복사했습니다 · 카톡에 붙여넣으세요"); },function(){}); }); }catch(e){ copyTxt(URL_).then(function(){ toast("링크를 복사했습니다 · 카톡에 붙여넣으세요"); },function(){}); } };
   };
 })();
+/* Claude 앱 입구 안내 */
+function showMoved(){
+  var dlg=$("imgDlg"); if(dlg.classList.contains("on")) return;
+  $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">재고 약도는 이제 링크에서 씁니다</h3>'+
+    '<p style="text-align:left;margin:0 0 10px;line-height:1.5">입력·마감은 아래 링크(사파리)에서 해 주세요. 모두 같은 데이터를 보고, 다른 사람이 고친 내용도 바로 반영됩니다.<br><span class="hint">이 Claude 앱 화면은 예전 기록을 보는 용도(보기 전용)입니다.</span></p>'+
+    '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px">'+
+    '<a class="btn primary" href="'+APP_URL+'" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">재고 약도 열기</a>'+
+    '<button class="btn" id="mvCopy">링크 복사</button>'+
+    '<button class="btn" id="mvClose">이 화면 그대로 보기</button></div>';
+  dlg.classList.add("on");
+  $("mvClose").onclick=function(){ dlg.classList.remove("on"); $("imgBox").innerHTML=""; };
+  $("mvCopy").onclick=function(){ var b=this; (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(APP_URL):Promise.reject()).then(function(){ b.textContent="복사했습니다 ✓"; toast("링크를 복사했습니다"); },function(){ toast(APP_URL); }); };
+}
+setTimeout(function(){ if(retired()) showMoved(); },400);
 })();
 
 </script>
