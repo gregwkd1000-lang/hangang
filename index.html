@@ -50,6 +50,10 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body.tallhdr{height:auto;min-height:100%;display:block}
+body.tallhdr>header{position:static}
+body.tallhdr>main{overflow:visible}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;-webkit-tap-highlight-color:transparent;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);display:flex;flex-direction:column}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -62,8 +66,8 @@ header{background:var(--surface);border-bottom:1px solid var(--line);padding:10p
 .brandname{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.02em}
 @media (prefers-color-scheme: dark){ .brandlogo{background:#fff;border-radius:6px;padding:3px 6px;height:20px} }
 .dlglogo{display:block;height:34px;width:auto;margin:2px auto 12px}
-.top{display:flex;align-items:center;gap:10px;padding:0 16px}
-.top h1{font-size:17px;margin:0;font-weight:700;flex:1;text-wrap:balance}
+.top{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:0 16px}
+.top h1{font-size:17px;margin:0;font-weight:700;flex:1 1 9em;min-width:9em;text-wrap:balance;word-break:keep-all}
 .top h1 small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
 .pill{font-size:12px;padding:4px 9px;border-radius:999px;background:var(--surface2);color:var(--muted);white-space:nowrap;border:1px solid var(--line)}
 .pill.ok{color:var(--good)} .pill.bad{color:var(--warn)}
@@ -392,8 +396,8 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .imgopt{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
 .imgopt input{width:22px;height:22px;margin-top:2px;flex:0 0 auto}
 .imgopt small{color:var(--muted)}
-.topbtns{display:flex;gap:6px;align-items:center}
-.sitebtn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.topbtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end;margin-left:auto}
+.sitebtn{white-space:nowrap;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .siteov{position:fixed;inset:0;z-index:90;background:var(--bg);display:none;flex-direction:column}
 .siteov.on{display:flex}
 .sitetop{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 8px;background:var(--surface);border-bottom:1px solid var(--line)}
@@ -2403,6 +2407,10 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
     function apply(h){ $("lmapEl").classList.toggle("nolbl",h); b.classList.toggle("on",h); b.textContent=h?"상호명 보이기":"상호명 숨기기"; }
     var h=false; try{ h=localStorage.getItem("hg-hidelbl")==="1"; }catch(e){} apply(h);
     b.addEventListener("click",function(){ h=!h; apply(h); try{ localStorage.setItem("hg-hidelbl",h?"1":"0"); }catch(e){} });
+  })();
+  (function(){ var hd=document.querySelector("header"); if(!hd) return;
+    function chk(){ var t=hd.offsetHeight>window.innerHeight*0.45; document.body.classList.toggle("tallhdr",t); }
+    chk(); window.addEventListener("resize",chk); if(window.ResizeObserver) new ResizeObserver(chk).observe(hd);
   })();
   function gpsStart(){
     if(!navigator.geolocation){ lmMsg("이 기기에서는 위치 기능을 쓸 수 없습니다."); return; }
