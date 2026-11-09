@@ -249,6 +249,7 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .sqc input{width:52px;color:var(--warn);font-weight:600;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);text-align:center;font-family:var(--font-num);font-size:15px}
 .sqv{font-family:var(--font-num);color:var(--warn)}
 .box{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+body.android #grid .box{touch-action:none}
 .box.dragging{opacity:.35}
 .box.dropfrom{outline:3px dashed var(--accent);outline-offset:1px}
 .ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;opacity:.92;box-shadow:0 10px 24px rgba(0,0,0,.3);margin:0}
@@ -1577,6 +1578,14 @@ $("ctabs").addEventListener("click",function(e){
 /* 상자 끌어서 옮기기: 휴대폰은 꾹 누른 뒤 끌기, PC는 바로 끌기. 빈칸이면 이동, 다른 상자 위면 자리 바꿈 */
 var drag=null, pend=null, suppressClick=0;
 function clearGhosts(){ Array.prototype.forEach.call(document.querySelectorAll("body > .ghost"),function(g){ g.remove(); }); Array.prototype.forEach.call(document.querySelectorAll(".box.dragging"),function(x){ x.classList.remove("dragging"); }); }
+var ANDROID=/Android/i.test(navigator.userAgent); if(ANDROID) document.body.classList.add("android");
+/* 안드로이드: 상자 위에서는 브라우저 스크롤을 끄고(꾹 눌러 옮기기용) 손가락으로 밀면 직접 스크롤 */
+var apan=null;
+function panBy(el,dx,dy){
+  var w=el.closest(".mapwrap"), rx=dx, ry=dy;
+  if(w){ var l=w.scrollLeft, t=w.scrollTop; w.scrollLeft+=rx; w.scrollTop+=ry; rx-=w.scrollLeft-l; ry-=w.scrollTop-t; }
+  if(Math.abs(ry)>0||Math.abs(rx)>0){ var m=document.querySelector("main"); if(m&&m.scrollHeight>m.clientHeight&&getComputedStyle(m).overflowY!=="visible"){ var t2=m.scrollTop; m.scrollTop+=ry; ry-=m.scrollTop-t2; } if(ry||rx) window.scrollBy(rx,ry); }
+}
 function startDrag(bEl,x,y){
   if(drag){ var od=drag; drag=null; od.ghost.remove(); }
   clearGhosts();
@@ -1635,11 +1644,12 @@ $("grid").addEventListener("touchstart",function(e){
 document.addEventListener("touchmove",function(e){
   var t=e.touches[0];
   if(drag){ e.preventDefault(); moveDrag(t.clientX,t.clientY); return; }
-  if(pend&&(Math.abs(t.clientX-pend.x)>10||Math.abs(t.clientY-pend.y)>10)){ clearTimeout(pend.timer); pend=null; }
+  if(apan){ if(e.touches.length>1){ apan=null; return; } e.preventDefault(); panBy(apan.el,apan.x-t.clientX,apan.y-t.clientY); apan.x=t.clientX; apan.y=t.clientY; return; }
+  if(pend&&(Math.abs(t.clientX-pend.x)>10||Math.abs(t.clientY-pend.y)>10)){ clearTimeout(pend.timer); if(ANDROID&&!pend.mouse&&e.touches.length===1){ apan={el:pend.el,x:t.clientX,y:t.clientY}; panBy(pend.el,pend.x-t.clientX,pend.y-t.clientY); } pend=null; }
   else if(pend){ pend.x=t.clientX; pend.y=t.clientY; }
 },{passive:false});
-document.addEventListener("touchend",function(e){ if(pend){ clearTimeout(pend.timer); pend=null; } if(drag){ e.preventDefault(); endDrag(); } else if(!e.touches.length) setTimeout(function(){ if(!drag) clearGhosts(); },0); },{passive:false});
-document.addEventListener("touchcancel",function(){ if(pend){ clearTimeout(pend.timer); pend=null; } if(drag){ var d=drag; d.over=null; endDrag(); } });
+document.addEventListener("touchend",function(e){ if(apan&&!e.touches.length){ apan=null; suppressClick=Date.now(); } if(pend){ clearTimeout(pend.timer); pend=null; } if(drag){ e.preventDefault(); endDrag(); } else if(!e.touches.length) setTimeout(function(){ if(!drag) clearGhosts(); },0); },{passive:false});
+document.addEventListener("touchcancel",function(){ apan=null; if(pend){ clearTimeout(pend.timer); pend=null; } if(drag){ var d=drag; d.over=null; endDrag(); } });
 $("grid").addEventListener("mousedown",function(e){ if(Date.now()-lastTouch<1500) return; var bEl=e.target.closest(".box"); if(!bEl||e.button!==0||viewOnly()) return; pend={el:bEl,x:e.clientX,y:e.clientY,mouse:true}; });
 document.addEventListener("mousemove",function(e){
   if(drag){ moveDrag(e.clientX,e.clientY); return; }
