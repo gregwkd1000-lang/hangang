@@ -475,7 +475,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <body>
 <header>
   <div class="top">
-    <h1 id="title">재고 약도<small id="subline"></small></h1>
+    <h1 id="title">한강 재고관리시스템<small id="subline"></small></h1>
     <div class="topbtns"><button class="sitebtn" id="shareBtn" type="button" aria-label="앱 주소 공유">공유</button><button class="sitebtn" id="siteBtn" type="button" aria-label="고객사 위치도와 순회 길 안내 보기">위치도·길</button><span class="pill" id="sync">이 기기에 저장</span></div>
   </div>
   <div class="ctabs" id="ctabs" role="tablist" aria-label="회사"></div>
@@ -872,7 +872,7 @@ async function makeBackup(btn){
   await Promise.race([Promise.all(COMPANIES.map(function(c){ return loadHist(c.id).catch(function(){}); })),sleep(8000)]);
   var data={app:"stockmap",v:1,at:Date.now(),states:{},hist:{}};
   COMPANIES.forEach(function(c){ data.states[c.id]=S[c.id].state; data.hist[c.id]=histCache[c.id]||histLocal(c.id); });
-  var json=JSON.stringify(data), d=new Date(), fname="재고약도_백업_"+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"_"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0")+".json";
+  var json=JSON.stringify(data), d=new Date(), fname="한강재고_백업_"+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"_"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0")+".json";
   var blob=new Blob([json],{type:"application/json"}), done=false;
   var dl=null; try{ if(window.claude&&window.claude.use) dl=await window.claude.use("downloads"); }catch(e){}
   if(dl){ try{ await dl.save({filename:fname,data:blob}); done=true; toast("백업 파일을 저장했습니다"); }catch(err){ if(err&&err.code==="declined"){ done=true; toast("저장을 취소했습니다"); } else { try{ await dl.save({filename:fname.replace(/\.json$/,".txt"),data:new Blob([json],{type:"text/plain"})}); done=true; toast("백업 파일을 저장했습니다"); }catch(e2){} } } }
@@ -882,7 +882,7 @@ async function makeBackup(btn){
 }
 async function restoreBackup(file){
   var txt=await file.text(), data=null; try{ data=JSON.parse(txt); }catch(e){}
-  if(!data||data.app!=="stockmap"||!data.states){ toast("재고 약도 백업 파일이 아닙니다"); return; }
+  if(!data||data.app!=="stockmap"||!data.states){ toast("한강 재고관리시스템 백업 파일이 아닙니다"); return; }
   closeDlg();
   var when=new Date(data.at||0), wt=when.getFullYear()+"-"+String(when.getMonth()+1).padStart(2,"0")+"-"+String(when.getDate()).padStart(2,"0")+" "+String(when.getHours()).padStart(2,"0")+":"+String(when.getMinutes()).padStart(2,"0");
   ask(wt+" 백업으로 모든 탭을 바꿀까요? 지금 약도·수량은 백업 내용으로 덮어씁니다. 지난 기록도 함께 옮깁니다.","불러오기",async function(){
@@ -1094,7 +1094,7 @@ function timesHTML(sv){
 }
 function renderHeader(){
   var c=C(); document.title="한강 재고관리시스템";
-  $("title").innerHTML=esc(c.name)+' 재고 약도<small>'+esc(c.groups.map(function(g){return g.name;}).join(" · "))+'</small>';
+  $("title").innerHTML=esc(c.name)+'<small>'+esc(c.groups.map(function(g){return g.name;}).join(" · "))+'</small>';
   var k=countsSt(ST()), sv=ST().survey, old=!ui.snap&&sv.date!==today(), manualTxt=sv.manual?' · 지정 날짜':' · 지난 날짜';
   $("summary").innerHTML='<button class="survey'+(old?" old":"")+(ui.snap?" snap":"")+(locked()?" locked":"")+'" id="surveyBtn">'+fmtDate(sv.date)+' '+sv.round+(ui.snap?'차 기록 ✕':'차 조사'+(old?manualTxt:'')+(locked()?' · 마감':'')+' ▾')+'</button>'+(ui.snap?'':'<button class="closebtn'+(locked()?' on':'')+'" id="closeRound">'+(locked()?'마감 해제':'마감')+'</button>')+'<span>품목 <b>'+k.n+'</b></span><span>· 입력 <b>'+(k.done+k.diff)+'</b></span><span>· 차이 <b>'+k.diff+'</b></span><span>· 미입력 <b>'+k.todo+'</b></span><span>· 약도 상자 <b>'+k.boxes+'</b></span>'+timesHTML(sv);
   $("snapBanner").innerHTML=PRACTICE?'<div class="banner pracb"><span>연습 모드 · 입력해도 실제 재고에 저장되지 않습니다</span><button id="pracEnd">연습 끝내기</button></div>':'';
@@ -1687,7 +1687,7 @@ function drawOvCanvas(){
   ctx.fillStyle=bodyBg; ctx.fillRect(0,0,gr.width+pad*2,gr.height+pad*2+head);
   var sv=ST().survey, ff=getComputedStyle(document.body).fontFamily;
   ctx.fillStyle=ink; ctx.textBaseline="alphabetic"; ctx.font="700 18px "+ff;
-  ctx.fillText(C().name+(ST().maps.length>1?" · "+MAP().name:"")+" 재고 약도",pad,pad+20);
+  ctx.fillText(C().name+(ST().maps.length>1?" · "+MAP().name:""),pad,pad+20);
   var now=new Date(); ctx.font="500 12px "+ff; ctx.globalAlpha=.7;
   var __s=fmtDate(sv.date)+" "+sv.round+"차 조사 · 저장 "+now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0")+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0"); ctx.fillText(__s,pad,pad+40); ctx.__subw=ctx.measureText(__s).width;
   (function(){ var pt=palletText(MAP()); if(!pt) return; var sub=ctx.__sub||0; ctx.save(); ctx.globalAlpha=1; ctx.font="700 12px "+IMGFONT; ctx.fillStyle="#1d5fd1"; ctx.fillText("  ·  "+pt,pad+ctx.__subw,pad+40); ctx.restore(); })();
@@ -1770,7 +1770,7 @@ function drawDetailCanvas(mp){
   var x=cv.getContext("2d"); x.scale(sc,sc);
   x.fillStyle="#ffffff"; x.fillRect(0,0,W,H);
   x.fillStyle="#1a1f25"; x.textBaseline="alphabetic"; x.font="700 18px "+IMGFONT;
-  x.fillText(C().name+(st.maps.length>1?" · "+mp.name:"")+" 재고 약도",pad,pad+20);
+  x.fillText(C().name+(st.maps.length>1?" · "+mp.name:""),pad,pad+20);
   var now=new Date(); x.font="500 12px "+IMGFONT; x.fillStyle="#5b6570";
   var __s=fmtDate(sv.date)+" "+sv.round+"차 조사 · 저장 "+now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0")+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0"); x.fillText(__s,pad,pad+40); x.__subw=x.measureText(__s).width;
   (function(){ var pt=palletText(mp); if(!pt) return; var sub=x.__sub||0; x.save(); x.globalAlpha=1; x.font="700 12px "+IMGFONT; x.fillStyle="#1d5fd1"; x.fillText("  ·  "+pt,pad+x.__subw,pad+40); x.restore(); })();
@@ -1925,7 +1925,7 @@ $("navImg").onclick=function(){ askImgOpt(this); };
 function buildStatic(){
   var keep={cid:ui.cid,map:JSON.parse(JSON.stringify(ui.map)),bq:ui.bq,multi:ui.multi,moving:ui.moving,ins:ui.insMode,gm:ui.groupMove,snap:ui.snap,out:ui.out};
   ui.bq=""; ui.multi=null; ui.moving=null; ui.insMode=false; ui.groupMove=null; ui.snap=null; ui.out="cur";
-  var d=new Date(), out='<div id="staticView"><div class="stv-top"><h1>재고 약도 (보기 전용)</h1><p>내보낸 시각 '+d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+' · 이 화면은 미리보기라 수정할 수 없습니다. 수정하려면 웹 주소로 여세요.</p><nav>'+COMPANIES.map(function(c){return '<a href="#stv-'+c.id+'">'+esc(c.name)+'</a>';}).join("")+'</nav></div>';
+  var d=new Date(), out='<div id="staticView"><div class="stv-top"><h1>한강 재고관리시스템 (보기 전용)</h1><p>내보낸 시각 '+d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+' · 이 화면은 미리보기라 수정할 수 없습니다. 수정하려면 웹 주소로 여세요.</p><nav>'+COMPANIES.map(function(c){return '<a href="#stv-'+c.id+'">'+esc(c.name)+'</a>';}).join("")+'</nav></div>';
   COMPANIES.forEach(function(c){
     ui.cid=c.id; var st=S[c.id].state, sv=st.survey;
     out+='<section class="stv-co" id="stv-'+c.id+'"><h2>'+esc(c.name)+' <small>'+fmtDate(sv.date)+' '+sv.round+'차 조사</small></h2>';
@@ -1962,7 +1962,7 @@ if($("exportHtml")) $("exportHtml").onclick=async function(){
     var mainScript=root.querySelector("body > script:not([type])"); mainScript.parentNode.insertBefore(sc,mainScript);
     var stat=buildStatic(); root.querySelector("body").classList.add("nojs"); root.querySelector("body").insertAdjacentHTML("afterbegin",stat);
     var html="<!DOCTYPE html>\n"+root.outerHTML;
-    var d=new Date(), fname="재고약도_"+d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+".html";
+    var d=new Date(), fname="한강재고_"+d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+".html";
     var dl=null; try{ if(window.claude&&window.claude.use) dl=await window.claude.use("downloads"); }catch(e){}
     if(dl){ try{ await dl.save({filename:fname,data:new Blob([html],{type:"text/html"})}); toast("HTML 파일을 저장했습니다"); }catch(err){ toast(err&&err.code==="declined"?"저장을 취소했습니다":"저장하지 못했습니다 ("+(err&&err.code||"오류")+")"); } }
     else { var a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([html],{type:"text/html"})); a.download=fname; document.body.appendChild(a); a.click(); a.remove(); toast("HTML 파일을 만들었습니다"); }
@@ -2460,10 +2460,10 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
 /* Claude 앱 입구 안내 */
 function showMoved(){
   var dlg=$("imgDlg"); if(dlg.classList.contains("on")) return;
-  $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">재고 약도는 이제 링크에서 씁니다</h3>'+
+  $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">한강 재고관리시스템은 이제 링크에서 씁니다</h3>'+
     '<p style="text-align:left;margin:0 0 10px;line-height:1.5">입력·마감은 아래 링크(사파리)에서 해 주세요. 모두 같은 데이터를 보고, 다른 사람이 고친 내용도 바로 반영됩니다.<br><span class="hint">이 Claude 앱 화면은 예전 기록을 보는 용도(보기 전용)입니다.</span></p>'+
     '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px">'+
-    '<a class="btn primary" href="'+APP_URL+'" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">재고 약도 열기</a>'+
+    '<a class="btn primary" href="'+APP_URL+'" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">한강 재고관리시스템 열기</a>'+
     '<button class="btn" id="mvCopy">링크 복사</button>'+
     '<button class="btn" id="mvClose">이 화면 그대로 보기</button></div>';
   dlg.classList.add("on");
