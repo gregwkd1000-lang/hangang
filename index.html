@@ -273,6 +273,7 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .ovhead .maptabs{margin-bottom:6px}
 .ovwrap{flex:1;min-height:0;overflow:auto;padding:4px;display:flex;align-items:flex-start;justify-content:flex-start;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
 .ovwrap>.ovgrid{margin:0 auto}
+.updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:60;border:0;border-radius:999px;padding:10px 16px;background:#1d5fd1;color:#fff;font:inherit;font-weight:800;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .ovgrid.big .box .t1,.ovgrid.big .box .t2{white-space:normal;word-break:break-all;overflow:visible;text-overflow:clip}
 .ovgrid.big .box .t2{font-size:calc(var(--cell) * .12);line-height:1.15}
 .ovgrid.big .box .t1{font-size:calc(var(--cell) * .085)}
@@ -615,6 +616,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="dlg imgdlg" id="imgDlg"><div class="panel" id="imgBox"></div></div>
 <div class="toast" id="toast"></div>
 
+<script>window.HG_BUILD="20261110062328";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1895,7 +1897,7 @@ function drawDetailCanvas(mp){
   var y=oy+HDH;
   function drawCell(b,X,Y,w,h,pk){
     if(!b){ var pn=mp.paint&&mp.paint[pk]; x.fillStyle=pn&&PCOL[pn]?PCOL[pn][3]:"#f4f6f8"; rr(X,Y,w,h,5); x.fill(); x.strokeStyle="#dde2e7"; x.lineWidth=1; x.setLineDash([3,3]); x.stroke(); x.setLineDash([]); return; }
-    if(IMGQ&&!boxHit(b,IMGQ)){ x.fillStyle="#eef0f3"; rr(X,Y,w,h,6); x.fill(); x.strokeStyle="#dfe3e8"; x.lineWidth=1; x.stroke(); return; }
+    if(IMGQ&&!boxHit(b,IMGQ)&&!drawCell._f){ drawCell._f=1; x.save(); x.globalAlpha=.3; try{ drawCell(b,X,Y,w,h,pk); } finally{ x.restore(); drawCell._f=0; } return; }
     var it=b.itemId?item(b.itemId):null, fill="#ffffff", ink="#1a1f25", bd="#9aa5b1", dash=[];
     if(b.mark&&b.mark!==SEQ){ fill="#e4e7eb"; bd="#b8c0c8"; }
     if(b.mark===SEQ){ fill="#dbeafe"; bd="#1d5fd1"; }
@@ -1976,7 +1978,7 @@ function askImgOpt(btn){
   $("imgBox").innerHTML='<h3 style="margin:4px 0 12px;text-align:left">약도 이미지 저장</h3>'+
     '<label class="imgopt"><input type="checkbox" id="ioDetail"'+(o.detail?' checked':'')+'><span><b>상세하게</b><br><small>품번·별칭·갯수를 잘리지 않게 크게 표시</small></span></label>'+
     '<label class="imgopt"><input type="checkbox" id="ioLegend"'+(o.legend?' checked':'')+'><span><b>품목별 파렛트 수 표기</b><br><small>약도 아래에 품목마다 파렛트 수·수량 표</small></span></label>'+
-    (findQ()?(function(){ var q=findQ(), n=ST().boxes.filter(function(b){return boxHit(b,q);}).length; return '<label class="imgopt"><input type="checkbox" id="ioFind" checked><span><b>검색한 파렛트만</b><br><small>"'+esc(String(ui.bq).trim())+'" 상자 '+n+'개만 진하게, 나머지는 흐리게 · 해당 구역만 만듦</small></span></label>'; })():'')+
+    (findQ()?(function(){ var q=findQ(), n=ST().boxes.filter(function(b){return boxHit(b,q);}).length; return '<label class="imgopt"><input type="checkbox" id="ioFind" checked><span><b>검색한 파렛트만</b><br><small>"'+esc(String(ui.bq).trim())+'" 상자 '+n+'개는 진하게, 나머지 상자는 옅게 · 해당 구역만 만듦</small></span></label>'; })():'')+
     (ST().maps.length>1?'<p class="hint" style="text-align:left">구역 '+ST().maps.length+'곳('+ST().maps.map(function(m){return esc(m.name);}).join("·")+')이 각각 한 장씩 만들어집니다.</p>':'')+
     '<div class="toolbar" style="justify-content:center"><button class="btn primary" id="ioGo">만들기</button><button class="btn" id="ioCancel">취소</button></div>';
   $("imgDlg").classList.add("on");
@@ -2517,6 +2519,16 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
   (function(){ var hd=document.querySelector("header"); if(!hd) return;
     function chk(){ var t=hd.offsetHeight>window.innerHeight*0.45; document.body.classList.toggle("tallhdr",t); }
     chk(); window.addEventListener("resize",chk); if(window.ResizeObserver) new ResizeObserver(chk).observe(hd);
+  })();
+  /* GitHub 사이트: 새 버전이 올라오면 자동으로 새로 불러오기 (카톡·사파리 캐시 대비) */
+  (function(){ var B=window.HG_BUILD; if(!B||(window.claude&&window.claude.use)) return;
+    var t0=Date.now(), shown=false;
+    function go(v){ try{ if(sessionStorage.getItem("hg-tried")===v) return false; sessionStorage.setItem("hg-tried",v); }catch(e){} var u=new URL(location.href); u.searchParams.set("v",v); location.replace(u.toString()); return true; }
+    function chk(){ fetch("version.txt?t="+Date.now(),{cache:"no-store"}).then(function(r){ return r.ok?r.text():""; }).then(function(v){ v=(v||"").trim(); if(!v||v===B) return;
+      if(Date.now()-t0<4000){ if(go(v)) return; }
+      if(shown) return; shown=true; var bn=document.createElement("button"); bn.className="updbar"; bn.type="button"; bn.textContent="새 버전이 있어요 · 눌러서 새로고침"; bn.onclick=function(){ try{ sessionStorage.removeItem("hg-tried"); }catch(e){} go(v); }; document.body.appendChild(bn);
+    }).catch(function(){}); }
+    chk(); setInterval(chk,5*60*1000); document.addEventListener("visibilitychange",function(){ if(!document.hidden) chk(); });
   })();
   function gpsStart(){
     if(!navigator.geolocation){ lmMsg("이 기기에서는 위치 기능을 쓸 수 없습니다."); return; }
