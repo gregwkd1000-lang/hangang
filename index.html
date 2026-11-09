@@ -3,7 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>5공장 재고 약도</title>
+<title>한강 재고관리시스템</title>
+<meta property="og:title" content="한강 재고관리시스템">
+<meta property="og:description" content="공장·협력사별 재고조사 약도와 순회 길 안내">
+<meta name="apple-mobile-web-app-title" content="한강 재고관리시스템">
+<meta name="application-name" content="한강 재고관리시스템">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1086,7 +1090,7 @@ function timesHTML(sv){
   return '<div class="times">'+a.join("")+'</div>';
 }
 function renderHeader(){
-  var c=C(); document.title=c.name+" 재고 약도";
+  var c=C(); document.title="한강 재고관리시스템";
   $("title").innerHTML=esc(c.name)+' 재고 약도<small>'+esc(c.groups.map(function(g){return g.name;}).join(" · "))+'</small>';
   var k=countsSt(ST()), sv=ST().survey, old=!ui.snap&&sv.date!==today(), manualTxt=sv.manual?' · 지정 날짜':' · 지난 날짜';
   $("summary").innerHTML='<button class="survey'+(old?" old":"")+(ui.snap?" snap":"")+(locked()?" locked":"")+'" id="surveyBtn">'+fmtDate(sv.date)+' '+sv.round+(ui.snap?'차 기록 ✕':'차 조사'+(old?manualTxt:'')+(locked()?' · 마감':'')+' ▾')+'</button>'+(ui.snap?'':'<button class="closebtn'+(locked()?' on':'')+'" id="closeRound">'+(locked()?'마감 해제':'마감')+'</button>')+'<span>품목 <b>'+k.n+'</b></span><span>· 입력 <b>'+(k.done+k.diff)+'</b></span><span>· 차이 <b>'+k.diff+'</b></span><span>· 미입력 <b>'+k.todo+'</b></span><span>· 약도 상자 <b>'+k.boxes+'</b></span>'+timesHTML(sv);
@@ -2433,7 +2437,7 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
   function copyTxt(t){ if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(t); return new Promise(function(res,rej){ var i=$("shareUrl"); i.focus(); i.select(); i.setSelectionRange(0,999); try{ document.execCommand("copy")?res():rej(); }catch(e){ rej(e); } }); }
   $("shareBtn").onclick=function(){
     var dlg=$("imgDlg"); if(dlg.classList.contains("on")) return;
-    $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">재고 약도 주소</h3>'+
+    $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">한강 재고관리시스템 주소</h3>'+
       '<p class="hint" style="text-align:left;margin:0 0 6px">이 주소로 들어오면 누구나 볼 수 있습니다. (수정은 수정 코드가 있는 사람만)</p>'+
       '<input id="shareUrl" readonly value="'+URL_+'" aria-label="앱 주소" style="width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink)">'+
       '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">'+
@@ -2447,7 +2451,7 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
     dlg.onclick=function(e){ if(e.target===dlg) close(); };
     $("shareUrl").onclick=function(){ this.select(); };
     $("spCopy").onclick=function(){ var b=this; copyTxt(URL_).then(function(){ b.textContent="복사했습니다 ✓"; toast("링크를 복사했습니다"); setTimeout(function(){ if(b.isConnected) b.textContent="링크 복사"; },2000); },function(){ $("shareUrl").select(); toast("주소를 길게 눌러 복사해 주세요"); }); };
-    if($("spSend")) $("spSend").onclick=function(){ var b=this; try{ navigator.share({title:"재고 약도",url:URL_}).then(close,function(){ copyTxt(URL_).then(function(){ toast("링크를 복사했습니다 · 카톡에 붙여넣으세요"); },function(){}); }); }catch(e){ copyTxt(URL_).then(function(){ toast("링크를 복사했습니다 · 카톡에 붙여넣으세요"); },function(){}); } };
+    if($("spSend")) $("spSend").onclick=function(){ var b=this; try{ navigator.share({title:"한강 재고관리시스템",url:URL_}).then(close,function(){ copyTxt(URL_).then(function(){ toast("링크를 복사했습니다 · 카톡에 붙여넣으세요"); },function(){}); }); }catch(e){ copyTxt(URL_).then(function(){ toast("링크를 복사했습니다 · 카톡에 붙여넣으세요"); },function(){}); } };
   };
 })();
 /* Claude 앱 입구 안내 */
