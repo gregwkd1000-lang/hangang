@@ -624,7 +624,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110063457";</script>
+<script>window.HG_BUILD="20261110064807";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -713,7 +713,7 @@ function normalize(c,s){
   var oldMaps=Array.isArray(s.maps)?s.maps:[{id:c.maps[0].id,cols:s.cols,rows:s.rows}];
   var maps=c.maps.map(function(m,mi){ var o=oldMaps.filter(function(x){return x&&x.id===m.id;})[0]||(mi===0&&!oldMaps.some(function(x){return x&&c.maps.some(function(cm){return cm.id===x.id;});})?oldMaps[0]:null)||{}; return {id:m.id,name:m.name,cols:Math.max(2,Math.min(30,+o.cols||6)),rows:Math.max(2,Math.min(60,+o.rows||10)),tiers:normTiers(o.tiers),paint:normPaint(o.paint)}; });
   var mk={}; maps.forEach(function(m){mk[m.id]=1;});
-  var sv=s.survey&&/^\d{4}-\d{2}-\d{2}$/.test(s.survey.date)&&+s.survey.round>0?{date:s.survey.date,round:+s.survey.round,closed:!!s.survey.closed,manual:!!s.survey.manual,filled:!!s.survey.filled,closedAt:+s.survey.closedAt||null,closedBy:s.survey.closedBy?String(s.survey.closedBy):"",editedAt:+s.survey.editedAt||null,editedBy:s.survey.editedBy?String(s.survey.editedBy):""}:{date:today(),round:1};
+  var sv=s.survey&&/^\d{4}-\d{2}-\d{2}$/.test(s.survey.date)&&+s.survey.round>0?{date:s.survey.date,round:+s.survey.round,closed:!!s.survey.closed,manual:!!s.survey.manual,filled:!!s.survey.filled,closedAt:+s.survey.closedAt||null,closedBy:s.survey.closedBy?String(s.survey.closedBy):"",editedAt:+s.survey.editedAt||null,editedBy:s.survey.editedBy?String(s.survey.editedBy):"",reopened:!!s.survey.reopened}:{date:today(),round:1};
   var st={v:4,seedV:+s.seedV||1,survey:sv,maps:maps,
     items:s.items.filter(function(i){return i&&i.id&&i.code;}).map(function(i){
       var info=i.kind==="info";
@@ -780,9 +780,10 @@ var PRACTICE=false, PRAC_REAL={};
 /* Claude 앱은 이제 입구(보기 전용) — 입력은 GitHub 링크에서 */
 var APP_URL="https://gregwkd1000-lang.github.io/hangang/?v=3";
 function retired(){ return !!(window.claude&&window.claude.use); }
-function locked(){ return !PRACTICE&&!ui.snap&&!!(S[ui.cid].state.survey&&S[ui.cid].state.survey.closed); }
-function viewOnly(){ return !!ui.snap||(retired()&&!PRACTICE)||locked()||(!PRACTICE&&typeof GAS!=="undefined"&&GAS&&!canEdit()); }
-function ro(){ if(retired()&&!PRACTICE&&!ui.snap){ showMoved(); return true; } if(!PRACTICE&&GAS&&!canEdit()&&!ui.snap){ askCode(); return true; } if(ui.snap){ toast("지난 기록은 볼 수만 있습니다"); return true; } if(locked()){ toast("마감된 회차입니다. 마감 해제 후 고칠 수 있습니다"); return true; } return false; }
+function snapLocked(){ return !!ui.snap&&(!!ui.snap.none||!ui.snap.state.survey.reopened||!!ui.snap.state.survey.closed); }
+function locked(){ if(PRACTICE) return false; if(ui.snap) return snapLocked(); return !!(S[ui.cid].state.survey&&S[ui.cid].state.survey.closed); }
+function viewOnly(){ return !!(ui.snap&&ui.snap.none)||(retired()&&!PRACTICE)||locked()||(!PRACTICE&&typeof GAS!=="undefined"&&GAS&&!canEdit()); }
+function ro(){ if(retired()&&!PRACTICE){ showMoved(); return true; } if(!PRACTICE&&GAS&&!canEdit()){ askCode(); return true; } if(ui.snap&&ui.snap.none){ toast("이 날짜에는 이 탭 기록이 없습니다"); return true; } if(locked()){ toast(ui.snap?"마감된 기록입니다. 마감 해제 후 고칠 수 있습니다":"마감된 회차입니다. 마감 해제 후 고칠 수 있습니다"); return true; } return false; }
 function MAP(){ var ms=ST().maps, id=ui.map[ui.cid]; for(var i=0;i<ms.length;i++) if(ms[i].id===id) return ms[i]; return ms[0]; }
 function mapName(id){ var ms=ST().maps; for(var i=0;i<ms.length;i++) if(ms[i].id===id) return ms[i].name; return ""; }
 var dbReady=false, readOnly=false;
@@ -994,6 +995,12 @@ function editFp(st){
   return bx.join(",")+"#"+it.join(",");
 }
 function persist(){
+  if(ui.snap&&!PRACTICE){ /* 지난 기록 고치기: 그 기록에 그대로 저장 */
+    var sp=ui.snap; if(sp.none||retired()){ renderAll(); return; } if(GAS&&!canEdit()){ askCode(); renderAll(); return; }
+    var fp=editFp(sp.state); if(sp.fp!==undefined&&sp.fp!==fp){ sp.state.survey.editedAt=Date.now(); sp.state.survey.editedBy=who(); } sp.fp=fp;
+    var k=countsSt(sp.state), sn={id:sp.id,date:sp.date,round:sp.round,savedAt:Date.now(),done:k.done+k.diff,diff:k.diff,n:k.n,state:JSON.parse(JSON.stringify(sp.state))};
+    saveHistLocal(ui.cid,sn); saveHistDb(ui.cid,sn); renderAll(); return;
+  }
   var st=S[ui.cid]&&S[ui.cid].state;
   if(st&&st.survey&&!ui.snap&&!PRACTICE){
     var before=null; try{ var raw=localStorage.getItem(lsKey(ui.cid)); if(raw){ var o=JSON.parse(raw); if(o&&o.survey&&o.survey.date===st.survey.date&&o.survey.round===st.survey.round) before=editFp(normalize(CMAP[ui.cid],o)); } }catch(e){}
@@ -1132,8 +1139,8 @@ function timesHTML(sv){
 function renderHeader(){
   var c=C(); document.title="한강 재고관리시스템";
   $("title").innerHTML=esc(c.name)+'<small>'+esc(c.groups.map(function(g){return g.name;}).join(" · "))+'</small>';
-  var k=countsSt(ST()), sv=ST().survey, old=!ui.snap&&sv.date!==today(), manualTxt=sv.manual?' · 지정 날짜':' · 지난 날짜';
-  $("summary").innerHTML='<button class="survey'+(old?" old":"")+(ui.snap?" snap":"")+(locked()?" locked":"")+'" id="surveyBtn">'+fmtDate(sv.date)+' '+sv.round+(ui.snap?'차 기록 ✕':'차 조사'+(old?manualTxt:'')+(locked()?' · 마감':'')+' ▾')+'</button>'+(ui.snap?'':'<button class="closebtn'+(locked()?' on':'')+'" id="closeRound">'+(locked()?'마감 해제':'마감')+'</button>')+'<span>품목 <b>'+k.n+'</b></span><span>· 입력 <b>'+(k.done+k.diff)+'</b></span><span>· 차이 <b>'+k.diff+'</b></span><span>· 미입력 <b>'+k.todo+'</b></span><span>· 약도 상자 <b>'+k.boxes+'</b></span>'+timesHTML(sv);
+  var k=countsSt(ST()), sv=ST().survey, old=!ui.snap&&sv.date!==today(); if(ui.snap&&ui.snap.none) sv={date:ui.snap.date,round:""}; var _x=0, manualTxt=sv.manual?' · 지정 날짜':' · 지난 날짜';
+  $("summary").innerHTML='<button class="survey'+(old?" old":"")+(ui.snap?" snap":"")+(locked()?" locked":"")+'" id="surveyBtn">'+fmtDate(sv.date)+' '+sv.round+(ui.snap?(ui.snap.none?'':'차 기록')+(ui.snap.none?' 기록 없음':(locked()?' · 마감':''))+' ✕':'차 조사'+(old?manualTxt:'')+(locked()?' · 마감':'')+' ▾')+'</button>'+(ui.snap&&ui.snap.none?'':'<button class="closebtn'+(locked()?' on':'')+'" id="closeRound">'+(locked()?'마감 해제':'마감')+'</button>')+'<span>품목 <b>'+k.n+'</b></span><span>· 입력 <b>'+(k.done+k.diff)+'</b></span><span>· 차이 <b>'+k.diff+'</b></span><span>· 미입력 <b>'+k.todo+'</b></span><span>· 약도 상자 <b>'+k.boxes+'</b></span>'+timesHTML(sv);
   $("snapBanner").innerHTML=PRACTICE?'<div class="banner pracb"><span>연습 모드 · 입력해도 실제 재고에 저장되지 않습니다</span><button id="pracEnd">연습 끝내기</button></div>':'';
   if(PRACTICE&&$("pracEnd")) $("pracEnd").onclick=endPractice;
   $("legend").innerHTML=c.groups.map(function(g){return '<span><i style="background:'+g.color+'"></i>'+esc(g.name)+'</span>';}).join("")+
@@ -1308,7 +1315,7 @@ function findText(fq,om,areaName){
   var pal=0, sums={}, order=[];
   var L=bx.map(function(b){
     var mp=st.maps.filter(function(m){return m.id===b.mapId;})[0]||{}, two=isTwo(mp,b.r);
-    return (multi?"["+mp.name+"] ":"")+posTxt(b.r,b.c,two?(b.t||0):null)+" : "+hitParts(b,fq).map(function(p){
+    return (multi?"["+mp.name+"] ":"")+hitParts(b,fq).map(function(p){
       var n=palletsOf(p.cur); pal+=n; if(!sums[p.it.id]){ sums[p.it.id]={it:p.it,q:0,has:false,n:0}; order.push(p.it.id); }
       var S2=sums[p.it.id]; S2.n+=n; if(p.cur!==null){ S2.q+=sumA(p.cur); S2.has=true; }
       return label(p.it)+" "+(p.cur===null?"미입력":sumA(p.cur)+(n>1?" ("+n+"파렛)":""));
@@ -1615,7 +1622,7 @@ function renderPicker(b){
 /* ---------- events ---------- */
 $("ctabs").addEventListener("click",function(e){
   var t=e.target.closest("[data-c]"); if(!t||t.dataset.c===ui.cid) return;
-  closeOv(); ui.insMode=false; ui.multi=null; ui.groupMove=null; ui.cid=t.dataset.c; ui.snap=null; ui.moving=null; ui.bq=""; $("bq").value=""; ui.q=""; $("q").value=""; closeSheet();
+  closeOv(); ui.insMode=false; ui.multi=null; ui.groupMove=null; ui.cid=t.dataset.c; ui.snap=null; if(ui.vdate) applyVdate(); ui.moving=null; ui.bq=""; $("bq").value=""; ui.q=""; $("q").value=""; closeSheet();
   try{ localStorage.setItem("stockmap-company",ui.cid); }catch(e2){}
   renderAll(); if(ui.view==="items") renderItems(); if(ui.view==="share") renderShare();
   document.querySelector("main").scrollTop=0;
@@ -1713,7 +1720,7 @@ function gridClick(e){
   var t=e.target.closest(".cell"); if(!t) return;
   if(ui.groupMove){ var tb=t.dataset.b?box(t.dataset.b):null; groupMoveTo(tb?tb.r:+t.dataset.r, tb?tb.c:+t.dataset.c); return; }
   if(ui.multi){ var k=t.dataset.b?"b:"+t.dataset.b:cellKey(t); if(ui.multi[k]) delete ui.multi[k]; else ui.multi[k]=1; renderMap(); return; }
-  if(ui.insMode&&!ui.snap){ var ib=t.dataset.b?box(t.dataset.b):null; openSheet({mode:"ins",r:ib?ib.r:+t.dataset.r,c:ib?ib.c:+t.dataset.c}); return; }
+  if(ui.insMode&&!viewOnly()){ var ib=t.dataset.b?box(t.dataset.b):null; openSheet({mode:"ins",r:ib?ib.r:+t.dataset.r,c:ib?ib.c:+t.dataset.c}); return; }
   if(t.dataset.b){
     var b=box(t.dataset.b);
     if(ui.moving){ if(ui.moving===b.id){ui.moving=null; renderMap();} else toast("빈칸을 눌러 주세요"); return; }
@@ -1724,7 +1731,7 @@ function gridClick(e){
     return;
   }
   var r=+t.dataset.r, c=+t.dataset.c, tr=+(t.dataset.t||0);
-  if(ui.snap) return;
+  if(ui.snap&&ui.snap.none) return;
   if(!PRACTICE&&(retired()||(GAS&&!canEdit()))){ ro(); return; }
   if(locked()){ toast("마감된 회차입니다"); return; }
   if(ui.moving){ var mb=box(ui.moving); if(mb){mb.r=r; mb.c=c; mb.t=tr; mb.mapId=MAP().id;} ui.moving=null; persist(); return; }
@@ -2280,7 +2287,7 @@ $("copyBtn").onclick=function(){
 /* ---------- 회차(일자별 재고조사) ---------- */
 function nextRoundOf(sv){ if(sv.manual) return {date:sv.date,round:sv.round+1,manual:true}; var d=today(); return sv.date===d?{date:d,round:sv.round+1}:{date:d,round:1}; }
 function startRound(copy){
-  if(ui.snap){ ro(); return; }
+  if(ui.snap){ toast("지난 기록에서는 새 회차를 시작할 수 없습니다"); return; }
   var id=ui.cid, st=S[id].state, nx=nextRoundOf(st.survey);
   ask(C().name+" "+fmtDate(nx.date)+" "+nx.round+"차 조사를 "+(copy?"지금 수량을 복사해서":"빈 상태로")+" 시작할까요? 지금 회차("+fmtDate(st.survey.date)+" "+st.survey.round+"차)는 기록에 남습니다.","시작",function(){
     var sn=snapOf(id); saveHistLocal(id,sn); saveHistDb(id,sn);
@@ -2299,7 +2306,12 @@ if($("histBtn")) $("histBtn").onclick=function(){ openSheet({mode:"hist"}); };
 $("summary").addEventListener("click",function(e){
   if(e.target.closest("#surveyBtn")){ if(ui.snap){ exitSnap(); return; } openSheet({mode:"hist"}); return; }
   if(e.target.closest("#closeRound")){
-    if(ui.snap) return; var st=S[ui.cid].state, sv=st.survey, on=!sv.closed, nm=fmtDate(sv.date)+" "+sv.round+"차";
+    if(ui.snap){ if(ui.snap.none) return; if(retired()){ showMoved(); return; } if(GAS&&!canEdit()){ askCode(); return; }
+      var ssv=ui.snap.state.survey, son=!snapLocked(), snm=fmtDate(ui.snap.date)+" "+ui.snap.round+"차 기록";
+      ask(son?snm+"을 마감할까요? 마감하면 고칠 수 없습니다.":snm+" 마감을 해제할까요? 지난 기록을 고칠 수 있게 됩니다.",son?"마감":"마감 해제",function(){
+        ssv.closed=son; ssv.reopened=!son; ssv.closedAt=son?Date.now():null; ssv.closedBy=son?who():""; ui.moving=null; ui.insMode=false; closeSheet(); persist(); toast(son?snm+"을 마감했습니다":snm+" 마감을 해제했습니다 · 이제 고칠 수 있습니다");
+      },"취소"); return; }
+    var st=S[ui.cid].state, sv=st.survey, on=!sv.closed, nm=fmtDate(sv.date)+" "+sv.round+"차";
     ask(on?nm+" 조사를 마감할까요? 마감하면 상자 배치와 수량을 고칠 수 없습니다.":nm+" 조사 마감을 해제할까요? 다시 고칠 수 있게 됩니다.",on?"마감":"마감 해제",function(){
       sv.closed=on; sv.closedAt=on?Date.now():null; sv.closedBy=on?who():""; ui.moving=null; ui.insMode=false; closeSheet(); persist(); toast(on?nm+" 마감했습니다":nm+" 마감을 해제했습니다");
     },"취소");
@@ -2330,7 +2342,8 @@ function renderHist(){
   var list=histList(id), k=countsSt(st);
   var dates=[]; list.forEach(function(v){ if(dates.indexOf(v.date)<0) dates.push(v.date); });
   var out='<div class="datepick"><label for="hdIn">날짜 선택</label><input type="date" id="hdIn" value="'+(ui.histDate||'')+'" max="'+today()+'"></div>'+
-    (ui.histDate&&ui.histDate!==sv.date?'<button class="btn primary sdbtn" id="sdGo">'+fmtDate(ui.histDate)+' 날짜로 재고조사 하기 (모든 탭)</button>':'')+
+    (ui.histDate&&ui.histDate<today()&&ui.histDate!==sv.date?'<button class="btn primary sdbtn" id="sdView">'+fmtDate(ui.histDate)+' 기록 보기 (모든 탭)</button><p class="hint">지난 날짜로는 재고조사를 새로 시작할 수 없습니다. 기록을 열고 <b>마감 해제</b>하면 그 기록을 고칠 수 있습니다.</p>':'')+
+    (ui.histDate&&ui.histDate===today()&&sv.date!==today()?'<button class="btn primary sdbtn" id="sdGo">오늘('+fmtDate(ui.histDate)+') 재고조사 하기 (모든 탭)</button>':'')+
     (sv.manual&&sv.date!==today()?'<button class="btn sdbtn" id="sdToday">오늘('+fmtDate(today())+')로 돌아가기 (모든 탭)</button>':'')+
     '<div class="spots" style="margin-bottom:12px"><div class="spot me"><span>지금 회차 · '+fmtDate(sv.date)+' '+sv.round+'차</span><b>입력 '+(k.done+k.diff)+'/'+k.n+'</b></div></div>'+
     '<p class="hint">다음은 <b>'+fmtDate(nx.date)+' '+nx.round+'차</b>입니다. 상자 위치는 그대로 둡니다.</p>'+
@@ -2352,10 +2365,10 @@ function renderHist(){
   each("[data-r2]",function(b){ b.onclick=function(){ startRound(b.dataset.r2==="copy"); }; });
   each("[data-hd]",function(b){ b.onclick=function(){ ui.histDate=b.dataset.hd||null; renderHist(); }; });
   $("hdIn").onchange=function(){ ui.histDate=this.value||null; this.blur(); renderHist(); };
+  if($("sdView")) $("sdView").onclick=function(){ setVdate(ui.histDate); };
   if($("sdGo")) $("sdGo").onclick=function(){ var d=ui.histDate; ask(fmtDate(d)+" 날짜로 모든 탭의 재고조사를 바꿀까요? 지금 회차는 기록에 저장되고, "+fmtDate(d)+" 기록이 있으면 그날 마지막 회차가 열리고 없으면 그날 1차를 새로 시작합니다.","바꾸기",function(){ switchDate(d); }); };
   if($("sdToday")) $("sdToday").onclick=function(){ var d=today(); ask("모든 탭을 오늘("+fmtDate(d)+") 재고조사로 바꿀까요?","바꾸기",function(){ switchDate(d); }); };
-  each("[data-snapview]",function(r){ r.onclick=function(){ var v=h[r.dataset.snapview]; if(!v) return;
-    ui.snap={id:v.id,date:v.date,round:v.round,state:normalize(C(),JSON.parse(JSON.stringify(v.state)))}; ui.moving=null; closeSheet(); renderAll(); document.querySelector("main").scrollTop=0; }; });
+  each("[data-snapview]",function(r){ r.onclick=function(){ var v=h[r.dataset.snapview]; if(!v) return; setVdate(v.date,v.round); }; });
 }
 /* 선택한 날짜로 모든 탭의 재고조사 날짜를 바꿈 */
 async function switchDate(d){
@@ -2384,7 +2397,26 @@ async function switchDate(d){
   });
   ui.histDate=null; closeSheet(); renderAll(); toast("모든 탭을 "+fmtDate(d)+" 재고조사로 바꿨습니다");
 }
-function exitSnap(){ ui.snap=null; closeSheet(); renderAll(); }
+function exitSnap(){ ui.snap=null; ui.vdate=null; closeSheet(); renderAll(); }
+/* 지난 날짜 보기: 모든 탭이 그 날짜 기록으로 (탭을 바꿔도 유지) */
+function recsOn(id,d){ var h=histCache[id]||histLocal(id); return Object.keys(h).map(function(k){return h[k];}).filter(function(v){return v&&v.date===d&&v.state;}).sort(function(a,b){return b.round-a.round;}); }
+function applyVdate(round){
+  var d=ui.vdate; ui.snap=null; if(!d) return;
+  var st=S[ui.cid].state, recs=recsOn(ui.cid,d);
+  if(st.survey.date===d&&(!round||+round===+st.survey.round)) return; // 그날이 지금 진행 중인 회차면 그대로
+  var v=round?recs.filter(function(r){return +r.round===+round;})[0]:recs[0];
+  if(v){ var ns=normalize(C(),JSON.parse(JSON.stringify(v.state))); ui.snap={id:v.id,date:v.date,round:v.round,state:ns,fp:editFp(ns)}; return; }
+  var e=normalize(C(),JSON.parse(JSON.stringify(st))); e.boxes=[]; e.items.forEach(function(it){ it.cur=null; it.prev=null; }); e.survey={date:d,round:0,closed:true};
+  ui.snap={id:null,date:d,round:0,state:e,none:true};
+}
+async function setVdate(d,round){
+  closeSheet(); toast(fmtDate(d)+" 기록 불러오는 중…");
+  await Promise.race([Promise.all(COMPANIES.map(function(c){ return loadHist(c.id).catch(function(){}); })),sleep(4000)]);
+  ui.vdate=d; ui.moving=null; ui.insMode=false; ui.multi=null; ui.groupMove=null; ui.histDate=null;
+  applyVdate(round); renderAll(); document.querySelector("main").scrollTop=0;
+  var n=COMPANIES.filter(function(c){ return recsOn(c.id,d).length||S[c.id].state.survey.date===d; }).length;
+  toast(fmtDate(d)+" 기록 · "+n+"개 탭에 있음");
+}
 function loadSnap(v){ // 지난 기록 수량을 지금 회차에 그대로 덮어씀
   var st=S[ui.cid].state, ss=normalize(C(),JSON.parse(JSON.stringify(v.state)));
   ask(fmtDate(v.date)+" "+v.round+"차 수량을 지금 회차("+fmtDate(st.survey.date)+" "+st.survey.round+"차)에 그대로 불러올까요? 지금 입력한 수량은 덮어씁니다. 상자 위치는 바뀌지 않습니다.","불러오기",function(){
