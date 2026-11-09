@@ -624,7 +624,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110073022";</script>
+<script>window.HG_BUILD="20261110074635";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1853,7 +1853,15 @@ var IMGFONT='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans
 /* 검색한 파렛트만 (이미지·보내기) */
 var IMGQ=null;
 /* 검색어: 쉼표나 띄어쓰기로 여러 개 → 하나라도 맞으면 찾음 */
-function qNorm(v){ return String(v||"").toLowerCase().split(/[\s,，、]+/).filter(function(x){return x;}).join(","); }
+function qNorm(v){
+  /* 쉼표는 항상 나눔. 띄어쓰기는 붙여서 맞는 품번이 있으면(예: G9360 RJS) 한 품번으로, 없으면 여러 개로 */
+  var its=[]; try{ its=ST().items.map(function(it){ return tNorm(it.code+(it.alias||"")); }); }catch(e){}
+  var out=[]; String(v||"").toLowerCase().split(/[,，、]+/).forEach(function(c){
+    var t=tNorm(c); if(!t) return;
+    if(/\s/.test(c.trim())&&!its.some(function(x){ return x.indexOf(t)>=0; })) c.split(/\s+/).forEach(function(w){ if(w) out.push(w); });
+    else out.push(t);
+  }); return out.join(",");
+}
 function tNorm(v){ return String(v||"").toLowerCase().replace(/\s+/g,""); }
 function qHas(txt,q){ if(!q) return true; var t=tNorm(txt); return q.split(",").some(function(w){ return w&&t.indexOf(w)>=0; }); }
 function itemHit(it,q){ return !!it&&qHas(it.code+(it.alias||""),q); }
