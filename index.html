@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>한강 재고관리시스템</title>
 <meta property="og:title" content="한강 재고관리시스템">
 <meta property="og:description" content="공장·협력사별 재고조사 약도와 순회 길 안내">
@@ -270,7 +270,10 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .ovtop .x{margin-top:0}
 .ovhead .search{margin-bottom:2px;border-color:var(--accent)}
 .ovhead .maptabs{margin-bottom:6px}
-.ovwrap{flex:1;min-height:0;overflow:auto;padding:4px;display:flex;align-items:flex-start;justify-content:center}
+.ovwrap{flex:1;min-height:0;overflow:auto;padding:4px;display:flex;align-items:flex-start;justify-content:flex-start;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+.ovwrap>.ovgrid{margin:0 auto}
+.ovzoom{position:absolute;right:12px;bottom:calc(46px + env(safe-area-inset-bottom));z-index:3;border:0;border-radius:999px;padding:6px 12px;background:rgba(17,24,39,.85);color:#fff;font-size:12px;font-weight:800}
+.ovzoom[hidden]{display:none}
 .ovgrid .cell{border-radius:5px}
 .ovgrid .box .stripe{height:3px}
 .ovgrid.small .box .t1{display:none}
@@ -598,6 +601,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
     <div id="ovInfo" class="hint"></div>
   </div>
   <div class="ovwrap" id="ovWrap"><div class="grid ovgrid" id="ovGrid"></div></div>
+  <button class="ovzoom" id="ovZoom" type="button" hidden>원래 크기로</button>
   <p class="hint ovfoot">상자나 빈칸을 누르면 여기서 바로 수정할 수 있습니다</p>
 </div>
 <div class="dlg imgdlg" id="imgDlg"><div class="panel" id="imgBox"></div></div>
@@ -1676,13 +1680,14 @@ function renderOv(){
   var gap=2, wrap=$("ovWrap"), W=wrap.clientWidth-8, H=wrap.clientHeight-8;
   var twoN=Object.keys(mp.tiers||{}).filter(function(k){return +k<mp.rows;}).length, effRows=mp.rows+twoN*0.75;
   var size=Math.floor(Math.min((W-16-mp.cols*gap)/mp.cols,(H-16-mp.rows*gap)/effRows));
-  size=Math.max(16,Math.min(90,size));
+  size=Math.max(16,Math.min(90,size)); ovBase=size; size=Math.round(size*(ui.ovZoom||1));
+  $("ovZoom").hidden=(ui.ovZoom||1)<=1.01;
   var g=$("ovGrid"); g.style.setProperty("--cell",size+"px"); g.style.gap=gap+"px";
   g.style.gridTemplateColumns="var(--hdw) repeat("+mp.cols+","+size+"px)";
   g.className="grid ovgrid"+(locked()?" locked":"")+(size<44?" tiny":size<62?" small":"")+((ui.bq||"").trim()?" finding":"");
   g.innerHTML=lastGrid;
 }
-function openOv(){ ui.ov=true; $("ov").classList.add("on"); renderMap(); renderOv(); }
+function openOv(){ ui.ovZoom=1; ui.ov=true; $("ov").classList.add("on"); renderMap(); renderOv(); }
 function closeOv(){ ui.ov=false; $("ov").classList.remove("on"); }
 $("ovBtn").onclick=openOv;
 $("flipV").onclick=function(){ setFlip("v"); };
@@ -1692,6 +1697,31 @@ $("ovq").oninput=function(){ ui.bq=this.value; $("bq").value=this.value; renderM
 $("ovTabs").addEventListener("click",function(e){ var t=e.target.closest("[data-ovmap]"); if(!t) return; ui.map[ui.cid]=t.dataset.ovmap; try{localStorage.setItem("stockmap-mapsel",JSON.stringify(ui.map));}catch(e2){} renderMap(); });
 $("ovInfo").addEventListener("click",function(e){ var t=e.target.closest("[data-gomap]"); if(!t) return; ui.map[ui.cid]=t.dataset.gomap; renderMap(); });
 window.addEventListener("resize",function(){ if(ui.ov) renderOv(); });
+/* 전체보기: 두 손가락으로 확대·축소 (페이지 자체는 확대되지 않음) */
+var ovBase=40;
+function ovSetZoom(z,cx,cy){
+  var wrap=$("ovWrap"), g=$("ovGrid"), r=wrap.getBoundingClientRect();
+  z=Math.max(1,Math.min(5,z)); if(z*ovBase>260) z=260/ovBase;
+  var ox=cx-r.left, oy=cy-r.top, oldW=g.offsetWidth||1, oldH=g.offsetHeight||1;
+  var fx=(wrap.scrollLeft+ox-g.offsetLeft)/oldW, fy=(wrap.scrollTop+oy-g.offsetTop)/oldH;
+  ui.ovZoom=z; var size=Math.round(ovBase*z);
+  g.style.setProperty("--cell",size+"px"); g.style.gridTemplateColumns="var(--hdw) repeat("+MAP().cols+","+size+"px)";
+  g.classList.toggle("tiny",size<44); g.classList.toggle("small",size>=44&&size<62);
+  wrap.scrollLeft=fx*g.offsetWidth+g.offsetLeft-ox; wrap.scrollTop=fy*g.offsetHeight+g.offsetTop-oy;
+  $("ovZoom").hidden=z<=1.01;
+}
+(function(){
+  var wrap=$("ovWrap"), pz=null;
+  function dist(t){ var dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy)||1; }
+  function mid(t){ return [(t[0].clientX+t[1].clientX)/2,(t[0].clientY+t[1].clientY)/2]; }
+  wrap.addEventListener("touchstart",function(e){ if(e.touches.length===2){ pz={d:dist(e.touches),z:ui.ovZoom||1}; e.preventDefault(); } },{passive:false});
+  wrap.addEventListener("touchmove",function(e){ if(pz&&e.touches.length===2){ e.preventDefault(); var m=mid(e.touches); ovSetZoom(pz.z*dist(e.touches)/pz.d,m[0],m[1]); } },{passive:false});
+  wrap.addEventListener("touchend",function(e){ if(pz&&e.touches.length<2){ pz=null; lastTouch=Date.now(); } });
+  wrap.addEventListener("wheel",function(e){ if(e.ctrlKey){ e.preventDefault(); ovSetZoom((ui.ovZoom||1)*Math.exp(-e.deltaY/200),e.clientX,e.clientY); } },{passive:false});
+  $("ovZoom").onclick=function(){ ui.ovZoom=1; renderOv(); };
+  /* 아이폰 사파리: 화면 전체 확대 막기 (상자 눌렀을 때 창이 커지지 않게) */
+  ["gesturestart","gesturechange"].forEach(function(n){ document.addEventListener(n,function(e){ e.preventDefault(); },{passive:false}); });
+})();
 /* 전체보기 → PNG 이미지 (화면에 그려진 칸을 캔버스로 다시 그림) */
 function drawOvCanvas(){
   var g=$("ovGrid"), gr=g.getBoundingClientRect(), pad=20, head=58;
