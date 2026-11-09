@@ -409,9 +409,9 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .livemap{flex:1;position:relative;min-height:0}
 .livemap[hidden],.sitewrap[hidden],.sitehint[hidden]{display:none}
 #lmapEl{position:absolute;inset:0;background:#1f2937}
-.gpsbtn{position:absolute;right:12px;bottom:16px;z-index:500;border:0;border-radius:999px;padding:10px 14px;background:#1d5fd1;color:#fff;font:inherit;font-weight:800;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:pointer}
-.lblbtn{position:absolute;right:10px;top:10px;z-index:500;border:0;border-radius:999px;padding:8px 12px;background:#fff;color:#111827;font:inherit;font-weight:800;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:pointer}
-.lblbtn.on{background:#111827;color:#fff}
+.gpsbtn{position:absolute;right:12px;bottom:16px;z-index:1100;transform:translateZ(0);-webkit-transform:translateZ(0);border:0;border-radius:999px;padding:10px 14px;background:#1d5fd1;color:#fff;font:inherit;font-weight:800;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:pointer}
+.lblbtn{position:absolute;right:10px;top:10px;z-index:1100;transform:translateZ(0);-webkit-transform:translateZ(0);border:0;border-radius:999px;padding:8px 12px;background:#fff;color:#111827;font:inherit;font-weight:800;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:pointer}
+.lblbtn.on{background:#fff;color:#1d5fd1;outline:2px solid #1d5fd1}
 #lmapEl.nolbl .lmlbl{display:none}
 .gpsbtn.on{background:#fff;color:#1d5fd1}
 .lmmsg{position:absolute;left:12px;right:12px;top:12px;z-index:500;margin:0;background:rgba(17,24,39,.9);color:#fff;border-radius:10px;padding:10px 12px;font-size:13px}
