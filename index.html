@@ -50,7 +50,7 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:pan-x pan-y}
 body.tallhdr{height:auto;min-height:100%;display:block}
 body.tallhdr>header{position:static}
 body.tallhdr>main{overflow:visible}
@@ -272,6 +272,11 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .ovhead .maptabs{margin-bottom:6px}
 .ovwrap{flex:1;min-height:0;overflow:auto;padding:4px;display:flex;align-items:flex-start;justify-content:flex-start;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
 .ovwrap>.ovgrid{margin:0 auto}
+.ovgrid.big .box .t1,.ovgrid.big .box .t2{white-space:normal;word-break:break-all;overflow:visible;text-overflow:clip}
+.ovgrid.big .box .t2{font-size:calc(var(--cell) * .12);line-height:1.15}
+.ovgrid.big .box .t1{font-size:calc(var(--cell) * .085)}
+.ovgrid.big .box .t3{font-size:calc(var(--cell) * .1);white-space:normal}
+.ovgrid.big .box{justify-content:flex-start;gap:2px}
 .ovzoom{position:absolute;right:12px;bottom:calc(46px + env(safe-area-inset-bottom));z-index:3;border:0;border-radius:999px;padding:6px 12px;background:rgba(17,24,39,.85);color:#fff;font-size:12px;font-weight:800}
 .ovzoom[hidden]{display:none}
 .ovgrid .cell{border-radius:5px}
@@ -1271,7 +1276,8 @@ function renderShare(){
 function renderAll(){ renderCtabs(); renderHeader(); renderMap(); if(ui.view==="items") renderItems(); if(ui.view==="share") renderShare(); if(ui.sheet) renderSheet(); syncLabel(); }
 
 /* ---------- sheet ---------- */
-function openSheet(s){ ui.sheet=s; $("scrim").classList.add("on"); $("sheet").classList.add("on"); renderSheet(); }
+function resetPageZoom(){ var v=window.visualViewport; if(!v||v.scale<=1.01) return; var m=document.querySelector('meta[name="viewport"]'); if(!m) return; var c=m.content; m.content=c.replace("maximum-scale=1","maximum-scale=1.01"); setTimeout(function(){ m.content=c; },50); }
+function openSheet(s){ resetPageZoom(); ui.sheet=s; $("scrim").classList.add("on"); $("sheet").classList.add("on"); renderSheet(); }
 function closeSheet(){ ui.sheet=null; $("scrim").classList.remove("on"); $("sheet").classList.remove("on"); }
 $("scrim").onclick=closeSheet; $("shClose").onclick=closeSheet;
 function each(sel,fn){ Array.prototype.forEach.call($("shBody").querySelectorAll(sel),fn); }
@@ -1684,7 +1690,7 @@ function renderOv(){
   $("ovZoom").hidden=(ui.ovZoom||1)<=1.01;
   var g=$("ovGrid"); g.style.setProperty("--cell",size+"px"); g.style.gap=gap+"px";
   g.style.gridTemplateColumns="var(--hdw) repeat("+mp.cols+","+size+"px)";
-  g.className="grid ovgrid"+(locked()?" locked":"")+(size<44?" tiny":size<62?" small":"")+((ui.bq||"").trim()?" finding":"");
+  g.className="grid ovgrid"+(locked()?" locked":"")+(size<44?" tiny":size<62?" small":size>=100?" big":"")+((ui.bq||"").trim()?" finding":"");
   g.innerHTML=lastGrid;
 }
 function openOv(){ ui.ovZoom=1; ui.ov=true; $("ov").classList.add("on"); renderMap(); renderOv(); }
@@ -1706,7 +1712,7 @@ function ovSetZoom(z,cx,cy){
   var fx=(wrap.scrollLeft+ox-g.offsetLeft)/oldW, fy=(wrap.scrollTop+oy-g.offsetTop)/oldH;
   ui.ovZoom=z; var size=Math.round(ovBase*z);
   g.style.setProperty("--cell",size+"px"); g.style.gridTemplateColumns="var(--hdw) repeat("+MAP().cols+","+size+"px)";
-  g.classList.toggle("tiny",size<44); g.classList.toggle("small",size>=44&&size<62);
+  g.classList.toggle("tiny",size<44); g.classList.toggle("small",size>=44&&size<62); g.classList.toggle("big",size>=100);
   wrap.scrollLeft=fx*g.offsetWidth+g.offsetLeft-ox; wrap.scrollTop=fy*g.offsetHeight+g.offsetTop-oy;
   $("ovZoom").hidden=z<=1.01;
 }
@@ -1720,7 +1726,11 @@ function ovSetZoom(z,cx,cy){
   wrap.addEventListener("wheel",function(e){ if(e.ctrlKey){ e.preventDefault(); ovSetZoom((ui.ovZoom||1)*Math.exp(-e.deltaY/200),e.clientX,e.clientY); } },{passive:false});
   $("ovZoom").onclick=function(){ ui.ovZoom=1; renderOv(); };
   /* 아이폰 사파리: 화면 전체 확대 막기 (상자 눌렀을 때 창이 커지지 않게) */
-  ["gesturestart","gesturechange"].forEach(function(n){ document.addEventListener(n,function(e){ e.preventDefault(); },{passive:false}); });
+  var gz=null;
+  document.addEventListener("gesturestart",function(e){ e.preventDefault(); gz=(ui.ov&&wrap.contains(e.target))?(ui.ovZoom||1):null; },{passive:false});
+  document.addEventListener("gesturechange",function(e){ e.preventDefault(); if(gz!==null&&!pz) ovSetZoom(gz*e.scale,e.clientX,e.clientY); },{passive:false});
+  document.addEventListener("gestureend",function(e){ e.preventDefault(); gz=null; },{passive:false});
+  document.addEventListener("touchmove",function(e){ if(e.touches.length>1&&!e.target.closest(".leaflet-container")) e.preventDefault(); },{passive:false});
 })();
 /* 전체보기 → PNG 이미지 (화면에 그려진 칸을 캔버스로 다시 그림) */
 function drawOvCanvas(){
