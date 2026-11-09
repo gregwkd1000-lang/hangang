@@ -469,7 +469,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <header>
   <div class="top">
     <h1 id="title">재고 약도<small id="subline"></small></h1>
-    <div class="topbtns"><button class="sitebtn" id="siteBtn" type="button" aria-label="고객사 위치도와 순회 길 안내 보기">위치도·길</button><span class="pill" id="sync">이 기기에 저장</span></div>
+    <div class="topbtns"><button class="sitebtn" id="shareBtn" type="button" aria-label="앱 주소 공유">공유</button><button class="sitebtn" id="siteBtn" type="button" aria-label="고객사 위치도와 순회 길 안내 보기">위치도·길</button><span class="pill" id="sync">이 기기에 저장</span></div>
   </div>
   <div class="ctabs" id="ctabs" role="tablist" aria-label="회사"></div>
   <div class="summary" id="summary"></div>
@@ -2420,6 +2420,27 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
   img.addEventListener("click",function(e){ var now=Date.now(); if(now-last<350){ var r=img.getBoundingClientRect(); z=z>1?1:2.5; apply((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height); last=0; } else last=now; });
   window.addEventListener("resize",function(){ if(ov.classList.contains("on")){ var c=ctr(); apply(c[0],c[1]); } });
   document.addEventListener("keydown",function(e){ if(e.key==="Escape"&&ov.classList.contains("on")) ov.classList.remove("on"); });
+})();
+/* 앱 주소 공유 */
+(function(){
+  var URL_="https://gregwkd1000-lang.github.io/hangang/";
+  function copyTxt(t){ if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(t); return new Promise(function(res,rej){ var i=$("shareUrl"); i.focus(); i.select(); i.setSelectionRange(0,999); try{ document.execCommand("copy")?res():rej(); }catch(e){ rej(e); } }); }
+  $("shareBtn").onclick=function(){
+    var dlg=$("imgDlg"); if(dlg.classList.contains("on")) return;
+    $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">재고 약도 주소</h3>'+
+      '<p class="hint" style="text-align:left;margin:0 0 6px">이 주소로 들어오면 누구나 볼 수 있습니다. (수정은 수정 코드가 있는 사람만)</p>'+
+      '<input id="shareUrl" readonly value="'+URL_+'" aria-label="앱 주소" style="width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink)">'+
+      '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">'+
+      '<button class="btn primary" id="shCopy">링크 복사</button>'+
+      '<a class="btn" id="shOpen" href="'+URL_+'" target="_blank" rel="noopener" style="text-align:center;text-decoration:none;color:var(--ink)">링크로 들어가기</a>'+
+      (navigator.share?'<button class="btn" id="shSend">카톡·문자로 보내기</button>':'')+
+      '<button class="btn" id="shClose">닫기</button></div>';
+    dlg.classList.add("on");
+    $("shClose").onclick=function(){ dlg.classList.remove("on"); $("imgBox").innerHTML=""; };
+    $("shareUrl").onclick=function(){ this.select(); };
+    $("shCopy").onclick=function(){ var b=this; copyTxt(URL_).then(function(){ b.textContent="복사했습니다 ✓"; toast("링크를 복사했습니다"); setTimeout(function(){ if(b.isConnected) b.textContent="링크 복사"; },2000); },function(){ $("shareUrl").select(); toast("주소를 길게 눌러 복사해 주세요"); }); };
+    if($("shSend")) $("shSend").onclick=function(){ navigator.share({title:"재고 약도",text:"재고 약도",url:URL_}).catch(function(){}); };
+  };
 })();
 })();
 
