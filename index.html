@@ -2351,7 +2351,9 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
   function lmMsg(t){ var m=$("lmMsg"); if(!t){ m.hidden=true; return; } m.hidden=false; m.textContent=t; }
   function lmStyle(){ Object.keys(lmLines).forEach(function(n){ var on=!lmSel||+n===lmSel; lmLines[n].setStyle({opacity:on?1:.25,weight:on?(lmSel?7:5):4}); if(on) lmLines[n].bringToFront(); }); }
   function lmFit(){ if(!LM) return; var ls=lmSel?[lmLines[lmSel]]:Object.keys(lmLines).map(function(k){return lmLines[k];}); var b=null; ls.forEach(function(l){ b=b?b.extend(l.getBounds()):L.latLngBounds(l.getBounds().getSouthWest(),l.getBounds().getNorthEast()); }); if(b) LM.fitBounds(b,{padding:[30,30]}); lmStyle(); }
+  var INCLAUDE=!!(window.claude&&window.claude.use), GHURL="https://gregwkd1000-lang.github.io/hangang/";
   function initLive(){
+    if(INCLAUDE){ var m=$("lmMsg"); m.hidden=false; m.innerHTML='Claude 앱 안에서는 보안 때문에 실제 지도와 GPS(내 위치)가 막혀 있습니다.<br>사파리 같은 브라우저에서 아래 주소로 열어 주세요.<br><a href="'+GHURL+'" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:800;word-break:break-all">'+GHURL+'</a>'; $("gpsBtn").hidden=true; return; }
     lmMsg("지도를 불러오는 중…");
     loadLeaflet(function(ok){
       if(LM) return;
@@ -2392,7 +2394,7 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
       '<div class="lmseg"><button data-ls="0" aria-pressed="'+(!lmSel)+'">전체</button>'+[1,2,3,4,5,6,7,8].map(function(n){ return '<button data-ls="'+n+'" aria-pressed="'+(lmSel===n)+'"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+COLS[n-1]+';margin-right:4px"></i>'+n+'</button>'; }).join("")+'</div>';
     Array.prototype.forEach.call(cap.querySelectorAll("[data-ls]"),function(b){ b.onclick=function(){ lmSel=+b.dataset.ls; renderLiveCap(); lmFit(); }; });
   }
-  var cur=0;
+  var cur=INCLAUDE?1:0;
   function show(i){
     cur=Math.max(0,Math.min(ROUTES.length-1,i)); var r=ROUTES[cur];
     var live=r.k==="live"; $("liveMap").hidden=!live; wrap.hidden=live; var hint=ov.querySelector(".sitehint"); if(hint) hint.hidden=live; $("siteIn").parentNode.style.visibility=live?"hidden":"";
