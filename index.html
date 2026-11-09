@@ -6,9 +6,11 @@
 <title>한강 재고관리시스템</title>
 <meta property="og:title" content="한강 재고관리시스템">
 <meta property="og:description" content="공장·협력사별 재고조사 약도와 순회 길 안내">
-<meta property="og:url" content="https://gregwkd1000-lang.github.io/hangang/?v=2">
+<meta property="og:url" content="https://gregwkd1000-lang.github.io/hangang/?v=3">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://gregwkd1000-lang.github.io/hangang/routes/all_n.jpg">
+<meta property="og:image" content="https://gregwkd1000-lang.github.io/hangang/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="apple-mobile-web-app-title" content="한강 재고관리시스템">
 <meta name="application-name" content="한강 재고관리시스템">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -741,7 +743,7 @@ try{ var cc=localStorage.getItem("stockmap-company"); if(cc&&CMAP[cc]) ui.cid=cc
 function C(){ return CMAP[ui.cid]; } function ST(){ return ui.snap?ui.snap.state:S[ui.cid].state; }
 var PRACTICE=false, PRAC_REAL={};
 /* Claude 앱은 이제 입구(보기 전용) — 입력은 GitHub 링크에서 */
-var APP_URL="https://gregwkd1000-lang.github.io/hangang/?v=2";
+var APP_URL="https://gregwkd1000-lang.github.io/hangang/?v=3";
 function retired(){ return !!(window.claude&&window.claude.use); }
 function locked(){ return !PRACTICE&&!ui.snap&&!!(S[ui.cid].state.survey&&S[ui.cid].state.survey.closed); }
 function viewOnly(){ return !!ui.snap||(retired()&&!PRACTICE)||locked()||(!PRACTICE&&typeof GAS!=="undefined"&&GAS&&!canEdit()); }
@@ -2364,7 +2366,7 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
   function lmMsg(t){ var m=$("lmMsg"); if(!t){ m.hidden=true; return; } m.hidden=false; m.textContent=t; }
   function lmStyle(){ Object.keys(lmLines).forEach(function(n){ var on=!lmSel||+n===lmSel; lmLines[n].setStyle({opacity:on?1:.25,weight:on?(lmSel?7:5):4}); if(on) lmLines[n].bringToFront(); }); }
   function lmFit(){ if(!LM) return; var ls=lmSel?[lmLines[lmSel]]:Object.keys(lmLines).map(function(k){return lmLines[k];}); var b=null; ls.forEach(function(l){ b=b?b.extend(l.getBounds()):L.latLngBounds(l.getBounds().getSouthWest(),l.getBounds().getNorthEast()); }); if(b) LM.fitBounds(b,{padding:[30,30]}); lmStyle(); }
-  var INCLAUDE=!!(window.claude&&window.claude.use), GHURL="https://gregwkd1000-lang.github.io/hangang/?v=2";
+  var INCLAUDE=!!(window.claude&&window.claude.use), GHURL="https://gregwkd1000-lang.github.io/hangang/?v=3";
   function initLive(){
     if(INCLAUDE){ var m=$("lmMsg"); m.hidden=false; m.innerHTML='Claude 앱 안에서는 보안 때문에 실제 지도와 GPS(내 위치)가 막혀 있습니다.<br>사파리 같은 브라우저에서 아래 주소로 열어 주세요.<br><a href="'+GHURL+'" target="_blank" rel="noopener" style="color:#93c5fd;font-weight:800;word-break:break-all">'+GHURL+'</a>'; $("gpsBtn").hidden=true; return; }
     lmMsg("지도를 불러오는 중…");
@@ -2436,7 +2438,7 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
 })();
 /* 앱 주소 공유 */
 (function(){
-  var URL_="https://gregwkd1000-lang.github.io/hangang/?v=2";
+  var URL_="https://gregwkd1000-lang.github.io/hangang/?v=3";
   function copyTxt(t){ if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(t); return new Promise(function(res,rej){ var i=$("shareUrl"); i.focus(); i.select(); i.setSelectionRange(0,999); try{ document.execCommand("copy")?res():rej(); }catch(e){ rej(e); } }); }
   $("shareBtn").onclick=function(){
     var dlg=$("imgDlg"); if(dlg.classList.contains("on")) return;
