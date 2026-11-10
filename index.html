@@ -633,7 +633,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261111051137";</script>
+<script>window.HG_BUILD="20261111053527";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1695,8 +1695,10 @@ function moveDrag(x,y){
   if(drag.over&&drag.over!==c) drag.over.classList.remove("dropto");
   drag.over=(c&&c!==drag.el)?c:null; if(drag.over) drag.over.classList.add("dropto");
   var w=drag.wrap||document.querySelector(".mapwrap"), wr=w.getBoundingClientRect(), m=36;
-  if(y<wr.top+m) w.scrollTop-=12; else if(y>wr.bottom-m) w.scrollTop+=12;
-  if(x<wr.left+m) w.scrollLeft-=12; else if(x>wr.right-m) w.scrollLeft+=12;
+  /* 가장자리에 가까울수록 조금 빨라짐 (최대 6px) */
+  function sp(d){ return Math.round(1+5*Math.min(1,Math.max(0,d)/m)); }
+  if(y<wr.top+m) w.scrollTop-=sp(wr.top+m-y); else if(y>wr.bottom-m) w.scrollTop+=sp(y-(wr.bottom-m));
+  if(x<wr.left+m) w.scrollLeft-=sp(wr.left+m-x); else if(x>wr.right-m) w.scrollLeft+=sp(x-(wr.right-m));
 }
 function endDrag(){
   if(!drag) return; var d=drag; drag=null; suppressClick=Date.now(); if(ovLater) setTimeout(renderOv,0);
