@@ -231,6 +231,8 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .mkown[hidden]{display:none}
 #placeBtn[hidden]{display:none!important}
 .btn.mkseq{background:var(--seq-bg);border-color:var(--seq-bg);color:#fff}
+.btn.mkgong{background:#e8590c;border-color:#e8590c;color:#fff;font-weight:800}
+.box.mark.gong{background:repeating-linear-gradient(45deg,#e8590c,#e8590c 7px,#f76707 7px,#f76707 14px) #e8590c;border:2px solid #b8420a;color:#fff;font-weight:800;font-size:13px;text-shadow:0 1px 1px rgba(0,0,0,.25)}
 .box.mark{word-break:keep-all;text-align:center;line-height:1.15;padding:2px}
 .seqnote{color:var(--warn)}
 .sqrow{display:flex;align-items:center;gap:8px}
@@ -625,7 +627,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110091412";</script>
+<script>window.HG_BUILD="20261110091534";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1180,7 +1182,7 @@ function renderMap(){
     if(b.mark===SEQ){ var sq=b.seq?Object.keys(b.seq).reduce(function(a,k){return a+b.seq[k];},0):0;
       return '<button class="cell box seqbox'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'<span class="stripe"></span><span class="t2 s">시퀀스</span>'+(function(){ var no=seqNoOf(b), adjT=sq>0?'차감 <b>−'+sq+'</b>':sq<0?'추가 <b>+'+(-sq)+'</b>':'';
         return no?'<span class="t3 seqno">'+esc(no)+'</span>'+(adjT?'<span class="t4">'+adjT+'</span>':''):'<span class="t3">'+(adjT||'번호 없음')+'</span>'; })()+'</button>'; }
-    if(b.mark){ return '<button class="cell box mark'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+esc(b.mark)+'</button>'; }
+    if(b.mark){ return '<button class="cell box mark'+(b.mark==="공용기"?" gong":"")+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+esc(b.mark)+'</button>'; }
     var it=b.itemId?item(b.itemId):null;
     if(!it){ return '<button class="cell box unset'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'<span class="emptylbl">빈렉or<br>타업체</span></button>'; }
     var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":"";
@@ -1547,7 +1549,7 @@ function renderMulti(){
   $("shTitle").innerHTML=all.length+'칸 한번에 바꾸기<small>'+esc(C().name)+(ST().maps.length>1?' · '+esc(MAP().name):'')+' · 빈칸 '+keys.length+' · 상자 '+bkeys.length+'</small>';
   $("shBody").innerHTML=(bkeys.length?'<button class="btn primary gmbtn" id="gmStart">고른 상자 '+bkeys.length+'개 한번에 이동</button>':'')+'<p class="hint">배경색 (고른 빈칸·상자 모두)</p><div class="palette">'+PAL.map(function(p){return '<button class="sw p-'+p[0]+'" data-pc="'+p[0]+'">'+p[1]+'</button>';}).join("")+'<button class="sw none" data-pc="">색 없음</button></div>'+
     (keys.length?'':'<p class="hint">상자만 골랐습니다. 품목·표시 칸은 빈칸을 고를 때 넣을 수 있습니다.</p>')+
-    '<div id="mlPlace"'+(keys.length?'':' hidden')+'><p class="hint" style="margin-top:12px">빈칸에 약도 표시용 칸 넣기</p><div class="marks">'+["통로","기둥","출입구","벽","시퀀스","공용기","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":"")+'" data-mm="'+m+'">'+m+'</button>';}).join("")+'<button class="btn" data-mm="">빈렉or타업체</button></div>'+
+    '<div id="mlPlace"'+(keys.length?'':' hidden')+'><p class="hint" style="margin-top:12px">빈칸에 약도 표시용 칸 넣기</p><div class="marks">'+["시퀀스","공용기","통로","기둥","출입구","벽","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mm="'+m+'">'+m+'</button>';}).join("")+'<button class="btn" data-mm="">빈렉or타업체</button></div>'+
     '<div class="manual mkown"><input id="mlOwn" maxlength="12" placeholder="직접입력 (예: 지게차, 랙A)" aria-label="표시 칸 이름 직접 입력"><button class="btn primary" id="mlOwnOk">표시</button></div>'+
     '<p class="hint" style="margin-top:12px">품목으로 채우기</p><input class="search" id="mlQ" type="search" placeholder="품번 검색" value="'+esc(mlQ)+'" aria-label="품번 검색"><div id="mlList"></div></div>';
   if($("gmStart")) $("gmStart").onclick=function(){
@@ -1592,7 +1594,7 @@ function useRecent(cid,id){ var a=recentOf(cid).filter(function(x){return x!==id
 function renderPicker(b){
   $("shTitle").innerHTML='품목 선택<small>'+esc(C().name)+(b?' · '+(ST().maps.length>1?esc(mapName(b.mapId))+' ':'')+posTxt(b.r,b.c)+' 상자':'')+'</small>';
   $("shBody").innerHTML='<input class="search" id="pkQ" type="search" placeholder="품번 검색" value="'+esc(pickQ)+'" aria-label="품번 검색"><div id="pkList"></div>'+
-    '<p class="hint" style="margin-top:12px">약도 표시용 칸</p><div class="marks">'+["통로","기둥","출입구","벽","시퀀스","공용기","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":"")+'" data-mk="'+m+'">'+m+'</button>';}).join("")+'<button class="btn" id="mkOwnBtn">직접입력</button></div>'+
+    '<p class="hint" style="margin-top:12px">약도 표시용 칸</p><div class="marks">'+["시퀀스","공용기","통로","기둥","출입구","벽","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mk="'+m+'">'+m+'</button>';}).join("")+'<button class="btn" id="mkOwnBtn">직접입력</button></div>'+
     '<div class="manual mkown" id="mkOwn" hidden><input id="mkOwnIn" maxlength="12" placeholder="표시할 글자 (예: 지게차, 랙A)" aria-label="표시 칸 이름 직접 입력"><button class="btn primary" id="mkOwnOk">만들기</button></div>'+
     (b?'<p class="hint" style="margin-top:12px">색상 설정 (이 칸 배경색)</p><div class="palette">'+PAL.map(function(p){return '<button class="sw p-'+p[0]+(b.bg===p[0]?' on':'')+'" data-bgc="'+p[0]+'" aria-label="'+p[1]+'색">'+p[1]+'</button>';}).join("")+'<button class="sw none'+(!b.bg?' on':'')+'" data-bgc="">색 없음</button></div>':'')+
     '<div class="acts" style="margin-top:12px">'+(b?'<button class="btn fixbtn'+(b.fixed?" on":"")+'" id="pkFix">'+(b.fixed?"고정 해제":"고정")+'</button>':'')+'<button class="btn danger" id="pkDel">이 상자 삭제</button></div>';
@@ -1942,6 +1944,7 @@ function drawDetailCanvas(mp){
     if(IMGQ&&!boxHit(b,IMGQ)&&!drawCell._f){ drawCell._f=1; x.save(); x.globalAlpha=.3; try{ drawCell(b,X,Y,w,h,pk); } finally{ x.restore(); drawCell._f=0; } return; }
     var it=b.itemId?item(b.itemId):null, fill="#ffffff", ink="#1a1f25", bd="#9aa5b1", dash=[];
     if(b.mark&&b.mark!==SEQ){ fill="#e4e7eb"; bd="#b8c0c8"; }
+    if(b.mark==="공용기"){ fill="#e8590c"; bd="#b8420a"; ink="#ffffff"; }
     if(b.mark===SEQ){ fill="#dbeafe"; bd="#1d5fd1"; }
     if(!it&&!b.mark){ fill="#ffffff"; bd="#9aa5b1"; dash=[4,3]; }
     if(it){ bd=gcol(it.group)||"#9aa5b1"; var cc2=colorOf(it); if(cc2&&CCOL[cc2]){ fill=CCOL[cc2][0]; ink=CCOL[cc2][1]; bd=CCOL[cc2][2]; } }
