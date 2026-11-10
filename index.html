@@ -633,7 +633,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261111062750";</script>
+<script>window.HG_BUILD="20261111074150";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1687,7 +1687,7 @@ function startDrag(bEl,x,y){
   var r=bEl.getBoundingClientRect(), g=bEl.cloneNode(true);
   g.classList.add("ghost"); g.style.width=r.width+"px"; g.style.height=r.height+"px"; document.body.appendChild(g);
   var root=bEl.closest("#ovGrid")?$("ovGrid"):$("grid"); g.style.setProperty("--cell",r.width+"px");
-  drag={id:bEl.dataset.b,el:bEl,ghost:g,dx:x-r.left,dy:y-r.top,over:null,root:root,wrap:root.parentNode};
+  drag={id:bEl.dataset.b,el:bEl,ghost:g,dx:x-r.left,dy:y-r.top,over:null,root:root,wrap:root.parentNode,sx:x,sy:y};
   bEl.classList.add("dragging"); moveDrag(x,y);
   try{ if(navigator.vibrate) navigator.vibrate(15); }catch(e){}
 }
@@ -1700,8 +1700,10 @@ function moveDrag(x,y){
   var w=drag.wrap||document.querySelector(".mapwrap"), wr=w.getBoundingClientRect(), m=36;
   /* 가장자리에 가까울수록 조금 빨라짐 (최대 6px) */
   function sp(d){ return Math.round(1+5*Math.min(1,Math.max(0,d)/m)); }
-  if(y<wr.top+m) w.scrollTop-=sp(wr.top+m-y); else if(y>wr.bottom-m) w.scrollTop+=sp(y-(wr.bottom-m));
-  if(x<wr.left+m) w.scrollLeft-=sp(wr.left+m-x); else if(x>wr.right-m) w.scrollLeft+=sp(x-(wr.right-m));
+  /* 가장자리 칸을 집자마자 화면이 밀리지 않게: 그쪽으로 30px 이상 끌고 갔을 때만 넘어감 */
+  var T=30;
+  if(y<wr.top+m&&drag.sy-y>T) w.scrollTop-=sp(wr.top+m-y); else if(y>wr.bottom-m&&y-drag.sy>T) w.scrollTop+=sp(y-(wr.bottom-m));
+  if(x<wr.left+m&&drag.sx-x>T) w.scrollLeft-=sp(wr.left+m-x); else if(x>wr.right-m&&x-drag.sx>T) w.scrollLeft+=sp(x-(wr.right-m));
 }
 function endDrag(){
   if(!drag) return; var d=drag; drag=null; suppressClick=Date.now(); if(ovLater) setTimeout(renderOv,0);
