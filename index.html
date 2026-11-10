@@ -110,7 +110,7 @@ body.practice .top{box-shadow:inset 0 -4px 0 #f59e0b}
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0 0}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 
-.mapwrap{overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;max-height:calc(100vh - 300px);min-height:300px}
+.mapwrap{overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 8px 72px;max-height:calc(100vh - 250px);max-height:calc(100dvh - 250px);min-height:300px}
 .grid{display:grid;gap:4px;width:max-content}
 .cell{width:var(--cell);height:var(--cell);border-radius:8px;border:1px dashed var(--line);background:transparent;padding:0;position:relative}
 .cell.empty::after{content:"";position:absolute;inset:50% auto auto 50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:var(--line)}
@@ -374,7 +374,9 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .p-navy{--cbg:#283593;--cfg:#fff;--cbd:#1a237e;--plt:#d3d6ee}
 .p-purple{--cbg:#8e24aa;--cfg:#fff;--cbd:#6a1b9a;--plt:#ecd3f2}
 .cell.empty.painted{background:var(--plt);border:1.5px solid var(--cbd)}
-.times{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin-top:2px}
+.times{display:contents}
+.times .tm{font-size:12px;color:var(--muted)}
+.times .tm::before{content:"· "}
 .times b{color:var(--ink);font-weight:700}
 .times .tmc b{color:var(--warn,#c2410c)}
 .emptylbl{line-height:1.15;text-align:center}
@@ -627,7 +629,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110121351";</script>
+<script>window.HG_BUILD="20261110121633";</script>
 <script src="config.js"></script>
 <script>
 (function(){
