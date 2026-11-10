@@ -633,7 +633,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110134850";</script>
+<script>window.HG_BUILD="20261111051137";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -878,20 +878,41 @@ function gasRef(cid){
   return ref;
 }
 
-/* 연습 모드: 지금 데이터를 복사해 마음껏 입력해 보고, 끝내면 원래대로 */
-function startPractice(){
+/* 연습 모드: 지금 데이터를 복사해 마음껏 입력해 보고, 끝내면 원래대로.
+   일시중단: 연습 내용은 이 기기에 보관해 두고 실제 재고로 돌아감 → 다음에 이어서 */
+var PRAC_KEY="stockmap-practice";
+function pracSaved(){ try{ var o=JSON.parse(localStorage.getItem(PRAC_KEY)||"null"); return o&&o.states?o:null; }catch(e){ return null; } }
+function pracSave(){ if(!PRACTICE) return; try{ var o={savedAt:Date.now(),cid:ui.cid,states:{}}; COMPANIES.forEach(function(c){ o.states[c.id]=S[c.id].state; }); localStorage.setItem(PRAC_KEY,JSON.stringify(o)); }catch(e){} }
+function pracClear(){ try{ localStorage.removeItem(PRAC_KEY); }catch(e){} }
+function startPractice(fresh){
   if(PRACTICE) return;
+  var sv=pracSaved();
+  if(sv&&fresh===undefined){
+    $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">연습 모드</h3><p style="text-align:left">일시중단한 연습이 있습니다 ('+esc(fmtTime(sv.savedAt))+').</p>'+
+      '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px"><button class="btn primary" id="prGo">이어서 하기</button><button class="btn" id="prNew">새로 시작 (이전 연습 지우기)</button><button class="btn" id="prX">취소</button></div>';
+    $("imgDlg").classList.add("on");
+    $("prGo").onclick=function(){ startPractice(false); }; $("prNew").onclick=function(){ pracClear(); startPractice(true); }; $("prX").onclick=closeDlg;
+    return;
+  }
   PRAC_REAL={}; COMPANIES.forEach(function(c){ PRAC_REAL[c.id]=JSON.parse(JSON.stringify(S[c.id].state)); });
-  PRACTICE=true; ui.snap=null; document.body.classList.add("practice"); closeDlg(); renderAll();
-  toast("연습 모드 시작 · 마음껏 입력해 보세요");
+  PRACTICE=true; ui.snap=null; ui.vdate=null; document.body.classList.add("practice"); closeDlg();
+  if(sv&&fresh===false){ COMPANIES.forEach(function(c){ if(sv.states[c.id]) S[c.id].state=normalize(c,sv.states[c.id]); }); renderAll(); toast("연습을 이어서 합니다"); return; }
+  renderAll(); pracSave(); toast("연습 모드 시작 · 마음껏 입력해 보세요");
+}
+function leavePractice(keep){
+  if(keep) pracSave(); else pracClear();
+  PRACTICE=false; document.body.classList.remove("practice");
+  COMPANIES.forEach(function(c){ if(PRAC_REAL[c.id]) S[c.id].state=normalize(c,PRAC_REAL[c.id]); });
+  PRAC_REAL={}; closeDlg(); renderAll(); toast(keep?"연습을 일시중단했습니다 · 다음에 이어서 할 수 있어요":"연습을 끝냈습니다 · 실제 재고로 돌아왔습니다");
 }
 function endPractice(){
   if(!PRACTICE) return;
-  ask("연습을 끝낼까요? 연습 중에 입력한 내용은 모두 지워지고 실제 재고로 돌아갑니다.","연습 끝내기",function(){
-    PRACTICE=false; document.body.classList.remove("practice");
-    COMPANIES.forEach(function(c){ if(PRAC_REAL[c.id]) S[c.id].state=normalize(c,PRAC_REAL[c.id]); });
-    PRAC_REAL={}; renderAll(); toast("실제 재고로 돌아왔습니다");
-  });
+  $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">연습 끝내기</h3><p style="text-align:left">어떻게 끝낼까요? 어느 쪽이든 실제 재고로 돌아갑니다.</p>'+
+    '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px"><button class="btn primary" id="peKeep">일시중단 (연습 내용 보관 · 다음에 이어서)</button><button class="btn" id="peDel">완전히 끝내기 (연습 내용 지우기)</button><button class="btn" id="peX">계속 연습하기</button></div>';
+  $("imgDlg").classList.add("on");
+  $("peKeep").onclick=function(){ leavePractice(true); };
+  $("peDel").onclick=function(){ closeDlg(); ask("연습 내용을 모두 지울까요?","지우기",function(){ leavePractice(false); },"취소"); };
+  $("peX").onclick=closeDlg;
 }
 /* 저장 상태 · 백업 메뉴 (위쪽 저장 표시를 누르면) */
 function closeDlg(){ $("imgDlg").classList.remove("on"); $("imgBox").innerHTML=""; }
@@ -901,7 +922,7 @@ function openDataMenu(){
   $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">저장 · 백업</h3>'+who+
     '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px">'+
     (GAS?(EDIT.code?'<button class="btn" id="dmOut">수정 코드 지우기 (보기 전용으로)</button>':'<button class="btn primary" id="dmCode">수정 코드 입력</button>'):'')+
-    (PRACTICE?'<button class="btn primary" id="dmPrac">연습 끝내기</button>':'<button class="btn" id="dmPrac">연습 모드 시작 (저장 안 됨)</button>')+
+    (PRACTICE?'<button class="btn primary" id="dmPrac">연습 끝내기 · 일시중단</button>':'<button class="btn" id="dmPrac">'+(pracSaved()?'연습 모드 이어서 하기 (저장 안 됨)':'연습 모드 시작 (저장 안 됨)')+'</button>')+
     (PRACTICE?'':'<button class="btn" id="dmBackup">전체 백업 파일 받기</button>')+
     (canEdit()&&!PRACTICE?'<button class="btn" id="dmRestore">백업 파일 불러오기</button><input type="file" id="dmFile" accept=".json,application/json,text/plain" hidden>':'')+
     '<button class="btn" id="dmClose">닫기</button></div>'+
@@ -910,7 +931,7 @@ function openDataMenu(){
   $("dmClose").onclick=closeDlg;
   if($("dmCode")) $("dmCode").onclick=function(){ closeDlg(); askCode(); };
   if($("dmOut")) $("dmOut").onclick=function(){ EDIT={}; try{ localStorage.removeItem("stockmap-editor"); }catch(e){} closeDlg(); renderAll(); toast("보기 전용으로 바뀌었습니다"); };
-  $("dmPrac").onclick=function(){ if(PRACTICE){ closeDlg(); endPractice(); } else startPractice(); };
+  $("dmPrac").onclick=function(){ if(PRACTICE){ endPractice(); } else { closeDlg(); startPractice(); } };
   if($("dmBackup")) $("dmBackup").onclick=function(){ makeBackup(this); };
   if($("dmRestore")){ $("dmRestore").onclick=function(){ $("dmFile").click(); }; $("dmFile").onchange=function(){ var f=this.files&&this.files[0]; if(f) restoreBackup(f); }; }
 }
@@ -1004,6 +1025,7 @@ function editFp(st){
   return bx.join(",")+"#"+it.join(",");
 }
 function persist(){
+  if(PRACTICE) setTimeout(pracSave,0);
   if(ui.snap&&!PRACTICE){ /* 지난 기록 고치기: 그 기록에 그대로 저장 */
     var sp=ui.snap; if(sp.none||retired()){ renderAll(); return; } if(GAS&&!canEdit()){ askCode(); renderAll(); return; }
     var fp=editFp(sp.state); if(sp.fp!==undefined&&sp.fp!==fp){ sp.state.survey.editedAt=Date.now(); sp.state.survey.editedBy=who(); } sp.fp=fp;
@@ -1152,7 +1174,7 @@ function renderHeader(){
   $("title").innerHTML=esc(c.name)+'<small>'+esc(c.groups.map(function(g){return g.name;}).join(" · "))+'</small>';
   var k=countsSt(ST()), sv=ST().survey, old=!ui.snap&&sv.date!==today(); if(ui.snap&&ui.snap.none) sv={date:ui.snap.date,round:""}; var _x=0, manualTxt=sv.manual?' · 지정 날짜':' · 지난 날짜';
   $("summary").innerHTML='<button class="survey'+(old?" old":"")+(ui.snap?" snap":"")+(locked()?" locked":"")+'" id="surveyBtn">'+fmtDate(sv.date)+' '+sv.round+(ui.snap?(ui.snap.none?'':'차 기록')+(ui.snap.none?' 기록 없음':(locked()?' · 마감':''))+' ✕':'차 조사'+(old?manualTxt:'')+(locked()?' · 마감':'')+' ▾')+'</button>'+(ui.snap&&ui.snap.none?'':'<button class="closebtn'+(locked()?' on':'')+'" id="closeRound">'+(locked()?'마감 해제':'마감')+'</button>')+'<span>품목 <b>'+k.n+'</b></span><span>· 입력 <b>'+(k.done+k.diff)+'</b></span><span>· 차이 <b>'+k.diff+'</b></span><span>· 미입력 <b>'+k.todo+'</b></span><span>· 약도 상자 <b>'+k.boxes+'</b></span>'+timesHTML(sv);
-  $("snapBanner").innerHTML=PRACTICE?'<div class="banner pracb"><span>연습 모드 · 입력해도 실제 재고에 저장되지 않습니다</span><button id="pracEnd">연습 끝내기</button></div>':'';
+  $("snapBanner").innerHTML=PRACTICE?'<div class="banner pracb"><span>연습 모드 · 입력해도 실제 재고에 저장되지 않습니다</span><button id="pracEnd">끝내기 · 일시중단</button></div>':'';
   if(PRACTICE&&$("pracEnd")) $("pracEnd").onclick=endPractice;
   $("legend").innerHTML=c.groups.map(function(g){return '<span><i style="background:'+g.color+'"></i>'+esc(g.name)+'</span>';}).join("")+
     '<span><i style="background:var(--has-bg);border:1px solid var(--line)"></i>수량 입력함</span><span><i style="border:1.5px solid var(--good)"></i>이전과 같음</span><span><i style="border:1.5px solid var(--warn)"></i>차이 있음</span><span><i style="background:var(--accent)"></i>특이사항</span>';
