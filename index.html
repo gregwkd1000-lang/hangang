@@ -229,6 +229,7 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .seqnum select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 .mkown{margin-top:8px}
 .mkown[hidden]{display:none}
+#placeBtn[hidden]{display:none!important}
 .btn.mkseq{background:var(--seq-bg);border-color:var(--seq-bg);color:#fff}
 .box.mark{word-break:keep-all;text-align:center;line-height:1.15;padding:2px}
 .seqnote{color:var(--warn)}
@@ -525,7 +526,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
     <div id="mapTabs"></div>
     <div id="moveBanner"></div>
     <div class="toolbar">
-      <button class="btn on" id="placeBtn" aria-pressed="true">빈칸 누르면 상자 추가</button>
+      <button class="btn on" id="placeBtn" aria-pressed="true" hidden>빈칸 누르면 상자 추가</button>
       <button class="btn" id="ovBtn">전체보기</button>
       <button class="btn" id="mlBtn">여러 칸 선택</button>
       <button class="btn" id="flipV" aria-pressed="false">상하 반전</button>
@@ -624,7 +625,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110090517";</script>
+<script>window.HG_BUILD="20261110091412";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1157,7 +1158,7 @@ function renderMap(){
   var mp=MAP(), ms=st.maps;
   $("mapTabs").innerHTML=ms.length<2?"":'<div class="seg maptabs" role="tablist" aria-label="약도 구역">'+ms.map(function(m){ var n=st.boxes.filter(function(b){return b.mapId===m.id&&b.itemId;}).length; return '<button role="tab" data-map="'+m.id+'" aria-selected="'+(m.id===mp.id)+'">'+esc(m.name)+' <small>'+n+'</small></button>'; }).join("")+'</div>';
   $("cLbl").textContent="가로 "+mp.cols+"칸"; $("rLbl").textContent="세로 "+mp.rows+"칸";
-  var pb=$("placeBtn"); pb.classList.toggle("on",ui.place); pb.setAttribute("aria-pressed",ui.place); pb.textContent=ui.place?"빈칸 누르면 상자 추가":"상자 추가 꺼짐";
+  ui.place=true; var pb=$("placeBtn"); pb.classList.toggle("on",ui.place); pb.setAttribute("aria-pressed",ui.place); pb.textContent=ui.place?"빈칸 누르면 상자 추가":"상자 추가 꺼짐";
   var mb=$("moveBanner");
   if(ui.moving){ var b=box(ui.moving), lb=b?(b.itemId&&item(b.itemId)?label(item(b.itemId)):(b.mark||"상자")):""; mb.innerHTML='<div class="banner">'+esc(lb)+' — 옮길 빈칸을 누르세요'+(ST().maps.length>1?' (위에서 구역 바꾸기 가능)':'')+'<button id="mvCancel">취소</button></div>'; $("mvCancel").onclick=function(){ui.moving=null;renderMap();}; }
   else if(ui.groupMove){ mb.innerHTML='<div class="banner multib"><span>상자 <b>'+ui.groupMove.length+'</b>개 이동 · 노란 점선 중 맨 왼쪽 위 상자가 갈 칸을 누르세요</span><button id="gmCancel">취소</button></div>'; $("gmCancel").onclick=function(){ ui.groupMove=null; renderMap(); }; }
