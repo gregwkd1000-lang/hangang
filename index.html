@@ -633,7 +633,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261111060914";</script>
+<script>window.HG_BUILD="20261111062750";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -641,7 +641,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 document.body.classList.remove("nojs"); (function(){ var sv=document.getElementById("staticView"); if(sv) sv.remove(); })();
 /* 시드 형식: 품번|별칭|이전재고|특이사항   ·   #항목명|값  (정보 항목) */
 var COMPANIES=[
- {id:"plant5",name:"5공장",seedV:3,noteOff:true,maps:[{id:"in",name:"실내"},{id:"out",name:"실외"}],sendArea:[{from:"in",to:"out",minRow:20,why:"실내 세로 21번부터 아래는 실외로 보냅니다"}],moveOut:[{group:"NX5",to:"plant5nx"}],groups:[
+ {id:"plant5",name:"5공장",seedV:3,noteOff:true,gongMsg:"RS4 공용기 {n}개 있습니다.",maps:[{id:"in",name:"실내"},{id:"out",name:"실외"}],sendArea:[{from:"in",to:"out",minRow:20,why:"실내 세로 21번부터 아래는 실외로 보냅니다"}],moveOut:[{group:"NX5",to:"plant5nx"}],groups:[
   {k:"IK",name:"IK 차종",unit:9,seed:"G9360 RJS||8\nG9350 N2P||65\nG9360 NNB||10|끝에있음\nG9350 V2H||8|안에모서리끝에\nG9360 VNB||6|먼지\nG9350 DUE||8\nG9360 DUE||12\nG9760 RJS||3|먼지\nG9750 N2P||2|고정\nG9760 NNB||5\nG9750 V2H||8\nG9760 VNB||9|반고정\nG9750 DUE||6|먼지\nG9760 DUE||9|먼지"},
   {k:"RS4",name:"RS4 차종",unit:7,seed:"T4050 BRZ||1\nT4050 DUE||6\nT4050 GLW||6|표기안됨겉\nT4050 MGJ||8\nT4050 NNB||4\nT4150 BRZ||14|7개밖에가려짐\nT4150 DUE||15\nT4150 GLW||12|밖에1파렛7\nT4150 MGJ||5\nT4150 NNB||21|한파렛숨겨짐\nT4650 BRZ||7\nT4650 GLW||4\nT4650 NNB||8"},
   {k:"RS4B",name:"T4300·T4400·T4900",unit:7,seed:"T4300 2BN||\nT4300 C2N||2\nT4300 GCW||\nT4400 2BN||7\nT4400 BVZ||\nT4400 C2N||3\nT4900 2BN||5\nT4900 C2N||\nT4900 GCW||\nT4900 C1S||"}]},
@@ -1339,9 +1339,10 @@ function renderShare(){
     });
   });
   /* 세종공업: 약도에 공용기 칸이 있으면 맨 밑에 멘트 */
-  var gn=ui.cid==="sejong"?ST().boxes.filter(function(b){ return String(b.mark||"").replace(/\s+/g,"")==="공용기"&&(!om||sendMap(b)===om); }).length:0;
+  var gmsg=c.gongMsg||(ui.cid==="sejong"?"공용기 {n}개 있습니다.":"");
+  var gn=gmsg?ST().boxes.filter(function(b){ return String(b.mark||"").replace(/\s+/g,"")==="공용기"&&(!om||sendMap(b)===om); }).length:0;
   $("noGong").hidden=!gn;
-  if(gn&&!ui.noGong){ if(lines.length) lines.push(""); lines.push("공용기 "+gn+"개 있습니다."); }
+  if(gn&&!ui.noGong){ if(lines.length) lines.push(""); lines.push(gmsg.replace("{n}",gn)); }
   $("out").value=lines.join("\n");
 }
 /* 검색한 파렛트만: 상자 위치별 한 줄 + 품목 합계 */
