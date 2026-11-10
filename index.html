@@ -629,7 +629,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110121633";</script>
+<script>window.HG_BUILD="20261110124533";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -2362,6 +2362,17 @@ $("summary").addEventListener("click",function(e){
         ssv.closed=son; ssv.reopened=!son; ssv.closedAt=son?Date.now():null; ssv.closedBy=son?who():""; ui.moving=null; ui.insMode=false; closeSheet(); persist(); toast(son?snm+"을 마감했습니다":snm+" 마감을 해제했습니다 · 이제 고칠 수 있습니다");
       },"취소"); return; }
     var st=S[ui.cid].state, sv=st.survey, on=!sv.closed, nm=fmtDate(sv.date)+" "+sv.round+"차";
+    /* 오늘 1차를 마감하면: 1차는 마감된 채 기록에 남고, 1차 수량 그대로 2차가 바로 시작 */
+    if(on&&!PRACTICE&&+sv.round===1&&sv.date===today()&&!sv.manual){
+      if(ro()) return;
+      ask(nm+" 조사를 마감할까요? 마감하면 1차 수량 그대로 2차 조사가 바로 시작됩니다. 1차는 기록에 남아 언제든 볼 수 있습니다.","마감",function(){
+        var id=ui.cid; sv.closed=true; sv.closedAt=Date.now(); sv.closedBy=who();
+        var sn=snapOf(id); saveHistLocal(id,sn); saveHistDb(id,sn);
+        st.items.forEach(function(it){ if(it.kind==="info"){ if(it.cur!==null) it.prev=it.cur; return; } var t=total(it,st); if(t!==null) it.prev=t; });
+        st.survey={date:sv.date,round:2,filled:true}; ui.moving=null; ui.insMode=false; ui.multi=null; closeSheet(); persist();
+        toast(nm+" 마감 · 2차 조사 시작 (1차 수량으로 채움)");
+      },"취소"); return;
+    }
     ask(on?nm+" 조사를 마감할까요? 마감하면 상자 배치와 수량을 고칠 수 없습니다.":nm+" 조사 마감을 해제할까요? 다시 고칠 수 있게 됩니다.",on?"마감":"마감 해제",function(){
       sv.closed=on; sv.closedAt=on?Date.now():null; sv.closedBy=on?who():""; ui.moving=null; ui.insMode=false; closeSheet(); persist(); toast(on?nm+" 마감했습니다":nm+" 마감을 해제했습니다");
     },"취소");
