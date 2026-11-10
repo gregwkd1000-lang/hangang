@@ -624,7 +624,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110074635";</script>
+<script>window.HG_BUILD="20261110090517";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -769,7 +769,7 @@ COMPANIES.forEach(function(c){
 });
 var ui={cid:"plant5",view:"map",place:true,zoom:1,filter:"all",q:"",out:"cur",sheet:null,moving:null,map:{}};
 try{ var mm=JSON.parse(localStorage.getItem("stockmap-mapsel")||"{}"); if(mm&&typeof mm==="object") ui.map=mm; }catch(e){}
-try{ var z=localStorage.getItem("stockmap-zoom")||localStorage.getItem("stockmap5-v1-zoom"); if(z!==null) ui.zoom=+z; }catch(e){}
+try{ var z=localStorage.getItem("stockmap-zoom")||localStorage.getItem("stockmap5-v1-zoom"); if(z!==null) ui.zoom=+z; var zp=+localStorage.getItem("stockmap-zpx"); if(zp>0) ui.zpx=zp; }catch(e){}
 /* 탭 순서 */
 var TAB_ORDER=["plant2obc","plant2","plant3","plant3ext","sejong","plant1","plant5","plant5nx","jungmyung","youngsil","fu","kangho","jinwoo","motras"];
 COMPANIES.sort(function(a,b){ var i=TAB_ORDER.indexOf(a.id), j=TAB_ORDER.indexOf(b.id); return (i<0?99:i)-(j<0?99:j); });
@@ -1123,7 +1123,9 @@ function clearDropMarks(){ Array.prototype.forEach.call(document.querySelectorAl
 $("dlgYes").onclick=function(){ $("dlg").classList.remove("on"); var c=dlgCb; dlgCb=null; if(c) c(); };
 
 /* ---------- render ---------- */
-var ZOOMS=[{px:54,l:"작게"},{px:66,l:"보통"},{px:82,l:"크게"},{px:100,l:"아주 크게"}];
+var ZOOMS=[{px:54,l:"작게"},{px:66,l:"보통"},{px:82,l:"크게"},{px:100,l:"아주 크게"}], ZMIN=36, ZMAX=170;
+function curPx(){ var p=+ui.zpx; return p>0?p:ZOOMS[Math.max(0,Math.min(ZOOMS.length-1,ui.zoom|0))].px; }
+function zLabel(px){ for(var i=0;i<ZOOMS.length;i++) if(Math.abs(ZOOMS[i].px-px)<1) return ZOOMS[i].l; return Math.round(px/66*100)+"%"; }
 function renderCtabs(){
   $("ctabs").innerHTML=COMPANIES.map(function(c){ var k=counts(c.id);
     return '<button class="ctab" role="tab" aria-selected="'+(c.id===ui.cid)+'" data-c="'+c.id+'">'+esc(c.name)+'<span class="cnt'+(k.todo?"":" zero")+'" aria-label="미입력 '+k.todo+'개">'+(k.todo||"✓")+'</span></button>'; }).join("");
@@ -1150,8 +1152,8 @@ function renderHeader(){
 }
 function renderMap(){
   var st=ST();
-  document.documentElement.style.setProperty("--cell",ZOOMS[ui.zoom].px+"px");
-  $("zLbl").textContent=ZOOMS[ui.zoom].l; $("zOut").disabled=ui.zoom===0; $("zIn").disabled=ui.zoom===ZOOMS.length-1;
+  var px=curPx(); document.documentElement.style.setProperty("--cell",px+"px");
+  $("zLbl").textContent=zLabel(px); $("zOut").disabled=px<=ZMIN+0.5; $("zIn").disabled=px>=ZMAX-0.5;
   var mp=MAP(), ms=st.maps;
   $("mapTabs").innerHTML=ms.length<2?"":'<div class="seg maptabs" role="tablist" aria-label="약도 구역">'+ms.map(function(m){ var n=st.boxes.filter(function(b){return b.mapId===m.id&&b.itemId;}).length; return '<button role="tab" data-map="'+m.id+'" aria-selected="'+(m.id===mp.id)+'">'+esc(m.name)+' <small>'+n+'</small></button>'; }).join("")+'</div>';
   $("cLbl").textContent="가로 "+mp.cols+"칸"; $("rLbl").textContent="세로 "+mp.rows+"칸";
@@ -1665,7 +1667,7 @@ function moveDrag(x,y){
   if(x<wr.left+m) w.scrollLeft-=12; else if(x>wr.right-m) w.scrollLeft+=12;
 }
 function endDrag(){
-  if(!drag) return; var d=drag; drag=null; suppressClick=Date.now();
+  if(!drag) return; var d=drag; drag=null; suppressClick=Date.now(); if(ovLater) setTimeout(renderOv,0);
   d.ghost.remove(); d.el.classList.remove("dragging"); if(d.over) d.over.classList.remove("dropto"); clearGhosts();
   var b=box(d.id), t=d.over; if(!b||!t) return;
   function nm(x){ return x.mark?x.mark:(x.itemId&&item(x.itemId)?label(item(x.itemId)):"빈렉or타업체"); }
@@ -1745,8 +1747,9 @@ $("grid").addEventListener("click",gridClick);
 $("ovGrid").addEventListener("click",gridClick);
 /* ---------- 전체보기 ---------- */
 var lastGrid="";
+var ovLater=false;
 function renderOv(){
-  if(!ui.ov) return;
+  if(!ui.ov) return; if(drag){ ovLater=true; return; } ovLater=false; ovWH=[$("ovWrap").clientWidth,$("ovWrap").clientHeight];
   var mp=MAP(), st=ST();
   $("ovTitle").textContent=C().name+(st.maps.length>1?" · "+mp.name:"")+" 전체보기";
   $("ovTabs").innerHTML=st.maps.length<2?"":'<div class="seg maptabs">'+st.maps.map(function(m){ return '<button data-ovmap="'+m.id+'" aria-selected="'+(m.id===mp.id)+'">'+esc(m.name)+'</button>'; }).join("")+'</div>';
@@ -1771,7 +1774,9 @@ $("mlBtn").onclick=function(){ if(ro()) return; ui.moving=null; ui.insMode=false
 $("ovq").oninput=function(){ ui.bq=this.value; $("bq").value=this.value; renderMap(); };
 $("ovTabs").addEventListener("click",function(e){ var t=e.target.closest("[data-ovmap]"); if(!t) return; ui.map[ui.cid]=t.dataset.ovmap; try{localStorage.setItem("stockmap-mapsel",JSON.stringify(ui.map));}catch(e2){} renderMap(); });
 $("ovInfo").addEventListener("click",function(e){ var t=e.target.closest("[data-gomap]"); if(!t) return; ui.map[ui.cid]=t.dataset.gomap; renderMap(); });
-window.addEventListener("resize",function(){ if(ui.ov) renderOv(); });
+var ovWH=[0,0];
+window.addEventListener("resize",function(){ if(!ui.ov||drag) return; var w=$("ovWrap"), W=w.clientWidth, H=w.clientHeight;
+  if(Math.abs(W-ovWH[0])<2&&Math.abs(H-ovWH[1])<140) return; ovWH=[W,H]; renderOv(); });
 /* 전체보기: 두 손가락으로 확대·축소 (페이지 자체는 확대되지 않음) */
 var ovBase=40;
 function ovSetZoom(z,cx,cy){
@@ -1789,16 +1794,19 @@ function ovSetZoom(z,cx,cy){
   var wrap=$("ovWrap"), pz=null;
   function dist(t){ var dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy)||1; }
   function mid(t){ return [(t[0].clientX+t[1].clientX)/2,(t[0].clientY+t[1].clientY)/2]; }
-  wrap.addEventListener("touchstart",function(e){ if(e.touches.length===2){ pz={d:dist(e.touches),z:ui.ovZoom||1}; e.preventDefault(); } },{passive:false});
-  wrap.addEventListener("touchmove",function(e){ if(pz&&e.touches.length===2){ e.preventDefault(); var m=mid(e.touches); ovSetZoom(pz.z*dist(e.touches)/pz.d,m[0],m[1]); } },{passive:false});
+  wrap.addEventListener("touchstart",function(e){ if(e.touches.length===2){ e.preventDefault(); if(drag) return; pz={d:dist(e.touches),z:ui.ovZoom||1}; } },{passive:false});
+  wrap.addEventListener("touchmove",function(e){ if(pz&&drag){ pz=null; } if(pz&&e.touches.length===2){ e.preventDefault(); var m=mid(e.touches); ovSetZoom(pz.z*dist(e.touches)/pz.d,m[0],m[1]); } },{passive:false});
   wrap.addEventListener("touchend",function(e){ if(pz&&e.touches.length<2){ pz=null; lastTouch=Date.now(); } });
   wrap.addEventListener("wheel",function(e){ if(e.ctrlKey){ e.preventDefault(); ovSetZoom((ui.ovZoom||1)*Math.exp(-e.deltaY/200),e.clientX,e.clientY); } },{passive:false});
   $("ovZoom").onclick=function(){ ui.ovZoom=1; renderOv(); };
   /* 아이폰 사파리: 화면 전체 확대 막기 (상자 눌렀을 때 창이 커지지 않게) */
   var gz=null;
-  document.addEventListener("gesturestart",function(e){ e.preventDefault(); gz=(ui.ov&&wrap.contains(e.target))?(ui.ovZoom||1):null; },{passive:false});
-  document.addEventListener("gesturechange",function(e){ e.preventDefault(); if(gz!==null&&!pz) ovSetZoom(gz*e.scale,e.clientX,e.clientY); },{passive:false});
-  document.addEventListener("gestureend",function(e){ e.preventDefault(); gz=null; },{passive:false});
+  var gm=null;
+  document.addEventListener("gesturestart",function(e){ e.preventDefault(); gz=null; gm=null; if(drag) return;
+    if(ui.ov&&wrap.contains(e.target)) gz=ui.ovZoom||1; else if(!ui.ov&&e.target.closest&&e.target.closest(".mapwrap")) gm=curPx(); },{passive:false});
+  document.addEventListener("gesturechange",function(e){ e.preventDefault(); if(drag){ gz=null; gm=null; return; }
+    if(gz!==null&&!pz) ovSetZoom(gz*e.scale,e.clientX,e.clientY); else if(gm!==null&&!mpz) mapSetPx(gm*e.scale,e.clientX,e.clientY); },{passive:false});
+  document.addEventListener("gestureend",function(e){ e.preventDefault(); gz=null; if(gm!==null){ gm=null; mapZoomDone(); } },{passive:false});
   document.addEventListener("touchmove",function(e){ if(e.touches.length>1&&!e.target.closest(".leaflet-container")) e.preventDefault(); },{passive:false});
 })();
 /* 전체보기 → PNG 이미지 (화면에 그려진 칸을 캔버스로 다시 그림) */
@@ -2163,9 +2171,27 @@ $("bq").oninput=function(){ ui.bq=this.value; ui.bqScroll=true; renderMap(); };
 $("outQ").oninput=function(){ ui.bq=this.value; $("bq").value=this.value; ui.outFind=!!this.value.trim(); renderShare(); renderMap(); };
 $("bqInfo").addEventListener("click",function(e){ var t=e.target.closest("[data-gomap]"); if(!t) return; ui.map[ui.cid]=t.dataset.gomap; ui.bqScroll=true; renderMap(); });
 $("placeBtn").onclick=function(){ ui.place=!ui.place; renderMap(); };
-function saveZoom(){ try{localStorage.setItem("stockmap-zoom",ui.zoom);}catch(e){} }
-$("zOut").onclick=function(){ if(ui.zoom>0){ui.zoom--; saveZoom(); renderMap();} };
-$("zIn").onclick=function(){ if(ui.zoom<ZOOMS.length-1){ui.zoom++; saveZoom(); renderMap();} };
+function saveZoom(){ try{localStorage.setItem("stockmap-zoom",ui.zoom); localStorage.setItem("stockmap-zpx",ui.zpx||"");}catch(e){} }
+$("zOut").onclick=function(){ ui.zpx=Math.max(ZMIN,Math.round(curPx()/1.2)); saveZoom(); renderMap(); };
+$("zIn").onclick=function(){ ui.zpx=Math.min(ZMAX,Math.round(curPx()*1.2)); saveZoom(); renderMap(); };
+/* 약도: 두 손가락으로 확대·축소 (상자 옮기는 중에는 안 함) */
+var mpz=null;
+function mapSetPx(px,cx,cy){
+  var w=document.querySelector(".mapwrap"); if(!w) return; var r=w.getBoundingClientRect();
+  px=Math.max(ZMIN,Math.min(ZMAX,px)); var ox=cx-r.left, oy=cy-r.top, sw=w.scrollWidth||1, sh=w.scrollHeight||1;
+  var fx=(w.scrollLeft+ox)/sw, fy=(w.scrollTop+oy)/sh;
+  ui.zpx=px; document.documentElement.style.setProperty("--cell",px+"px"); $("zLbl").textContent=zLabel(px);
+  w.scrollLeft=fx*w.scrollWidth-ox; w.scrollTop=fy*w.scrollHeight-oy;
+}
+function mapZoomDone(){ ui.zpx=Math.round(curPx()); saveZoom(); renderMap(); }
+(function(){
+  var w=document.querySelector(".mapwrap"); if(!w) return;
+  function dist(t){ var dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy)||1; }
+  w.addEventListener("touchstart",function(e){ if(e.touches.length===2){ e.preventDefault(); if(drag) return; if(pend){ clearTimeout(pend.timer); pend=null; } apan=null; mpz={d:dist(e.touches),px:curPx()}; } },{passive:false});
+  w.addEventListener("touchmove",function(e){ if(mpz&&drag){ mpz=null; return; } if(mpz&&e.touches.length===2){ e.preventDefault(); mapSetPx(mpz.px*dist(e.touches)/mpz.d,(e.touches[0].clientX+e.touches[1].clientX)/2,(e.touches[0].clientY+e.touches[1].clientY)/2); } },{passive:false});
+  w.addEventListener("touchend",function(e){ if(mpz&&e.touches.length<2){ mpz=null; lastTouch=Date.now(); suppressClick=Date.now(); mapZoomDone(); } });
+  w.addEventListener("wheel",function(e){ if(e.ctrlKey&&!ui.ov){ e.preventDefault(); var r=w.getBoundingClientRect(); mapSetPx(curPx()*Math.exp(-e.deltaY/200),e.clientX,e.clientY); clearTimeout(w._zt); w._zt=setTimeout(mapZoomDone,250); } },{passive:false});
+})();
 function maxUsed(k){ var id=MAP().id; return ST().boxes.reduce(function(m,b){return b.mapId===id?Math.max(m,b[k]+1):m;},0); }
 // 칸 수 조절: 가로는 왼쪽/오른쪽, 세로는 위/아래에서 추가·삭제 (앞쪽에서 바꾸면 상자를 한 칸씩 밀어 위치 유지)
 function flipKey(){ return "stockmap-flip-"+ui.cid+"-"+MAP().id; }
