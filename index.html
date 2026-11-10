@@ -633,7 +633,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261111053527";</script>
+<script>window.HG_BUILD="20261111060914";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -654,7 +654,7 @@ var COMPANIES=[
   {k:"EV",name:"이벤트건",seed:"81600-DS610B3R||5|JK 차종 · 라인\n81600-DS610UBL||4|JK 차종 · 라인\n81600-DS610E4B||11|JK 차종 · 라인\n81600-DS600UBL||8\n81600-DS600B3R||9\n81600-P6520YSY||5"}]},
  {id:"plant2obc",name:"2공장 OBC",unit:18,seedV:1,groups:[
   {k:"OBC",name:"재고",seed:"36400-3DAW5|OBC|59\n#시컨스|501"}]},
- {id:"plant3",name:"3공장",seedV:1,moveOut:[{group:"EXT",to:"plant3ext"}],groups:[
+ {id:"plant3",seqDaily:true,name:"3공장",seedV:1,moveOut:[{group:"EXT",to:"plant3ext"}],groups:[
   {k:"CN7",name:"HPCU 재고조사 CN7",unit:15,seed:"DNA||\nDNB||\nDNG||\nDNC||22\nDNF||44\nDNH||18\nDNJ||22\nDNK||1\nDNL||3\nJQ1||81"},
   {k:"SX2",name:"HPCU SX2",seed:"Y15||1\n#시컨스|828 ~ 852번까지"}]},
  {id:"plant3ext",name:"3공장 외부재고",seedV:1,stockify:"공용기",groups:[
@@ -1115,6 +1115,8 @@ var SEQ="시퀀스";
 function seqInfos(st){ return (st||ST()).items.filter(function(it){ return it.kind==="info"&&/시[컨퀀]스/.test(it.code); }); }
 function seqInfoOf(b,st){ var a=seqInfos(st); if(!a.length) return null; if(b.seqInfo){ for(var i=0;i<a.length;i++) if(a[i].id===b.seqInfo) return a[i]; } return a[0]; }
 function seqNoOf(b,st){ var it=seqInfoOf(b,st); return it&&it.cur!==null&&String(it.cur).trim()!==""?String(it.cur):""; }
+/* 3공장: 날짜가 바뀌면 시퀀스 갯수 조정값은 지움 (수량을 복사해도) */
+function clearSeqDaily(cid,st){ var c=COMPANIES.filter(function(x){return x.id===cid;})[0]; if(!c||!c.seqDaily) return; st.boxes.forEach(function(b){ if(b.mark===SEQ) b.seq=null; }); }
 function seqDed(id,st){ return (st||ST()).boxes.reduce(function(a,b){ return a+(b.mark===SEQ&&b.seq&&b.seq[id]?b.seq[id]:0); },0); }
 function status(it,st){ var t=total(it,st); if(t===null) return "todo"; if(it.kind==="info") return "done"; if(it.prev!==null&&t===it.prev) return "done"; if(it.prev===null&&t===0) return "done"; return "diff"; }
 function placedCount(id){ return ST().boxes.filter(function(b){return b.itemId===id;}).length; }
@@ -2387,7 +2389,7 @@ function startRound(copy){
       var t=total(it,st); if(t!==null) it.prev=t; if(!copy) it.cur=null;
     });
     if(!copy) st.boxes.forEach(function(b){ b.cur=null; b.seq=null; (b.mix||[]).forEach(function(m){ m.cur=null; }); });
-    var oldDate=st.survey.date;
+    var oldDate=st.survey.date; if(nx.date!==oldDate) clearSeqDaily(id,st);
     nx.filled=true; st.survey=nx; closeSheet(); persist(); toast(fmtDate(nx.date)+" "+nx.round+"차 조사 시작");
     if(nx.date!==oldDate) switchDate(nx.date); // 날짜가 바뀌면 다른 탭도 같은 날짜로
   });
@@ -2493,6 +2495,7 @@ async function switchDate(d){
         if(it.kind==="info"){ var tv=total(it,st); if(tv!==null) it.prev=tv; it.cur=null; return; }
         var t=total(it,st); if(t!==null) it.prev=t; // 갯수는 지난 조사 그대로
       });
+      clearSeqDaily(c.id,st);
       st.survey={date:d,round:1,manual:manual,filled:true};
     }
     persistId(c.id);
@@ -2613,6 +2616,7 @@ function autoRoll(id){
     if(it.kind==="info"){ var tv=total(it,st); if(it.cur!==null||tv!==null) it.prev=tv!==null?tv:it.cur; it.cur=null; return; }
     var t=total(it,st); if(t!==null) it.prev=t; // 갯수는 지난 조사 그대로 채워 둠
   });
+  clearSeqDaily(id,st);
   st.survey={date:d,round:1,filled:true};
   persistId(id);
   if(id===ui.cid){ if(ui.snap) ui.snap=null; toast(fmtDate(d)+" 1차 조사로 바뀌었습니다 · 지난 회차는 기록에 저장됨"); }
