@@ -562,6 +562,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
       <button class="chipbtn" aria-pressed="false" data-f="diff">차이 있음</button>
       <button class="chipbtn" aria-pressed="false" data-f="unplaced">약도에 없음</button>
     </div>
+    <p class="hint" style="margin:2px 0 6px">품목을 누르면 약도에서 그 품목 상자를 찾아 보여줘요 · 꾹 누르면 품목 수정</p>
     <div id="itemList"></div>
     <details class="card" id="unitCard" style="margin-top:14px">
       <summary><h2 style="display:inline">파렛트 단위 설정</h2></summary>
@@ -629,7 +630,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110124533";</script>
+<script>window.HG_BUILD="20261110134632";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -2286,7 +2287,24 @@ function showView(v){
   try{ if(location.hash!=="#"+v) history.replaceState(null,"","#"+v); }catch(e){}
 }
 Array.prototype.forEach.call(document.querySelectorAll("nav.views button[data-v]"),function(b){ b.onclick=function(){ showView(b.dataset.v); }; });
-$("itemList").addEventListener("click",function(e){ var r=e.target.closest("[data-i]"); if(r) openSheet({itemId:r.dataset.i}); });
+/* 품목 누르면 → 약도에서 그 품목 상자 찾기 (정보 항목은 입력창). 꾹 누르면 품목 수정 */
+var ilp=null, ilpDone=0;
+$("itemList").addEventListener("pointerdown",function(e){ var r=e.target.closest("[data-i]"); if(!r) return; clearTimeout(ilp); ilp=setTimeout(function(){ ilpDone=Date.now(); try{ if(navigator.vibrate) navigator.vibrate(20); }catch(x){} openSheet({itemId:r.dataset.i}); },600); });
+["pointerup","pointercancel","pointerleave"].forEach(function(n){ $("itemList").addEventListener(n,function(){ clearTimeout(ilp); }); });
+$("itemList").addEventListener("pointermove",function(e){ if(Math.abs(e.movementX||0)+Math.abs(e.movementY||0)>4) clearTimeout(ilp); });
+$("itemList").addEventListener("contextmenu",function(e){ if(e.target.closest("[data-i]")) e.preventDefault(); });
+$("itemList").addEventListener("click",function(e){ var r=e.target.closest("[data-i]"); if(!r) return; if(Date.now()-ilpDone<800) return;
+  var it=item(r.dataset.i); if(!it) return; if(it.kind==="info"){ openSheet({itemId:it.id}); return; }
+  findOnMap(it); });
+function findOnMap(it){
+  var st=ST(), has=function(b){ return b.itemId===it.id||(b.mix||[]).some(function(m){return m.itemId===it.id;}); };
+  var bs=st.boxes.filter(has);
+  ui.bq=it.code+(it.alias?" "+it.alias:""); $("bq").value=ui.bq;
+  if(bs.length&&!bs.some(function(b){return b.mapId===MAP().id;})) ui.map[ui.cid]=bs[0].mapId;
+  ui.bqScroll=true; showView("map"); renderMap();
+  setTimeout(function(){ var w=$("bq"); if(w&&w.scrollIntoView) document.querySelector(".mapwrap").scrollIntoView({block:"start",behavior:"smooth"}); },50);
+  toast(bs.length?label(it)+" · 약도에 "+bs.length+"곳":label(it)+" · 약도에 놓인 상자가 없습니다");
+}
 $("q").oninput=function(){ ui.q=this.value; renderItems(); };
 Array.prototype.forEach.call(document.querySelectorAll("[data-f]"),function(b){ b.onclick=function(){ ui.filter=b.dataset.f; document.querySelectorAll("[data-f]").forEach(function(x){x.setAttribute("aria-pressed",x===b);}); renderItems(); }; });
 Array.prototype.forEach.call(document.querySelectorAll("[data-o]"),function(b){ b.onclick=function(){ ui.out=b.dataset.o; document.querySelectorAll("[data-o]").forEach(function(x){x.setAttribute("aria-pressed",x===b);}); renderShare(); }; });
