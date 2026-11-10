@@ -187,6 +187,9 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .curhead .total{font-family:var(--font-num);font-size:30px;font-weight:600;margin-left:auto}
 .curhead .d{font-family:var(--font-num);font-size:14px;font-weight:600;padding:2px 8px;border-radius:8px}
 .d.zero{background:var(--good-bg);color:var(--good)} .d.pos,.d.neg{background:var(--warn-bg);color:var(--warn)}
+.iiname{display:grid;grid-template-columns:1.4fr 1fr;gap:8px}
+.iiname label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.iiname input{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
 .spots{background:var(--surface2);border-radius:10px;padding:4px 10px;margin-bottom:10px}
 .spot{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 .spot:first-child{border-top:0}
@@ -562,7 +565,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
       <button class="chipbtn" aria-pressed="false" data-f="diff">차이 있음</button>
       <button class="chipbtn" aria-pressed="false" data-f="unplaced">약도에 없음</button>
     </div>
-    <p class="hint" style="margin:2px 0 6px">품목을 누르면 약도에서 그 품목 상자를 찾아 보여줘요 · 꾹 누르면 품목 수정</p>
+    <p class="hint" style="margin:2px 0 6px">품목을 누르면 이름·특이사항 고치기, 어느 줄에 몇 파렛트 있는지, 약도 보기</p>
     <div id="itemList"></div>
     <details class="card" id="unitCard" style="margin-top:14px">
       <summary><h2 style="display:inline">파렛트 단위 설정</h2></summary>
@@ -630,7 +633,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110134632";</script>
+<script>window.HG_BUILD="20261110134850";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1352,6 +1355,7 @@ function renderSheet(){
   if(s.mode==="multi") return renderMulti();
   if(s.mode==="mixpick"){ var mb0=box(s.boxId); if(!mb0||viewOnly()){ closeSheet(); return; } return renderMixPick(mb0); }
   if(s.mode==="tier") return renderTier(s);
+  if(s.mode==="iteminfo") return renderItemInfo(s);
   if(s.mode==="seq"){ var sb0=box(s.boxId); if(!sb0){ closeSheet(); return; } var ae=document.activeElement; if(ae&&ae.dataset&&ae.dataset.sq&&ae.id!=="sqQ") return; return renderSeq(sb0); }
   if(viewOnly()) return renderRO(s);
   var b=s.boxId?box(s.boxId):null;
@@ -2287,15 +2291,10 @@ function showView(v){
   try{ if(location.hash!=="#"+v) history.replaceState(null,"","#"+v); }catch(e){}
 }
 Array.prototype.forEach.call(document.querySelectorAll("nav.views button[data-v]"),function(b){ b.onclick=function(){ showView(b.dataset.v); }; });
-/* 품목 누르면 → 약도에서 그 품목 상자 찾기 (정보 항목은 입력창). 꾹 누르면 품목 수정 */
-var ilp=null, ilpDone=0;
-$("itemList").addEventListener("pointerdown",function(e){ var r=e.target.closest("[data-i]"); if(!r) return; clearTimeout(ilp); ilp=setTimeout(function(){ ilpDone=Date.now(); try{ if(navigator.vibrate) navigator.vibrate(20); }catch(x){} openSheet({itemId:r.dataset.i}); },600); });
-["pointerup","pointercancel","pointerleave"].forEach(function(n){ $("itemList").addEventListener(n,function(){ clearTimeout(ilp); }); });
-$("itemList").addEventListener("pointermove",function(e){ if(Math.abs(e.movementX||0)+Math.abs(e.movementY||0)>4) clearTimeout(ilp); });
-$("itemList").addEventListener("contextmenu",function(e){ if(e.target.closest("[data-i]")) e.preventDefault(); });
-$("itemList").addEventListener("click",function(e){ var r=e.target.closest("[data-i]"); if(!r) return; if(Date.now()-ilpDone<800) return;
+/* 품목 누르면 → 품목 정보 (이름·괄호내용 변경, 어느 줄에 몇 파렛트, 특이사항, 약도 보기) */
+$("itemList").addEventListener("click",function(e){ var r=e.target.closest("[data-i]"); if(!r) return;
   var it=item(r.dataset.i); if(!it) return; if(it.kind==="info"){ openSheet({itemId:it.id}); return; }
-  findOnMap(it); });
+  openSheet({mode:"iteminfo",itemId:it.id}); });
 function findOnMap(it){
   var st=ST(), has=function(b){ return b.itemId===it.id||(b.mix||[]).some(function(m){return m.itemId===it.id;}); };
   var bs=st.boxes.filter(has);
@@ -2519,6 +2518,37 @@ function copySnap(withStock){ // 지난 기록의 약도(상자 위치)를 지�
     else st.items.forEach(function(it){ it.cur=null; });
     ui.snap=null; closeSheet(); persist(); toast(nm+" "+(withStock?"상자 위치+재고":"상자 위치")+"를 복사했습니다");
   });
+}
+function renderItemInfo(s){
+  var it=item(s.itemId); if(!it){ closeSheet(); return; }
+  var ae=document.activeElement; if(ae&&["iiCode","iiAlias","iiNote"].indexOf(ae.id)>=0) return;
+  var st=ST(), g=grp(it.group), ed=!viewOnly(), rows=[], pal=0, qty=0, has=false;
+  st.boxes.forEach(function(b){
+    var parts=[]; if(b.itemId===it.id) parts.push(b.cur); (b.mix||[]).forEach(function(m){ if(m.itemId===it.id) parts.push(m.cur); });
+    parts.forEach(function(cur){ var n=palletsOf(cur); pal+=n; if(cur!==null){ qty+=sumA(cur); has=true; } rows.push({b:b,n:n,cur:cur}); });
+  });
+  var mo={}; st.maps.forEach(function(m,i){ mo[m.id]=i; });
+  rows.sort(function(a,b){ return (mo[a.b.mapId]-mo[b.b.mapId])||(a.b.r-b.b.r)||(a.b.c-b.b.c); });
+  $("shTitle").innerHTML=esc(label(it))+'<small>'+esc(C().name+" · "+g.name)+'</small>';
+  var h='<div class="iiname"><div><label for="iiCode">품명</label><input id="iiCode" value="'+esc(it.code)+'"'+(ed?'':' disabled')+' autocomplete="off"></div>'+
+    '<div><label for="iiAlias">괄호 내용</label><input id="iiAlias" value="'+esc(it.alias||"")+'" placeholder="예: 2B8"'+(ed?'':' disabled')+' autocomplete="off"></div></div>'+
+    '<p class="hint" style="margin:4px 0 10px">보이는 이름: <b id="iiPrev">'+esc(label(it))+'</b></p>'+
+    '<div class="notebox'+(it.note?"":" emp")+'" style="margin-bottom:10px"><label for="iiNote">특이사항</label><input id="iiNote" value="'+esc(it.note||"")+'" placeholder="없음 (눌러서 입력)"'+(ed?'':' disabled')+'></div>'+
+    (ed?'<button class="btn primary" id="iiSave" style="width:100%;margin-bottom:12px">이름·특이사항 저장</button>':'')+
+    '<p class="hint" style="margin:0 0 4px"><b>약도 위치</b> · 총 <b>'+pal+'</b>파렛트'+(has?' · '+qty+'개':'')+(rows.length?' · '+rows.length+'곳':'')+'</p>'+
+    (rows.length?'<div class="spots">'+rows.map(function(x){ return '<div class="spot"><span>'+esc(spotName(x.b))+'</span><b>'+(x.cur===null?'미입력':x.n+'파렛 · '+sumA(x.cur)+'개')+'</b></div>'; }).join("")+'</div>':'<p class="hint">약도에 놓인 상자가 없습니다.</p>')+
+    '<div class="acts" style="margin-top:10px"><button class="btn primary" id="iiMap"'+(rows.length?'':' disabled')+'>약도 보기</button>'+(ed?'<button class="btn" id="iiQty">수량 입력</button>':'')+'</div>';
+  $("shBody").innerHTML=h;
+  function prev(){ var c=$("iiCode").value.trim(), a=$("iiAlias").value.trim(); $("iiPrev").textContent=c.toUpperCase()+(a?" ("+a+")":""); }
+  if(ed){ $("iiCode").oninput=prev; $("iiAlias").oninput=prev;
+    $("iiSave").onclick=function(){ if(ro()) return;
+      var c=$("iiCode").value.trim().replace(/\s+/g," ").toUpperCase(), a=$("iiAlias").value.trim(), n=$("iiNote").value.trim();
+      if(!c){ toast("품명을 입력하세요"); return; }
+      if(ST().items.some(function(x){ return x.id!==it.id&&x.group===it.group&&x.code===c&&(x.alias||"")===a; })){ toast("같은 이름의 품목이 이미 있습니다"); return; }
+      it.code=c; it.alias=a; it.note=n; ae=null; document.activeElement&&document.activeElement.blur&&document.activeElement.blur(); persist(); toast(label(it)+" 저장했습니다"); renderItemInfo(s); };
+    $("iiQty").onclick=function(){ openSheet({itemId:it.id}); };
+  }
+  $("iiMap").onclick=function(){ closeSheet(); findOnMap(it); };
 }
 function renderRO(s){
   var b=s.boxId?box(s.boxId):null, it=item(s.itemId||(b&&b.itemId));
