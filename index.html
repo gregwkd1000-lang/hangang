@@ -309,7 +309,8 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .box.colored .t1,.box.colored .t2,.box.colored .t3,.box.colored .t3 b{color:var(--cfg)!important}
 .box.colored .t1,.box.colored .t3{opacity:.85}
 .donemark{position:absolute;right:3px;bottom:3px;width:16px;height:16px;border-radius:50%;background:var(--good);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center}
-.sizer .insbtn{grid-column:1/-1;margin-top:4px;border-style:dashed}
+.sizer .insrow{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.sizer .insbtn{border-style:dashed}
 .grid.insmode .cell{border-color:var(--accent)}
 .grid{--hdw:22px}
 .ovgrid{--hdw:14px}
@@ -530,7 +531,6 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
     <div class="toolbar">
       <button class="btn on" id="placeBtn" aria-pressed="true" hidden>빈칸 누르면 상자 추가</button>
       <button class="btn" id="ovBtn">전체보기</button>
-      <button class="btn" id="mlBtn">여러 칸 선택</button>
       <button class="btn" id="flipV" aria-pressed="false">상하 반전</button>
       <button class="btn" id="flipH" aria-pressed="false">좌우 반전</button>
       <div class="seg" aria-label="확대">
@@ -548,7 +548,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
       <button class="btn" data-sz="c,start,1">+ 왼쪽</button><button class="btn" data-sz="c,start,-1">− 왼쪽</button><button class="btn" data-sz="c,end,-1">− 오른쪽</button><button class="btn" data-sz="c,end,1">+ 오른쪽</button>
       <span class="sl" id="rLbl">세로 10칸</span>
       <button class="btn" data-sz="r,start,1">+ 위</button><button class="btn" data-sz="r,start,-1">− 위</button><button class="btn" data-sz="r,end,-1">− 아래</button><button class="btn" data-sz="r,end,1">+ 아래</button>
-      <button class="btn insbtn" id="insBtn">중간에 줄 넣기 · 빼기</button>
+      <div class="insrow"><button class="btn insbtn" id="insBtn">중간에 줄 넣기 · 빼기</button><button class="btn" id="mlBtn">여러 칸 선택</button></div>
     </div>
   </section>
 
@@ -627,7 +627,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261110091534";</script>
+<script>window.HG_BUILD="20261110094419";</script>
 <script src="config.js"></script>
 <script>
 (function(){
