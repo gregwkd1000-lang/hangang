@@ -651,7 +651,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261111091544";</script>
+<script>window.HG_BUILD="20261111092157";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1218,7 +1218,7 @@ function renderMap(){
   var fq=flipOf(); $("flipV").classList.toggle("on",fq.v); $("flipV").setAttribute("aria-pressed",fq.v); $("flipH").classList.toggle("on",fq.h); $("flipH").setAttribute("aria-pressed",fq.h);
   var g=$("grid"); g.classList.toggle("insmode",!!ui.insMode); g.classList.toggle("locked",locked()); g.style.gridTemplateColumns="var(--hdw) repeat("+mp.cols+",var(--cell))";
   var bq=qNorm(ui.bq);
-  function hitOf(b){ if(!bq) return ""; var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return qHas(txt,bq)?" hit":" dim"; }
+  function hitOf(b){ if(!bq) return ""; var txt=(b.mark?(b.mark===SEQ?"시퀀스시컨스":b.mark):(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return qHas(txt,bq)?" hit":" dim"; }
   var fl=flipOf();
   var h='<span class="hd corner" aria-hidden="true"><i>'+(fl.h?'←가':'가→')+'</i><i>'+(fl.v?'세↑':'세↓')+'</i></span>';
   for(var hci=0;hci<mp.cols;hci++){ var hc=fl.h?mp.cols-1-hci:hci; h+='<span class="hd hc" aria-hidden="true">'+(hc+1)+'</span>'; }
@@ -1228,7 +1228,7 @@ function renderMap(){
     if(!b){ return '<button class="cell empty'+half+(pnt?' painted p-'+pnt:'')+(ui.multi&&ui.multi[pk]?' picked':'')+(ui.place?' place':'')+(ui.moving?' target':'')+'" data-r="'+r+'" data-c="'+c+'"'+ta+' aria-label="빈칸 '+posTxt(r,c,two?tr:null)+'"></button>'; }
     var sel=(ui.moving===b.id?" sel":"")+hitOf(b)+(ui.multi&&ui.multi["b:"+b.id]?" bpicked":"")+(ui.groupMove&&ui.groupMove.indexOf(b.id)>=0?" gmove":""), pc=b.bg?" colored p-"+b.bg:"";
     if(b.mark===SEQ){ var sq=b.seq?Object.keys(b.seq).reduce(function(a,k){return a+b.seq[k];},0):0;
-      return '<button class="cell box seqbox'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'<span class="stripe"></span><span class="t2 s">시퀀스</span>'+(function(){ var no=seqNoOf(b), adjT=sq>0?'차감 <b>−'+sq+'</b>':sq<0?'추가 <b>+'+(-sq)+'</b>':'';
+      return '<button class="cell box seqbox'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'<span class="stripe"></span><span class="t2 s">시컨스</span>'+(function(){ var no=seqNoOf(b), adjT=sq>0?'차감 <b>−'+sq+'</b>':sq<0?'추가 <b>+'+(-sq)+'</b>':'';
         return no?'<span class="t3 seqno">'+esc(no)+'</span>'+(adjT?'<span class="t4">'+adjT+'</span>':''):'<span class="t3">'+(adjT||'번호 없음')+'</span>'; })()+'</button>'; }
     if(b.mark){ return '<button class="cell box mark'+(b.mark==="공용기"?" gong":"")+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+esc(b.mark)+'</button>'; }
     var it=b.itemId?item(b.itemId):null;
@@ -1254,7 +1254,7 @@ function renderMap(){
   var info=$("bqInfo");
   if(!bq){ info.innerHTML=""; }
   else {
-    var all=ST().boxes.filter(function(b){ var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return qHas(txt,bq); });
+    var all=ST().boxes.filter(function(b){ var txt=(b.mark?(b.mark===SEQ?"시퀀스시컨스":b.mark):(b.itemId&&item(b.itemId)?(item(b.itemId).code+item(b.itemId).alias):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+x.alias:""; }).join(""); return qHas(txt,bq); });
     var here=all.filter(function(b){return b.mapId===mp.id;}).length, other=ST().maps.filter(function(m){return m.id!==mp.id;}).map(function(m){ return {m:m,n:all.filter(function(b){return b.mapId===m.id;}).length}; }).filter(function(x){return x.n;});
     info.innerHTML=(all.length?('이 약도에서 <b>'+here+'</b>개 찾음'):'일치하는 상자가 없습니다')+other.map(function(x){ return ' · <button class="linkbtn" data-gomap="'+x.m.id+'">'+esc(x.m.name)+'에 '+x.n+'개 보기</button>'; }).join("");
     if(ui.bqScroll){ ui.bqScroll=false; var f=g.querySelector(".hit"); if(f){ var w=document.querySelector(".mapwrap"), wr=w.getBoundingClientRect(), fr=f.getBoundingClientRect(); w.scrollTop+=fr.top-wr.top-wr.height/2+fr.height/2; w.scrollLeft+=fr.left-wr.left-wr.width/2+fr.width/2; } }
@@ -1518,7 +1518,7 @@ function updateCurArea(it,b){
   var d=(t!==null&&it.prev!==null)?t-it.prev:null;
   var dh=d===null?"":'<span class="d '+(d===0?"zero":d>0?"pos":"neg")+'">'+(d===0?"이전과 같음":(d>0?"+":"")+d)+'</span>';
   var h='<div class="curhead"><span class="lbl">'+(multi?"합계 (카톡 전송)":"현재고")+'</span>'+dh+'<span class="total">'+(t===null?"미입력":t)+'</span></div>';
-  var dd=seqDed(it.id); if(dd) h+='<div class="calc seqnote">시퀀스에서 '+(dd>0?'−'+dd+'개 차감':'+'+(-dd)+'개 추가')+'된 합계입니다</div>';
+  var dd=seqDed(it.id); if(dd) h+='<div class="calc seqnote">시컨스에서 '+(dd>0?'−'+dd+'개 차감':'+'+(-dd)+'개 추가')+'된 합계입니다</div>';
   if(multi){
     var mx=mixOf(it.id);
     h+='<div class="spots">'+mx.map(function(m){ return '<div class="spot"><span>'+esc(spotName(m.box))+' · 혼합('+esc(item(m.box.itemId)?item(m.box.itemId).code:"")+' 상자)</span><b>'+(m.cur===null?"미입력":sumA(m.cur))+'</b></div>'; }).join("")+bs.map(function(x){ return '<div class="spot'+(b&&x.id===b.id?" me":"")+'"><span>'+esc(spotName(x))+(b&&x.id===b.id?" · 지금 자리":"")+'</span><b>'+(x.cur===null?"미입력":sumA(x.cur))+'</b></div>'; }).join("")+
@@ -1546,11 +1546,11 @@ function renderSeq(b){
   var rov=viewOnly();
   if(!b.seq) b.seq=null;
   var ded=b.seq?Object.keys(b.seq).reduce(function(a,k){return a+b.seq[k];},0):0, adj=-ded, cnt=b.seq?Object.keys(b.seq).length:0;
-  $("shTitle").innerHTML='시퀀스 · 재고 더하기/빼기<small>'+esc(C().name)+' · '+esc(spotName(b))+(rov?' · 보기 전용':'')+'</small>';
+  $("shTitle").innerHTML='시컨스 · 재고 더하기/빼기<small>'+esc(C().name)+' · '+esc(spotName(b))+(rov?' · 보기 전용':'')+'</small>';
   var sInfos=seqInfos(), sIt=seqInfoOf(b);
-  var h='<div class="notebox" style="margin-bottom:8px"><label>시퀀스 번호'+(sInfos.length>1?' · <select id="sqWhich" aria-label="연동할 시컨스">'+sInfos.map(function(x){ var g=grp(x.group); return '<option value="'+x.id+'"'+(sIt&&x.id===sIt.id?' selected':'')+'>'+esc((g&&g.name?g.name+' ':'')+x.code)+'</option>'; }).join("")+'</select>':'')+'</label>'+
+  var h='<div class="notebox" style="margin-bottom:8px"><label>시컨스 번호'+(sInfos.length>1?' · <select id="sqWhich" aria-label="연동할 시컨스">'+sInfos.map(function(x){ var g=grp(x.group); return '<option value="'+x.id+'"'+(sIt&&x.id===sIt.id?' selected':'')+'>'+esc((g&&g.name?g.name+' ':'')+x.code)+'</option>'; }).join("")+'</select>':'')+'</label>'+
       '<div class="seqnum"><div class="prevnum"><label>이전</label><div class="ro">'+esc(sIt&&sIt.prev!=null&&sIt.prev!==""?sIt.prev:"-")+'</div></div>'+
-      (rov?'<div class="prevnum" style="flex:1"><label>지금</label><div class="ro">'+esc(seqNoOf(b)||"-")+'</div></div>':'<input id="sqNo" inputmode="text" autocomplete="off" placeholder="'+esc(sIt&&sIt.note?sIt.note:"예: 912799 또는 789~852")+'" value="'+esc(seqNoOf(b))+'" aria-label="시퀀스 번호">')+'</div>'+
+      (rov?'<div class="prevnum" style="flex:1"><label>지금</label><div class="ro">'+esc(seqNoOf(b)||"-")+'</div></div>':'<input id="sqNo" inputmode="text" autocomplete="off" placeholder="'+esc(sIt&&sIt.note?sIt.note:"예: 912799 또는 789~852")+'" value="'+esc(seqNoOf(b))+'" aria-label="시컨스 번호">')+'</div>'+
       (sIt&&sIt.note?'<p style="margin:0 0 6px;font-weight:700">특이사항 · '+esc(sIt.note)+'</p>':'')+
       '<p class="hint" style="margin:0">품목 탭의 "'+esc(sIt?sIt.code:"시컨스")+'" 칸과 연결되어 있어, 어느 쪽에 적어도 같이 바뀌고 카톡 보내기에도 들어갑니다.</p></div>';
   h+='<div class="curhead"><span class="lbl">조정 합계</span><span class="d '+(adj<0?"neg":adj>0?"pos":"zero")+'">'+cnt+'품목</span><span class="total">'+sgn(adj)+'</span></div>'+
@@ -1585,13 +1585,13 @@ function renderSeq(b){
   if($("sqNo")) $("sqNo").onchange=function(){
     var v=String(this.value).trim(), it=seqInfoOf(b), st=ST();
     if(!it){ if(!v) return; var g0=(C().groups[0]||{}).k||"A"; it={id:uid(),kind:"info",code:"시컨스",alias:"",group:g0,prev:null,note:"",cur:null,unit:null}; st.items.push(it); b.seqInfo=it.id; }
-    it.cur=v===""?null:v; this.blur(); persist(); toast(v?"시퀀스 번호 "+v+" 저장":"시퀀스 번호를 지웠습니다");
+    it.cur=v===""?null:v; this.blur(); persist(); toast(v?"시컨스 번호 "+v+" 저장":"시컨스 번호를 지웠습니다");
   };
   if(!rov){
-    $("sqClear").onclick=function(){ ask("이 시퀀스의 조정("+sgn(adj)+")을 모두 지울까요?","지우기",function(){ b.seq=null; persist(); }); };
+    $("sqClear").onclick=function(){ ask("이 시컨스의 조정("+sgn(adj)+")을 모두 지울까요?","지우기",function(){ b.seq=null; persist(); }); };
     $("sqChange").onclick=function(){ closeSheet(); };
     $("sqFix").onclick=function(){ toggleFix(b); };
-    $("sqDel").onclick=function(){ if(fixedBlock(b)) return; ask("시퀀스 상자를 지울까요?"+(adj?" 조정한 "+sgn(adj)+"개도 합계에서 되돌려집니다.":""),"지우기",function(){ var st=ST(); st.boxes=st.boxes.filter(function(x){return x.id!==b.id;}); closeSheet(); persist(); }); };
+    $("sqDel").onclick=function(){ if(fixedBlock(b)) return; ask("시컨스 상자를 지울까요?"+(adj?" 조정한 "+sgn(adj)+"개도 합계에서 되돌려집니다.":""),"지우기",function(){ var st=ST(); st.boxes=st.boxes.filter(function(x){return x.id!==b.id;}); closeSheet(); persist(); }); };
   }
 }
 var mlQ="";
@@ -1601,7 +1601,7 @@ function renderMulti(){
   $("shTitle").innerHTML=all.length+'칸 한번에 바꾸기<small>'+esc(C().name)+(ST().maps.length>1?' · '+esc(MAP().name):'')+' · 빈칸 '+keys.length+' · 상자 '+bkeys.length+'</small>';
   $("shBody").innerHTML=(bkeys.length?'<button class="btn primary gmbtn" id="gmStart">고른 상자 '+bkeys.length+'개 한번에 이동</button>':'')+'<p class="hint">배경색 (고른 빈칸·상자 모두)</p><div class="palette">'+PAL.map(function(p){return '<button class="sw p-'+p[0]+'" data-pc="'+p[0]+'">'+p[1]+'</button>';}).join("")+'<button class="sw none" data-pc="">색 없음</button></div>'+
     (keys.length?'':'<p class="hint">상자만 골랐습니다. 품목·표시 칸은 빈칸을 고를 때 넣을 수 있습니다.</p>')+
-    '<div id="mlPlace"'+(keys.length?'':' hidden')+'><p class="hint" style="margin-top:12px">빈칸에 약도 표시용 칸 넣기</p><div class="marks">'+["시퀀스","공용기","통로","기둥","출입구","벽","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mm="'+m+'">'+m+'</button>';}).join("")+'<button class="btn" data-mm="">빈렉or타업체</button></div>'+
+    '<div id="mlPlace"'+(keys.length?'':' hidden')+'><p class="hint" style="margin-top:12px">빈칸에 약도 표시용 칸 넣기</p><div class="marks">'+["시퀀스","공용기","통로","기둥","출입구","벽","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mm="'+m+'">'+(m===SEQ?"시컨스":m)+'</button>';}).join("")+'<button class="btn" data-mm="">빈렉or타업체</button></div>'+
     '<div class="manual mkown"><input id="mlOwn" maxlength="12" placeholder="직접입력 (예: 지게차, 랙A)" aria-label="표시 칸 이름 직접 입력"><button class="btn primary" id="mlOwnOk">표시</button></div>'+
     '<p class="hint" style="margin-top:12px">품목으로 채우기</p><input class="search" id="mlQ" type="search" placeholder="품번 검색" value="'+esc(mlQ)+'" aria-label="품번 검색"><div id="mlList"></div></div>';
   if($("gmStart")) $("gmStart").onclick=function(){
@@ -1646,7 +1646,7 @@ function useRecent(cid,id){ var a=recentOf(cid).filter(function(x){return x!==id
 function renderPicker(b){
   $("shTitle").innerHTML='품목 선택<small>'+esc(C().name)+(b?' · '+(ST().maps.length>1?esc(mapName(b.mapId))+' ':'')+posTxt(b.r,b.c)+' 상자':'')+'</small>';
   $("shBody").innerHTML='<input class="search" id="pkQ" type="search" placeholder="품번 검색" value="'+esc(pickQ)+'" aria-label="품번 검색"><div id="pkList"></div>'+
-    '<p class="hint" style="margin-top:12px">약도 표시용 칸</p><div class="marks">'+["시퀀스","공용기","통로","기둥","출입구","벽","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mk="'+m+'">'+m+'</button>';}).join("")+'<button class="btn" id="mkOwnBtn">직접입력</button></div>'+
+    '<p class="hint" style="margin-top:12px">약도 표시용 칸</p><div class="marks">'+["시퀀스","공용기","통로","기둥","출입구","벽","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mk="'+m+'">'+(m===SEQ?"시컨스":m)+'</button>';}).join("")+'<button class="btn" id="mkOwnBtn">직접입력</button></div>'+
     '<div class="manual mkown" id="mkOwn" hidden><input id="mkOwnIn" maxlength="12" placeholder="표시할 글자 (예: 지게차, 랙A)" aria-label="표시 칸 이름 직접 입력"><button class="btn primary" id="mkOwnOk">만들기</button></div>'+
     (b?'<p class="hint" style="margin-top:12px">색상 설정 (이 칸 배경색)</p><div class="palette">'+PAL.map(function(p){return '<button class="sw p-'+p[0]+(b.bg===p[0]?' on':'')+'" data-bgc="'+p[0]+'" aria-label="'+p[1]+'색">'+p[1]+'</button>';}).join("")+'<button class="sw none'+(!b.bg?' on':'')+'" data-bgc="">색 없음</button></div>':'')+
     '<div class="acts" style="margin-top:12px">'+(b?'<button class="btn fixbtn'+(b.fixed?" on":"")+'" id="pkFix">'+(b.fixed?"고정 해제":"고정")+'</button>':'')+'<button class="btn danger" id="pkDel">이 상자 삭제</button></div>';
@@ -1729,7 +1729,7 @@ function endDrag(){
   if(!drag) return; var d=drag; drag=null; suppressClick=Date.now(); if(ovLater) setTimeout(renderOv,0);
   d.ghost.remove(); d.el.classList.remove("dragging"); if(d.over) d.over.classList.remove("dropto"); clearGhosts();
   var b=box(d.id), t=d.over; if(!b||!t) return;
-  function nm(x){ return x.mark?x.mark:(x.itemId&&item(x.itemId)?label(item(x.itemId)):"빈렉or타업체"); }
+  function nm(x){ return x.mark?(x.mark===SEQ?"시컨스":x.mark):(x.itemId&&item(x.itemId)?label(item(x.itemId)):"빈렉or타업체"); }
   if(t.dataset.b){
     var o=box(t.dataset.b); if(!o) return; if(o.fixed){ toast("고정된 상자와는 자리를 바꿀 수 없습니다"); return; }
     t.classList.add("dropto"); d.el.classList.add("dropfrom");
@@ -1932,7 +1932,7 @@ function qNorm(v){
 function tNorm(v){ return String(v||"").toLowerCase().replace(/\s+/g,""); }
 function qHas(txt,q){ if(!q) return true; var t=tNorm(txt); return q.split(",").some(function(w){ return w&&t.indexOf(w)>=0; }); }
 function itemHit(it,q){ return !!it&&qHas(it.code+(it.alias||""),q); }
-function boxHit(b,q){ if(!q) return true; var txt=(b.mark?b.mark:(b.itemId&&item(b.itemId)?(item(b.itemId).code+(item(b.itemId).alias||"")):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+(x.alias||""):""; }).join(""); return qHas(txt,q); }
+function boxHit(b,q){ if(!q) return true; var txt=(b.mark?(b.mark===SEQ?"시퀀스시컨스":b.mark):(b.itemId&&item(b.itemId)?(item(b.itemId).code+(item(b.itemId).alias||"")):"빈렉or타업체"))+(b.mix||[]).map(function(m){ var x=item(m.itemId); return x?x.code+(x.alias||""):""; }).join(""); return qHas(txt,q); }
 /* 상자 안에서 검색어에 맞는 품목들의 파렛트 [{it,cur}] (상자 이름표 자체가 맞으면 상자 전체) */
 function hitParts(b,q){
   var parts=[]; if(b.itemId) parts.push({it:item(b.itemId),cur:b.cur}); (b.mix||[]).forEach(function(m){ parts.push({it:item(m.itemId),cur:m.cur}); });
@@ -1953,7 +1953,7 @@ function wrapText(ctx,txt,w){ var out=[], cur=""; Array.from(String(txt)).forEac
 function detailLines(b,ctx,w){
   var L=[], F=function(wt,sz){ return wt+" "+sz+"px "+IMGFONT; };
   function add(t,wt,sz,col){ ctx.font=F(wt,sz); wrapText(ctx,t,w).forEach(function(x){ L.push({t:x,font:F(wt,sz),sz:sz,col:col}); }); }
-  if(b.mark===SEQ){ var sq=b.seq?Object.keys(b.seq).reduce(function(a,k){return a+b.seq[k];},0):0; add("시퀀스","700",14); var sn=seqNoOf(b); if(sn) add(sn,"800",16); if(sq||!sn) add(sq>0?"차감 −"+sq:sq<0?"추가 +"+(-sq):"조정 0","500",13); return L; }
+  if(b.mark===SEQ){ var sq=b.seq?Object.keys(b.seq).reduce(function(a,k){return a+b.seq[k];},0):0; add("시컨스","700",14); var sn=seqNoOf(b); if(sn) add(sn,"800",16); if(sq||!sn) add(sq>0?"차감 −"+sq:sq<0?"추가 +"+(-sq):"조정 0","500",13); return L; }
   if(b.mark){ add(b.mark,"700",14); return L; }
   var it=b.itemId?item(b.itemId):null;
   if(!it){ add("빈렉or","500",13); add("타업체","500",13); return L; }
@@ -2308,7 +2308,7 @@ function clearLine(mp,axis,idx,name){
   var st=ST(), on=st.boxes.filter(function(b){ return b.mapId===mp.id&&b[axis]===idx; });
   var block=on.filter(function(b){ return !emptyBox(b); });
   if(block.length){
-    var nm=block.slice(0,3).map(function(b){ return b.mark?b.mark:(b.itemId&&item(b.itemId)?label(item(b.itemId)):"빈렉or타업체"); }).join(", ");
+    var nm=block.slice(0,3).map(function(b){ return b.mark?(b.mark===SEQ?"시컨스":b.mark):(b.itemId&&item(b.itemId)?label(item(b.itemId)):"빈렉or타업체"); }).join(", ");
     toast(name+"에 상자 "+block.length+"개("+nm+(block.length>3?" 등":"")+")가 있어 지울 수 없습니다"); return false;
   }
   if(on.length){ var ids={}; on.forEach(function(b){ ids[b.id]=1; }); st.boxes=st.boxes.filter(function(b){ return !ids[b.id]; }); }
