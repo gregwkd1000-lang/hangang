@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112084451";</script>
+<script>window.HG_BUILD="20261112084856";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -738,7 +738,7 @@ var COMPANIES=[
   {k:"JK",name:"JK HEV HPCU",seed:"36600-3WCA0|HR01|\n36600-3WCA5|HR02|5\n36600-3WCB0|HR03|12\n#시컨스|"}]},
  {id:"youngsil",name:"영실",unit:16,seedV:1,groups:[
   {k:"JW",name:"JW ICCU",seed:"CBO||\nCCO||\nCB1||\nCA1||\nCA5||\nCB5||\nCA6||73\nCB6||17"}]},
- {id:"fu",name:"에프유",seqLast:true,unit:12,alt:[9],seedV:1,groups:[
+ {id:"fu",name:"에프유",seqLast:true,unit:12,unitV:2,seedV:1,groups:[
   {k:"NX",name:"NX4/NX5 HEV HPCU",seed:"E50||1\nE51||2\nE52||2\nE53||1\nE54||1\nE55||\nE56||34\nE57||84|불량1개포함\nE58||6\nE59||\nE60||17\nE61||19\nE62||11\nE63||18\nHPB||59"},
   {k:"RG3",name:"RG3 HEV HPCU",seed:"36600-3WBA0|HPA1|35\n36600-3WBB0|HPB1|14"}]},
  {id:"kangho",name:"강호산업",noteAlways:true,unit:12,seedV:1,groups:[
@@ -793,6 +793,7 @@ function normalize(c,s){
   var mk={}; maps.forEach(function(m){mk[m.id]=1;});
   var sv=s.survey&&/^\d{4}-\d{2}-\d{2}$/.test(s.survey.date)&&+s.survey.round>0?{date:s.survey.date,round:+s.survey.round,closed:!!s.survey.closed,manual:!!s.survey.manual,filled:!!s.survey.filled,closedAt:+s.survey.closedAt||null,closedBy:s.survey.closedBy?String(s.survey.closedBy):"",editedAt:+s.survey.editedAt||null,editedBy:s.survey.editedBy?String(s.survey.editedBy):"",reopened:!!s.survey.reopened}:{date:today(),round:1};
   var st={v:4,seedV:+s.seedV||1,survey:sv,maps:maps,
+    unitV:+s.unitV||1,
     log:(Array.isArray(s.log)?s.log:[]).filter(function(e){return e&&e.id&&e.k;}).slice(-600).map(function(e){return {id:String(e.id),k:String(e.k),t:+e.t||0,by:String(e.by||""),a:String(e.a||""),x:String(e.x||"")};}),
     items:s.items.filter(function(i){return i&&i.id&&i.code;}).map(function(i){
       var info=i.kind==="info";
@@ -802,6 +803,8 @@ function normalize(c,s){
         cur:info?(i.cur===null||i.cur===undefined?null:String(i.cur)):(Array.isArray(i.cur)?i.cur.map(Number).filter(function(n){return n>0;}):null),
         unit:info?null:(+i.unit>0?+i.unit:null)};}),
     boxes:(Array.isArray(s.boxes)?s.boxes:[]).filter(function(b){return b&&b.id;}).map(function(b){return {id:String(b.id),mapId:mk[b.mapId]?String(b.mapId):maps[0].id,r:+b.r,c:+b.c,t:b.t===1?1:0,fixed:!!b.fixed,bg:PAL.some(function(p){return p[0]===b.bg;})?b.bg:null,mix:normMix(b.mix),itemId:b.itemId?String(b.itemId):null,mark:b.mark?String(b.mark):null,cur:Array.isArray(b.cur)?b.cur.map(Number).filter(function(n){return n>0;}):null,seq:normSeq(b.seq),seqInfo:b.seqInfo?String(b.seqInfo):null,chk:typeof b.chk==="string"?b.chk:null};})};
+  /* 회사 설정이 바뀌어 파렛트 단위를 통일할 때(예: 에프유 12개): 품목별로 따로 정한 단위를 한 번 지움 */
+  if(c.unitV&&st.unitV<c.unitV){ st.items.forEach(function(i){ i.unit=null; }); st.unitV=c.unitV; }
   if((+s.v||1)<4){ // 예전엔 수량이 품목에 하나로 저장됨 → 첫 자리 상자로 옮김
     st.items.forEach(function(i){ if(i.kind==="info"||i.cur===null) return; var b0=st.boxes.filter(function(b){return b.itemId===i.id;})[0]; if(b0){ b0.cur=i.cur; i.cur=null; } });
   }
