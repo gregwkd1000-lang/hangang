@@ -306,6 +306,16 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .c-blue{--cbg:#1d5fd1;--cfg:#ffffff;--cbd:#1d5fd1}
 .c-red{--cbg:#d23a3a;--cfg:#ffffff;--cbd:#d23a3a}
 .c-yellow{--cbg:#f5c400;--cfg:#1a1f25;--cbd:#d9ad00}
+.c-lime{--cbg:#9be15d;--cfg:#1a1f25;--cbd:#6fb52c}
+.c-black{--cbg:#1f2328;--cfg:#ffffff;--cbd:#000000}
+.c-orange{--cbg:#fb8c00;--cfg:#1a1f25;--cbd:#c46a00}
+.c-green{--cbg:#2e9e4f;--cfg:#ffffff;--cbd:#1f7a3b}
+.c-purple{--cbg:#8e24aa;--cfg:#ffffff;--cbd:#6a1b9a}
+.c-pink{--cbg:#f48fb1;--cfg:#1a1f25;--cbd:#d36b90}
+.c-gray{--cbg:#9aa5b1;--cfg:#1a1f25;--cbd:#6b7680}
+.icol{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}
+.icol button{min-width:40px;height:36px;border-radius:9px;border:2px solid var(--cbd,var(--line));background:var(--cbg,var(--surface));color:var(--cfg,var(--muted));font:inherit;font-size:12px;font-weight:700;padding:0 8px}
+.icol button.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
 .cchip{display:inline-block;background:var(--cbg);color:var(--cfg);border:1.5px solid var(--cbd);border-radius:7px;padding:1px 7px}
 .cchip small{color:inherit!important;opacity:.85}
 .box.colored{background:var(--cbg)!important;border-color:var(--cbd)}
@@ -659,7 +669,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261112054237";</script>
+<script>window.HG_BUILD="20261112062242";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -673,7 +683,7 @@ var COMPANIES=[
   {k:"RS4B",name:"T4300·T4400·T4900",unit:7,seed:"T4300 2BN||\nT4300 C2N||2\nT4300 GCW||\nT4400 2BN||7\nT4400 BVZ||\nT4400 C2N||3\nT4900 2BN||5\nT4900 C2N||\nT4900 GCW||\nT4900 C1S||"}]},
  {id:"plant5nx",name:"5공장 NX5",seedV:1,groups:[
   {k:"NX5",name:"썬루프",unit:6,seed:"NR000 NNB||10\nNR000 YGU||21\nNR000 SOS||8\n#공용기|2대"}]},
- {id:"plant2",name:"2공장",unit:9,seedV:1,maps:[{id:"in",name:"라인"},{id:"out",name:"외부재고"}],moveOut:[{group:"OBC",to:"plant2obc"}],groups:[
+ {id:"plant2",name:"2공장",unit:9,seedV:1,colors:{"T6300 ERN":"red","T6300 VNB":"yellow","T6300 UBL":"blue","T6300 B3R":"lime","T6310 ERN":"black"},maps:[{id:"in",name:"라인"},{id:"out",name:"외부재고"}],moveOut:[{group:"OBC",to:"plant2obc"}],groups:[
   {k:"JK",name:"JK 차종",seed:"DS600NNB|2B8|32\nDS610NNB|2B9|30\nDS600JRB|UB8|12\nDS610URB|UB9|9\nDS600VNB|VB8|27\nDS610VNB|VB9|9\nDS600GLW|LW8|4\nDS610GLW|LW9|10"},
   {k:"JX",name:"JX 차종",seed:"T6300 ERN||17\nT6300 VNB||23\nT6300 UBL||6\nT6310 ERN||20\nT6310 NNB||18\nT6310 UBL||20\nT6310 VNB||24\nT6300 B3R||14\nT6310 B3R||16\nT6700 NNB||6\nT6700 UBL||3\nT6700 VNB||8\nT6710 NNB||18\nT6710 UBL||12\nT6710 VNB||11"},
   {k:"MX5",name:"MX5 차종",seed:"P6011NNB|2BG|6\nP6011YYU|2BY|25\nP6021NNB|2CG|60\nP6021YGU|2CV|18\nP6021YSY|2CW|8\nP6021MCG|2CD|14\nP6100 글라스||52"},
@@ -754,7 +764,7 @@ function normalize(c,s){
       var info=i.kind==="info";
       return {id:String(i.id),kind:info?"info":"stock",code:String(i.code),alias:String(i.alias||""),group:gk[i.group]?i.group:c.groups[0].k,
         prev:info?(i.prev===null||i.prev===undefined||i.prev===""?null:String(i.prev)):((i.prev===null||i.prev===undefined||i.prev==="")?null:Number(i.prev)),
-        note:String(i.note||""),
+        note:String(i.note||""), color:(typeof i.color==="string"&&(i.color===""||/^[a-z]+$/.test(i.color)))?i.color:undefined,
         cur:info?(i.cur===null||i.cur===undefined?null:String(i.cur)):(Array.isArray(i.cur)?i.cur.map(Number).filter(function(n){return n>0;}):null),
         unit:info?null:(+i.unit>0?+i.unit:null)};}),
     boxes:(Array.isArray(s.boxes)?s.boxes:[]).filter(function(b){return b&&b.id;}).map(function(b){return {id:String(b.id),mapId:mk[b.mapId]?String(b.mapId):maps[0].id,r:+b.r,c:+b.c,t:b.t===1?1:0,fixed:!!b.fixed,bg:PAL.some(function(p){return p[0]===b.bg;})?b.bg:null,mix:normMix(b.mix),itemId:b.itemId?String(b.itemId):null,mark:b.mark?String(b.mark):null,cur:Array.isArray(b.cur)?b.cur.map(Number).filter(function(n){return n>0;}):null,seq:normSeq(b.seq),seqInfo:b.seqInfo?String(b.seqInfo):null};})};
@@ -1152,7 +1162,8 @@ function placedText(id){
   var by={}; bs.forEach(function(b){ by[b.mapId]=(by[b.mapId]||0)+1; });
   return ST().maps.filter(function(m){return by[m.id];}).map(function(m){return m.name+" "+by[m.id];}).join(" · ");
 }
-function colorOf(it){ var c=C().colors; return c&&c[it.code]?c[it.code]:""; }
+var ICOLS=[["red","빨강"],["orange","주황"],["yellow","노랑"],["lime","연두"],["green","초록"],["blue","파랑"],["purple","보라"],["pink","분홍"],["black","검정"],["gray","회색"],["white","흰색"]];
+function colorOf(it){ if(typeof it.color==="string") return it.color; var c=C().colors; return c&&c[it.code]?c[it.code]:""; }
 function codeHTML(it){ var c=colorOf(it), t=esc(it.code)+(it.alias?' <small>('+esc(it.alias)+')</small>':''); return c?'<span class="cchip c-'+c+'">'+t+'</span>':t; }
 function label(it){ return it.code+(it.alias?" ("+it.alias+")":""); }
 function splitCode(it){
@@ -1927,7 +1938,7 @@ function drawOvCanvas(){
 
 /* ---------- 상세 약도 이미지 (품명·갯수 안 잘리게) + 품목별 파렛트 수 ---------- */
 var PCOL={red:["#e53935","#fff","#b71c1c","#fbd3d2"],orange:["#fb8c00","#1a1f25","#c46a00","#ffe2bf"],yellow:["#fdd835","#1a1f25","#c9a800","#fff6c4"],green:["#43a047","#fff","#2e7d32","#d5efd6"],blue:["#1e88e5","#fff","#1565c0","#d3e7fa"],navy:["#283593","#fff","#1a237e","#d3d6ee"],purple:["#8e24aa","#fff","#6a1b9a","#ecd3f2"]};
-var CCOL={white:["#ffffff","#1a1f25","#9aa5b1"],blue:["#1d5fd1","#fff","#1d5fd1"],red:["#d23a3a","#fff","#d23a3a"],yellow:["#f5c400","#1a1f25","#d9ad00"]};
+var CCOL={white:["#ffffff","#1a1f25","#9aa5b1"],blue:["#1d5fd1","#fff","#1d5fd1"],red:["#d23a3a","#fff","#d23a3a"],yellow:["#f5c400","#1a1f25","#d9ad00"],lime:["#9be15d","#1a1f25","#6fb52c"],black:["#1f2328","#fff","#000000"],orange:["#fb8c00","#1a1f25","#c46a00"],green:["#2e9e4f","#fff","#1f7a3b"],purple:["#8e24aa","#fff","#6a1b9a"],pink:["#f48fb1","#1a1f25","#d36b90"],gray:["#9aa5b1","#1a1f25","#6b7680"]};
 function gcol(k){ var c=grp(k).color||""; var m=/^var\((--[\w-]+)\)$/.exec(c); if(m){ var v=getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim(); return v||"#9aa5b1"; } return c||"#9aa5b1"; }
 var IMGFONT='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif';
 /* 검색한 파렛트만 (이미지·보내기) */
@@ -2610,6 +2621,7 @@ function renderItemInfo(s){
   var h='<div class="iiname"><div><label for="iiCode">품명</label><input id="iiCode" value="'+esc(it.code)+'"'+(ed?'':' disabled')+' autocomplete="off"></div>'+
     '<div><label for="iiAlias">괄호 내용</label><input id="iiAlias" value="'+esc(it.alias||"")+'" placeholder="예: 2B8"'+(ed?'':' disabled')+' autocomplete="off"></div></div>'+
     '<p class="hint" style="margin:4px 0 10px">보이는 이름: <b id="iiPrev">'+esc(label(it))+'</b></p>'+
+    '<p class="hint" style="margin:0">상자 색</p><div class="icol" id="iiCol">'+[["","없음"]].concat(ICOLS).map(function(p){ var on=colorOf(it)===p[0]; return '<button type="button" class="'+(p[0]?'c-'+p[0]:'')+(on?' on':'')+'" data-col="'+p[0]+'"'+(ed?'':' disabled')+'>'+p[1]+'</button>'; }).join("")+'</div>'+
     '<div class="notebox'+(it.note?"":" emp")+'" style="margin-bottom:10px"><label for="iiNote">특이사항</label><input id="iiNote" value="'+esc(it.note||"")+'" placeholder="없음 (눌러서 입력)"'+(ed?'':' disabled')+'></div>'+
     (ed?'<button class="btn primary" id="iiSave" style="width:100%;margin-bottom:12px">이름·특이사항 저장</button>':'')+
     '<p class="hint" style="margin:0 0 4px"><b>약도 위치</b> · 총 <b>'+pal+'</b>파렛트'+(has?' · '+qty+'개':'')+(rows.length?' · '+rows.length+'곳':'')+'</p>'+
@@ -2626,6 +2638,7 @@ function renderItemInfo(s){
     $("iiQty").onclick=function(){ openSheet({itemId:it.id}); };
   }
   $("iiMap").onclick=function(){ closeSheet(); findOnMap(it); };
+  Array.prototype.forEach.call($("shBody").querySelectorAll("[data-col]"),function(x){ x.onclick=function(){ if(ro()) return; it.color=x.dataset.col; persist(); toast(label(it)+" 상자 색: "+x.textContent); renderItemInfo(s); }; });
 }
 function renderRO(s){
   var b=s.boxId?box(s.boxId):null, it=item(s.itemId||(b&&b.itemId));
