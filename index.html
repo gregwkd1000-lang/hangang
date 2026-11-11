@@ -124,6 +124,7 @@ body.practice .top{box-shadow:inset 0 -4px 0 #f59e0b}
 .box .t2.s{font-size:12px} .box .t2.xs{font-size:10px}
 .box .t3{font-size:11px;padding:0 4px 3px;line-height:1.15;font-family:var(--font-num);color:var(--muted);white-space:nowrap}
 .box .t3 b{color:var(--ink)}
+.box .t3 .pl{font-size:.82em;opacity:.85;margin-left:1px;letter-spacing:-.02em}
 .box.has{background:var(--has-bg)}
 .box.has .t1{color:var(--has-ink)}
 .box.done{border-color:var(--good)} .box.diff{border-color:var(--warn)}
@@ -669,7 +670,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261112062242";</script>
+<script>window.HG_BUILD="20261112072124";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1163,6 +1164,9 @@ function placedText(id){
   return ST().maps.filter(function(m){return by[m.id];}).map(function(m){return m.name+" "+by[m.id];}).join(" · ");
 }
 var ICOLS=[["red","빨강"],["orange","주황"],["yellow","노랑"],["lime","연두"],["green","초록"],["blue","파랑"],["purple","보라"],["pink","분홍"],["black","검정"],["gray","회색"],["white","흰색"]];
+/* 품목 전체 파렛트 수 (상자+혼합) — 약도 그릴 때 한 번만 셈 */
+var PALC=null;
+function palCache(id){ if(!PALC){ PALC={}; ST().boxes.forEach(function(b){ if(b.itemId) PALC[b.itemId]=(PALC[b.itemId]||0)+palletsOf(b.cur); (b.mix||[]).forEach(function(m){ PALC[m.itemId]=(PALC[m.itemId]||0)+palletsOf(m.cur); }); }); } return PALC[id]||0; }
 function colorOf(it){ if(typeof it.color==="string") return it.color; var c=C().colors; return c&&c[it.code]?c[it.code]:""; }
 function codeHTML(it){ var c=colorOf(it), t=esc(it.code)+(it.alias?' <small>('+esc(it.alias)+')</small>':''); return c?'<span class="cchip c-'+c+'">'+t+'</span>':t; }
 function label(it){ return it.code+(it.alias?" ("+it.alias+")":""); }
@@ -1224,7 +1228,7 @@ function renderHeader(){
   if(keep&&item(keep)) ds.value=keep; delHint();
   $("shareTitle").textContent=c.name+" · 카톡에 붙여넣을 재고 현황";
 }
-function renderMap(){
+function renderMap(){ PALC=null;
   var st=ST();
   var px=curPx(); document.documentElement.style.setProperty("--cell",px+"px");
   $("zLbl").textContent=zLabel(px); $("zOut").disabled=px<=ZMIN+0.5; $("zIn").disabled=px>=ZMAX-0.5;
@@ -1259,7 +1263,7 @@ function renderMap(){
     var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":"";
     var mixN=(b.mix||[]).length, mixSum=(b.mix||[]).reduce(function(a,m){return a+(m.cur?sumA(m.cur):0);},0), mixHas=(b.mix||[]).some(function(m){return m.cur!==null;});
     var multi=boxesOf(it.id).length>1||it.cur!==null||seqDed(it.id)!==0||mixOf(it.id).length>0, mine=b.cur===null?null:sumA(b.cur), line;
-    if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t):((it.prev===null?"-":it.prev)+'→<b>'+mine+'</b>');
+    if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur)+'/'+palCache(it.id)+')</span>'):((it.prev===null?"-":it.prev)+'→<b>'+mine+'</b>');
     else line=t===null?('이전 <b>'+(it.prev===null?"-":it.prev)+'</b>'):('–/'+t);
     if(mine===null&&!mixHas) stt="todo";
     var bc=b.bg?"":colorOf(it);
