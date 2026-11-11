@@ -124,6 +124,7 @@ body.practice .top{box-shadow:inset 0 -4px 0 #f59e0b}
 .box .t2.s{font-size:12px} .box .t2.xs{font-size:10px}
 .box .t3{font-size:11px;padding:0 4px 3px;line-height:1.15;font-family:var(--font-num);color:var(--muted);white-space:nowrap}
 .box .t3 b{color:var(--ink)}
+.btn.logbtn{background:#1d5fd1;border-color:#1d5fd1;color:#fff;font-weight:700;padding-left:22px;padding-right:22px}
 .loglist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .logrow{display:flex;gap:10px;padding:8px 10px;border-top:1px solid var(--line);font-size:13px;line-height:1.35}
 .logrow:first-child{border-top:0}
@@ -330,9 +331,12 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .c-mint{--cbg:#a8e6cf;--cfg:#1a1f25;--cbd:#6fc7a5}
 .c-lavender{--cbg:#c9b6f2;--cfg:#1a1f25;--cbd:#9f86d6}
 .c-gold{--cbg:#d4a017;--cfg:#1a1f25;--cbd:#a87d0b}
+.c-coral{--cbg:#ff7f6e;--cfg:#1a1f25;--cbd:#d65a4a}
+.c-olive{--cbg:#7d8b2a;--cfg:#ffffff;--cbd:#5b661d}
+.c-cyan{--cbg:#22d3ee;--cfg:#1a1f25;--cbd:#0ea5c0}
 .c-maroon{--cbg:#8e1b4b;--cfg:#ffffff;--cbd:#6a1238}
-.icol{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}
-.icol button{min-width:40px;height:36px;border-radius:9px;border:2px solid var(--cbd,var(--line));background:var(--cbg,var(--surface));color:var(--cfg,var(--muted));font:inherit;font-size:12px;font-weight:700;padding:0 8px}
+.icol{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:4px 0 12px}
+.icol button{min-width:0;height:36px;border-radius:9px;border:2px solid var(--cbd,var(--line));background:var(--cbg,var(--surface));color:var(--cfg,var(--muted));font:inherit;font-size:12px;font-weight:700;padding:0 8px}
 .icol button.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
 .cchip{display:inline-block;background:var(--cbg);color:var(--cfg);border:1.5px solid var(--cbd);border-radius:7px;padding:1px 7px}
 .cchip small{color:inherit!important;opacity:.85}
@@ -629,7 +633,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
         <label class="field">구분<select id="newGrp"></select></label>
         <label class="field">종류<select id="newKind"><option value="stock">재고 품목</option><option value="info">정보 (시컨스·공용기 등)</option></select></label>
         <button class="btn primary" id="addItem" style="align-self:flex-end">추가</button>
-        <button class="btn" id="logBtn" style="align-self:flex-end">수정 이력</button>
+        <button class="btn logbtn" id="logBtn" style="align-self:flex-end">약도 수정 이력</button>
       </div>
       <h2 style="margin-top:16px">품목 삭제</h2>
       <div class="toolbar" style="margin:0">
@@ -690,7 +694,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261112074958";</script>
+<script>window.HG_BUILD="20261112075333";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1207,7 +1211,7 @@ function renderLog(s){
   var L=(st.log||[]).filter(function(e){return e.k===key;}).slice().reverse();
   var grpOf=function(a){ return a==="수량"||a==="혼합"||a==="시컨스 조정"||a==="정보"?"qty":a==="이동"?"move":"box"; };
   var shown=L.filter(function(e){ return f==="all"||grpOf(e.a)===f; });
-  $("shTitle").innerHTML='수정 이력<small>'+esc(C().name+" · "+fmtDate(st.survey.date)+" "+st.survey.round+"차 · "+L.length+"건")+'</small>';
+  $("shTitle").innerHTML='약도 수정 이력<small>'+esc(C().name+" · "+fmtDate(st.survey.date)+" "+st.survey.round+"차 · "+L.length+"건")+'</small>';
   var h='<div class="filters" style="margin-bottom:8px">'+[["all","전체"],["qty","수량 입력·수정"],["move","이동"],["box","상자 추가·삭제·변경"]].map(function(x){ return '<button class="chipbtn" data-lf="'+x[0]+'" aria-pressed="'+(f===x[0])+'">'+x[1]+'</button>'; }).join("")+'</div>';
   h+=shown.length?'<div class="loglist">'+shown.map(function(e){ var d=new Date(e.t), hm=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
       return '<div class="logrow"><div class="lt"><b>'+hm+'</b><span>'+esc(e.by||"이름 없음")+'</span></div><div class="lx"><span class="la la-'+grpOf(e.a)+'">'+esc(e.a)+'</span> '+esc(e.x)+'</div></div>'; }).join("")+'</div>'
@@ -1227,7 +1231,7 @@ function placedText(id){
   var by={}; bs.forEach(function(b){ by[b.mapId]=(by[b.mapId]||0)+1; });
   return ST().maps.filter(function(m){return by[m.id];}).map(function(m){return m.name+" "+by[m.id];}).join(" · ");
 }
-var ICOLS=[["red","빨강"],["maroon","자주"],["pink","분홍"],["orange","주황"],["gold","금색"],["yellow","노랑"],["beige","베이지"],["lime","연두"],["green","초록"],["mint","민트"],["teal","청록"],["sky","하늘"],["blue","파랑"],["navy","남색"],["lavender","연보라"],["purple","보라"],["brown","갈색"],["gray","회색"],["black","검정"],["white","흰색"]];
+var ICOLS=[["red","빨강"],["maroon","자주"],["pink","분홍"],["coral","산호"],["orange","주황"],["gold","금색"],["yellow","노랑"],["beige","베이지"],["lime","연두"],["green","초록"],["olive","올리브"],["mint","민트"],["teal","청록"],["cyan","시안"],["sky","하늘"],["blue","파랑"],["navy","남색"],["lavender","연보라"],["purple","보라"],["brown","갈색"],["gray","회색"],["black","검정"],["white","흰색"]];
 /* 품목 전체 파렛트 수 (상자+혼합) — 약도 그릴 때 한 번만 셈 */
 var PALC=null;
 function palCache(id){ if(!PALC){ PALC={}; ST().boxes.forEach(function(b){ if(b.itemId) PALC[b.itemId]=(PALC[b.itemId]||0)+palletsOf(b.cur); (b.mix||[]).forEach(function(m){ PALC[m.itemId]=(PALC[m.itemId]||0)+palletsOf(m.cur); }); }); } return PALC[id]||0; }
@@ -2010,7 +2014,7 @@ function drawOvCanvas(){
 
 /* ---------- 상세 약도 이미지 (품명·갯수 안 잘리게) + 품목별 파렛트 수 ---------- */
 var PCOL={red:["#e53935","#fff","#b71c1c","#fbd3d2"],orange:["#fb8c00","#1a1f25","#c46a00","#ffe2bf"],yellow:["#fdd835","#1a1f25","#c9a800","#fff6c4"],green:["#43a047","#fff","#2e7d32","#d5efd6"],blue:["#1e88e5","#fff","#1565c0","#d3e7fa"],navy:["#283593","#fff","#1a237e","#d3d6ee"],purple:["#8e24aa","#fff","#6a1b9a","#ecd3f2"]};
-var CCOL={white:["#ffffff","#1a1f25","#9aa5b1"],blue:["#1d5fd1","#fff","#1d5fd1"],red:["#d23a3a","#fff","#d23a3a"],yellow:["#f5c400","#1a1f25","#d9ad00"],lime:["#9be15d","#1a1f25","#6fb52c"],black:["#1f2328","#fff","#000000"],orange:["#fb8c00","#1a1f25","#c46a00"],green:["#2e9e4f","#fff","#1f7a3b"],purple:["#8e24aa","#fff","#6a1b9a"],pink:["#f48fb1","#1a1f25","#d36b90"],gray:["#9aa5b1","#1a1f25","#6b7680"],sky:["#7cc6f2","#1a1f25","#4aa3d6"],teal:["#0f8b8d","#ffffff","#0a6668"],navy:["#1f2f7a","#ffffff","#141f55"],brown:["#8d5a3b","#ffffff","#6b4029"],beige:["#e9d8b4","#1a1f25","#c7b28a"],mint:["#a8e6cf","#1a1f25","#6fc7a5"],lavender:["#c9b6f2","#1a1f25","#9f86d6"],gold:["#d4a017","#1a1f25","#a87d0b"],maroon:["#8e1b4b","#ffffff","#6a1238"]};
+var CCOL={white:["#ffffff","#1a1f25","#9aa5b1"],blue:["#1d5fd1","#fff","#1d5fd1"],red:["#d23a3a","#fff","#d23a3a"],yellow:["#f5c400","#1a1f25","#d9ad00"],lime:["#9be15d","#1a1f25","#6fb52c"],black:["#1f2328","#fff","#000000"],orange:["#fb8c00","#1a1f25","#c46a00"],green:["#2e9e4f","#fff","#1f7a3b"],purple:["#8e24aa","#fff","#6a1b9a"],pink:["#f48fb1","#1a1f25","#d36b90"],gray:["#9aa5b1","#1a1f25","#6b7680"],sky:["#7cc6f2","#1a1f25","#4aa3d6"],teal:["#0f8b8d","#ffffff","#0a6668"],navy:["#1f2f7a","#ffffff","#141f55"],brown:["#8d5a3b","#ffffff","#6b4029"],beige:["#e9d8b4","#1a1f25","#c7b28a"],mint:["#a8e6cf","#1a1f25","#6fc7a5"],lavender:["#c9b6f2","#1a1f25","#9f86d6"],gold:["#d4a017","#1a1f25","#a87d0b"],maroon:["#8e1b4b","#ffffff","#6a1238"],coral:["#ff7f6e","#1a1f25","#d65a4a"],olive:["#7d8b2a","#ffffff","#5b661d"],cyan:["#22d3ee","#1a1f25","#0ea5c0"]};
 function gcol(k){ var c=grp(k).color||""; var m=/^var\((--[\w-]+)\)$/.exec(c); if(m){ var v=getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim(); return v||"#9aa5b1"; } return c||"#9aa5b1"; }
 var IMGFONT='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif';
 /* 검색한 파렛트만 (이미지·보내기) */
