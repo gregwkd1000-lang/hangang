@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112082117";</script>
+<script>window.HG_BUILD="20261112083521";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -925,7 +925,7 @@ function gasRef(cid){
       if(!canEdit()){ var pe=new Error("auth"); pe.code="permission_denied"; throw pe; }
       var merged=false;
       for(var tries=0;tries<5;tries++){
-        var r; try{ r=await apiPost({action:"set",cid:cid,code:EDIT.code,baseV:VER[cid]||0,data:body}); }catch(e){ var ne=new Error("net"); ne.code="unavailable"; throw ne; }
+        var r; try{ r=await apiPost({action:"set",cid:cid,code:EDIT.code,name:EDIT.name,baseV:VER[cid]||0,data:body}); }catch(e){ var ne=new Error("net"); ne.code="unavailable"; throw ne; }
         if(r.ok){ VER[cid]=r.v; SHADOW[cid]=JSON.parse(JSON.stringify(body)); return merged?{merged:body}:{}; }
         if(r.error==="auth"){ EDIT={}; try{ localStorage.removeItem("stockmap-editor"); }catch(e){} var ae=new Error("auth"); ae.code="permission_denied"; throw ae; }
         if(r.conflict){ var base=SHADOW[cid]; VER[cid]=r.v; SHADOW[cid]=r.data; body=merge3(base,body,r.data); merged=true; continue; }
@@ -938,7 +938,7 @@ function gasRef(cid){
       doc:function(id){ return {set:function(sn){
         if(!canEdit()) return Promise.resolve();
         var st=S[cid]&&S[cid].state, curId=st?st.survey.date+"_"+st.survey.round:"";
-        var send=function(){ return apiPost({action:"hist",cid:cid,code:EDIT.code,id:id,data:sn}).catch(function(){}); };
+        var send=function(){ return apiPost({action:"hist",cid:cid,code:EDIT.code,name:EDIT.name,id:id,data:sn}).catch(function(){}); };
         if(id!==curId) return send();
         clearTimeout(histTimers[cid]); histTimers[cid]=setTimeout(send,60000); return Promise.resolve(); // 지금 회차는 1분에 한 번만
       }}; },
@@ -991,15 +991,16 @@ function openDataMenu(){
   var who=GAS?(EDIT.code?'<p style="text-align:left"><b>'+esc(EDIT.name||"")+'</b>님으로 수정 중입니다.</p>':'<p style="text-align:left">지금은 <b>보기 전용</b>입니다. 수정하려면 수정 코드를 넣으세요.</p>'):'';
   $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">저장 · 백업</h3>'+who+
     '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px">'+
-    (GAS?(EDIT.code?'<button class="btn" id="dmOut">수정 코드 지우기 (보기 전용으로)</button>':'<button class="btn primary" id="dmCode">수정 코드 입력</button>'):'')+
+    (GAS?(EDIT.code?'<button class="btn" id="dmPw">비밀번호 변경</button><button class="btn" id="dmOut">로그아웃 (보기 전용으로)</button>':'<button class="btn primary" id="dmCode">로그인 (이름·비밀번호)</button>'):'')+
     (PRACTICE?'<button class="btn primary" id="dmPrac">연습 끝내기 · 일시중단</button>':'<button class="btn" id="dmPrac">'+(pracSaved()?'연습 모드 이어서 하기 (저장 안 됨)':'연습 모드 시작 (저장 안 됨)')+'</button>')+
-    (PRACTICE?'':'<button class="btn" id="dmBackup">전체 백업 파일 받기</button>')+
-    (canEdit()&&!PRACTICE?'<button class="btn" id="dmRestore">백업 파일 불러오기</button><input type="file" id="dmFile" accept=".json,application/json,text/plain" hidden>':'')+
+    (PRACTICE||!EDIT.admin?'':'<button class="btn" id="dmBackup">전체 백업 파일 받기</button>')+
+    (EDIT.admin&&canEdit()&&!PRACTICE?'<button class="btn" id="dmRestore">백업 파일 불러오기</button><input type="file" id="dmFile" accept=".json,application/json,text/plain" hidden>':'')+
     '<button class="btn" id="dmClose">닫기</button></div>'+
     '<p class="hint" style="text-align:left">백업 파일에는 모든 탭의 약도·상자·수량과 지난 기록이 들어 있습니다. 다른 곳(예: GitHub 버전)으로 옮길 때 이 파일을 불러오면 됩니다.</p>';
   dlg.classList.add("on");
   $("dmClose").onclick=closeDlg;
   if($("dmCode")) $("dmCode").onclick=function(){ closeDlg(); askCode(); };
+  if($("dmPw")) $("dmPw").onclick=askPw;
   if($("dmOut")) $("dmOut").onclick=function(){ EDIT={}; try{ localStorage.removeItem("stockmap-editor"); }catch(e){} closeDlg(); renderAll(); toast("보기 전용으로 바뀌었습니다"); };
   $("dmPrac").onclick=function(){ if(PRACTICE){ endPractice(); } else { closeDlg(); startPractice(); } };
   if($("dmBackup")) $("dmBackup").onclick=function(){ makeBackup(this); };
@@ -1029,13 +1030,37 @@ async function restoreBackup(file){
     // 지난 기록
     var all=[]; Object.keys(data.hist||{}).forEach(function(cid){ var h=data.hist[cid]||{}; Object.keys(h).forEach(function(k){ var v=h[k]; if(v&&v.id&&v.state) all.push({cid:cid,id:v.id,data:v}); }); });
     all.forEach(function(x){ saveHistLocal(x.cid,x.data); });
-    if(GAS){ for(var i=0;i<all.length;i+=6){ try{ await apiPost({action:"histBulk",code:EDIT.code,items:all.slice(i,i+6)}); }catch(e){} } }
+    if(GAS){ for(var i=0;i<all.length;i+=6){ try{ await apiPost({action:"histBulk",code:EDIT.code,name:EDIT.name,items:all.slice(i,i+6)}); }catch(e){} } }
     else { all.forEach(function(x){ var r=S[x.cid]&&S[x.cid].ref; if(r&&!readOnly) r.collection("history").doc(x.id).set(x.data).catch(function(){}); }); }
     COMPANIES.forEach(function(c){ delete histCache[c.id]; });
     renderAll(); toast("백업을 불러왔습니다 · 탭 "+Object.keys(data.states).length+"개, 기록 "+all.length+"개");
   });
 }
 /* 수정 코드 */
+/* 비밀번호(수정 코드) 바꾸기: 기존 비밀번호가 맞아야 바뀜 */
+function askPw(){
+  var ip='style="width:100%;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:4px 0;box-sizing:border-box;background:var(--surface);color:var(--ink)"';
+  $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">비밀번호 변경</h3><p class="hint" style="text-align:left"><b>'+esc(EDIT.name||"")+'</b>님의 비밀번호를 바꿉니다.</p>'+
+    '<input id="pwOld" type="password" inputmode="numeric" autocomplete="off" placeholder="기존 비밀번호" '+ip+'>'+
+    '<input id="pwNew" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자리 이상)" '+ip+'>'+
+    '<input id="pwNew2" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 한 번 더" '+ip+'>'+
+    '<p class="hint" id="pwMsg" style="min-height:1.2em;text-align:left"></p><div class="toolbar" style="justify-content:center"><button class="btn primary" id="pwGo">바꾸기</button><button class="btn" id="pwX">취소</button></div>';
+  $("imgDlg").classList.add("on"); setTimeout(function(){ try{ $("pwOld").focus(); }catch(e){} },50);
+  $("pwX").onclick=closeDlg;
+  $("pwGo").onclick=async function(){
+    var o=$("pwOld").value.trim(), n=$("pwNew").value.trim(), n2=$("pwNew2").value.trim(), m=$("pwMsg");
+    if(!o){ m.textContent="기존 비밀번호를 넣어 주세요"; return; }
+    if(n.length<4){ m.textContent="새 비밀번호는 4자리 이상으로 넣어 주세요"; return; }
+    if(n!==n2){ m.textContent="새 비밀번호가 서로 다릅니다"; return; }
+    if(n===o){ m.textContent="기존과 다른 비밀번호를 넣어 주세요"; return; }
+    this.disabled=true; m.textContent="바꾸는 중…"; var btn=this;
+    try{ var r=await apiPost({action:"passwd",name:EDIT.name,code:o,newCode:n});
+      if(r.ok){ EDIT.code=n; try{ localStorage.setItem("stockmap-editor",JSON.stringify(EDIT)); }catch(e){} closeDlg(); toast("비밀번호를 바꿨습니다"); return; }
+      m.textContent=r.error==="auth"?"기존 비밀번호가 맞지 않습니다":r.error==="dup"?"다른 사람이 쓰는 비밀번호입니다. 다른 번호로 해 주세요":r.error==="len"?"4~20자리로 넣어 주세요":"바꾸지 못했습니다 (서버를 새 버전으로 배포했는지 확인)";
+    }catch(e){ m.textContent="연결이 안 됩니다. 잠시 후 다시 해 보세요"; }
+    btn.disabled=false;
+  };
+}
 function askCode(){
   if(!GAS) return;
   var dlg=$("imgDlg"); if(dlg.classList.contains("on")) return;
@@ -1047,17 +1072,19 @@ function askCode(){
     $("codeOut").onclick=function(){ EDIT={}; try{ localStorage.removeItem("stockmap-editor"); }catch(e){} dlg.classList.remove("on"); $("imgBox").innerHTML=""; renderAll(); toast("보기 전용으로 바뀌었습니다"); };
     return;
   }
-  $("imgBox").innerHTML='<img class="dlglogo" alt="HanGang 한강" src="'+$("brandLogo").src+'"><h3 style="margin:4px 0 8px">수정 코드 입력</h3><p class="hint" style="text-align:left">보기는 누구나 할 수 있고, 저장은 수정 코드를 받은 사람만 할 수 있습니다. 한 번 넣으면 이 기기에 기억됩니다.</p>'+
-    '<input id="codeIn" type="password" inputmode="numeric" autocomplete="off" aria-label="수정 코드" style="width:100%;font-size:20px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:6px 0;box-sizing:border-box;background:var(--surface);color:var(--ink)">'+
+  $("imgBox").innerHTML='<img class="dlglogo" alt="HanGang 한강" src="'+$("brandLogo").src+'"><h3 style="margin:4px 0 8px">로그인</h3><p class="hint" style="text-align:left">보기는 누구나 할 수 있고, 저장은 등록된 사람만 할 수 있습니다. <b>이름과 비밀번호(수정 코드)</b>를 처음 한 번 넣으면 이 기기에 기억됩니다.</p>'+
+    '<input id="nameIn" type="text" autocomplete="off" placeholder="이름 (예: 홍길동)" aria-label="이름" style="width:100%;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:6px 0 0;box-sizing:border-box;background:var(--surface);color:var(--ink)">'+
+    '<input id="codeIn" type="password" inputmode="numeric" autocomplete="off" placeholder="비밀번호" aria-label="비밀번호" style="width:100%;font-size:20px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:6px 0;box-sizing:border-box;background:var(--surface);color:var(--ink)">'+
     '<p class="hint" id="codeMsg" style="min-height:1.2em;text-align:left"></p><div class="toolbar" style="justify-content:center"><button class="btn primary" id="codeGo">확인</button><button class="btn" id="codeCancel">보기만 하기</button></div>';
-  dlg.classList.add("on"); setTimeout(function(){ try{ $("codeIn").focus(); }catch(e){} },50);
+  dlg.classList.add("on"); setTimeout(function(){ try{ $("nameIn").focus(); }catch(e){} },50);
   $("codeCancel").onclick=function(){ dlg.classList.remove("on"); $("imgBox").innerHTML=""; };
-  async function go(){ var c=$("codeIn").value.trim(); if(!c) return; $("codeGo").disabled=true; $("codeMsg").textContent="확인 중…";
-    try{ var r=await apiPost({action:"auth",code:c});
-      if(r.ok){ EDIT={code:c,name:r.name}; try{ localStorage.setItem("stockmap-editor",JSON.stringify(EDIT)); }catch(e){} dlg.classList.remove("on"); $("imgBox").innerHTML=""; toast(r.name+"님, 이제 고칠 수 있습니다"); renderAll(); rollAll(); COMPANIES.forEach(function(c2){ if(!SHADOW[c2.id]&&S[c2.id].got) persistId(c2.id); }); }
-      else { $("codeMsg").textContent="코드가 맞지 않습니다"; $("codeGo").disabled=false; } }
+  async function go(){ var nm=$("nameIn").value.trim(), c=$("codeIn").value.trim(); if(!nm){ $("codeMsg").textContent="이름을 넣어 주세요"; $("nameIn").focus(); return; } if(!c){ $("codeMsg").textContent="비밀번호를 넣어 주세요"; $("codeIn").focus(); return; } $("codeGo").disabled=true; $("codeMsg").textContent="확인 중…";
+    try{ var r=await apiPost({action:"auth",name:nm,code:c});
+      if(r.ok&&r.name&&r.name!==nm) r={ok:false};
+      if(r.ok){ EDIT={code:c,name:r.name,admin:!!r.admin}; try{ localStorage.setItem("stockmap-editor",JSON.stringify(EDIT)); }catch(e){} dlg.classList.remove("on"); $("imgBox").innerHTML=""; toast(r.name+"님, 이제 고칠 수 있습니다"); renderAll(); rollAll(); COMPANIES.forEach(function(c2){ if(!SHADOW[c2.id]&&S[c2.id].got) persistId(c2.id); }); }
+      else { $("codeMsg").textContent="이름이나 비밀번호가 맞지 않습니다"; $("codeGo").disabled=false; } }
     catch(e){ $("codeMsg").textContent="연결이 안 됩니다. 잠시 후 다시 해 보세요"; $("codeGo").disabled=false; } }
-  $("codeGo").onclick=go; $("codeIn").onkeydown=function(e){ if(e.key==="Enter") go(); };
+  $("codeGo").onclick=go; $("codeIn").onkeydown=function(e){ if(e.key==="Enter") go(); }; $("nameIn").onkeydown=function(e){ if(e.key==="Enter") $("codeIn").focus(); };
 }
 
 function localSave(id){ if(PRACTICE) return; try{localStorage.setItem(lsKey(id),JSON.stringify(S[id].state));}catch(e){} saveHistLocal(id); }
@@ -1340,7 +1367,7 @@ function renderMap(){ PALC=null;
     var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":"";
     var mixN=(b.mix||[]).length, mixSum=(b.mix||[]).reduce(function(a,m){return a+(m.cur?sumA(m.cur):0);},0), mixHas=(b.mix||[]).some(function(m){return m.cur!==null;});
     var multi=boxesOf(it.id).length>1||it.cur!==null||seqDed(it.id)!==0||mixOf(it.id).length>0, mine=b.cur===null?null:sumA(b.cur), line;
-    if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur)+'/'+palCache(it.id)+')</span>'):((it.prev===null?"-":it.prev)+'→<b>'+mine+'</b>');
+    if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur)+'/'+palCache(it.id)+')</span>'):((it.prev===null?"-":it.prev)+'→<b>'+mine+'</b>'+'<span class="pl">('+palletsOf(b.cur)+'/'+palCache(it.id)+')</span>');
     else line=t===null?('이전 <b>'+(it.prev===null?"-":it.prev)+'</b>'):('–/'+t);
     if(mine===null&&!mixHas) stt="todo";
     var bc=b.bg?"":colorOf(it);

@@ -2,7 +2,7 @@
  * 재고 약도 — 저장 서버 (구글 앱스 스크립트)
  * 이 스크립트는 구글 시트에 붙어 있어야 합니다. (시트 > 확장 프로그램 > Apps Script)
  *  - 보기: 누구나 (로그인 없음)
- *  - 저장: "수정권한" 시트에 적힌 코드를 가진 사람만
+ *  - 저장: "수정권한" 시트에 적힌 이름+코드(비밀번호)가 맞는 사람만 · 권한 칸이 "관리자"면 백업 불러오기 가능
  */
 const CHUNK = 40000;           // 시트 한 칸에 넣는 글자 수 (칸 한도 5만 자)
 const HIST_KEEP = 80;          // 탭마다 남길 지난 기록 수
@@ -21,7 +21,7 @@ function sheet_(name, header) {
 function docsSheet_() { return sheet_('docs', ['탭', '버전', '저장시각', '저장한 사람', '조각수', '데이터']); }
 function histSheet_() { return sheet_('history', ['키', '탭', '저장시각', '조각수', '데이터']); }
 function logSheet_()  { return sheet_('log', ['시각', '이름', '탭', '내용']); }
-function editSheet_() { return sheet_('수정권한', ['이름', '코드']); }
+function editSheet_() { return sheet_('수정권한', ['이름', '코드', '권한']); }
 
 /** 처음 한 번 실행: 시트를 만들고 관리자 코드를 하나 만들어 둡니다. */
 function setup() {
@@ -36,12 +36,31 @@ function setup() {
 }
 
 function out_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
-function who_(code) {
+/* 한 번만: "관리자" → "윤명희"로 이름 바꾸고, 관리자 계정(안상우) 추가, 권한 칸 만들기 */
+function migrate_() {
+  const pr = PropertiesService.getScriptProperties();
+  if (pr.getProperty('mig2') === '1') return;
+  const sh = editSheet_();
+  sh.getRange(1, 1, sh.getMaxRows(), 3).setNumberFormat('@');
+  sh.getRange(1, 3).setValue('권한').setFontWeight('bold');
+  const v = sh.getDataRange().getDisplayValues();
+  let hasAdmin = false;
+  for (let i = 1; i < v.length; i++) {
+    const n = String(v[i][0]).trim();
+    if (n === '관리자') sh.getRange(i + 1, 1).setValue('윤명희');
+    if (n === '안상우') { hasAdmin = true; sh.getRange(i + 1, 3).setValue('관리자'); }
+  }
+  if (!hasAdmin) { const r = sh.getLastRow() + 1; sh.getRange(r, 1, 1, 3).setNumberFormat('@').setValues([['안상우', '031700', '관리자']]); }
+  pr.setProperty('mig2', '1');
+}
+/* 이름(있으면)과 코드가 같은 줄에 있어야 통과. 돌려주는 값: {name, admin, row} */
+function who_(code, name) {
   code = String(code || '').trim(); if (!code) return null;
+  name = name === undefined || name === null ? '' : String(name).trim();
   const v = editSheet_().getDataRange().getDisplayValues();
   for (let i = 1; i < v.length; i++) {
-    const n = String(v[i][0]).trim(), c = String(v[i][1]).trim();
-    if (n && c && c === code) return n;
+    const n = String(v[i][0]).trim(), c = String(v[i][1]).trim(), role = String(v[i][2] || '').trim();
+    if (n && c && c === code && (!name || name === n)) return { name: n, admin: role === '관리자' || role.toLowerCase() === 'admin', row: i + 1 };
   }
   return null;
 }
@@ -129,9 +148,24 @@ function doGet(e) {
 function doPost(e) {
   let b = {};
   try { b = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: 'bad' }); }
-  const name = who_(b.code);
-  if (b.action === 'auth') return out_({ ok: !!name, name: name || '' });
-  if (!name) return out_({ ok: false, error: 'auth' });
+  try { migrate_(); } catch (err) {}
+  if (b.action === 'auth') {
+    if (!String(b.name || '').trim()) return out_({ ok: false, error: 'name' });   // 이름과 코드를 둘 다 넣어야 로그인
+    const a = who_(b.code, b.name);
+    return out_({ ok: !!a, name: a ? a.name : '', admin: a ? a.admin : false });
+  }
+  const me = who_(b.code, b.name);
+  if (!me) return out_({ ok: false, error: 'auth' });
+  const name = me.name;
+  if (b.action === 'passwd') {          // 비밀번호(수정 코드) 바꾸기: 기존 코드가 맞아야 함
+    const nc = String(b.newCode || '').trim();
+    if (nc.length < 4 || nc.length > 20) return out_({ ok: false, error: 'len' });
+    const v = editSheet_().getDataRange().getDisplayValues();
+    for (let i = 1; i < v.length; i++) if (i + 1 !== me.row && String(v[i][1]).trim() === nc) return out_({ ok: false, error: 'dup' });
+    editSheet_().getRange(me.row, 2).setNumberFormat('@').setValue(nc);
+    logSheet_().appendRow([new Date(), name, '-', '비밀번호 변경']);
+    return out_({ ok: true });
+  }
   const lock = LockService.getScriptLock();
   try { lock.waitLock(25000); } catch (err) { return out_({ ok: false, error: 'busy' }); }
   try {
@@ -151,6 +185,7 @@ function doPost(e) {
       return out_({ ok: true });
     }
     if (b.action === 'histBulk') {
+      if (!me.admin) return out_({ ok: false, error: 'admin' });   // 백업 불러오기는 관리자만
       (b.items || []).forEach(function (x) { if (x && x.cid && x.id && x.data) writeHist_(String(x.cid), String(x.id), x.data); });
       return out_({ ok: true });
     }
