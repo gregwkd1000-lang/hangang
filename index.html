@@ -681,7 +681,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261112073941";</script>
+<script>window.HG_BUILD="20261112074208";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -779,7 +779,7 @@ function normalize(c,s){
         note:String(i.note||""), color:(typeof i.color==="string"&&(i.color===""||/^[a-z]+$/.test(i.color)))?i.color:undefined,
         cur:info?(i.cur===null||i.cur===undefined?null:String(i.cur)):(Array.isArray(i.cur)?i.cur.map(Number).filter(function(n){return n>0;}):null),
         unit:info?null:(+i.unit>0?+i.unit:null)};}),
-    boxes:(Array.isArray(s.boxes)?s.boxes:[]).filter(function(b){return b&&b.id;}).map(function(b){return {id:String(b.id),mapId:mk[b.mapId]?String(b.mapId):maps[0].id,r:+b.r,c:+b.c,t:b.t===1?1:0,fixed:!!b.fixed,bg:PAL.some(function(p){return p[0]===b.bg;})?b.bg:null,mix:normMix(b.mix),itemId:b.itemId?String(b.itemId):null,mark:b.mark?String(b.mark):null,cur:Array.isArray(b.cur)?b.cur.map(Number).filter(function(n){return n>0;}):null,seq:normSeq(b.seq),seqInfo:b.seqInfo?String(b.seqInfo):null};})};
+    boxes:(Array.isArray(s.boxes)?s.boxes:[]).filter(function(b){return b&&b.id;}).map(function(b){return {id:String(b.id),mapId:mk[b.mapId]?String(b.mapId):maps[0].id,r:+b.r,c:+b.c,t:b.t===1?1:0,fixed:!!b.fixed,bg:PAL.some(function(p){return p[0]===b.bg;})?b.bg:null,mix:normMix(b.mix),itemId:b.itemId?String(b.itemId):null,mark:b.mark?String(b.mark):null,cur:Array.isArray(b.cur)?b.cur.map(Number).filter(function(n){return n>0;}):null,seq:normSeq(b.seq),seqInfo:b.seqInfo?String(b.seqInfo):null,chk:typeof b.chk==="string"?b.chk:null};})};
   if((+s.v||1)<4){ // 예전엔 수량이 품목에 하나로 저장됨 → 첫 자리 상자로 옮김
     st.items.forEach(function(i){ if(i.kind==="info"||i.cur===null) return; var b0=st.boxes.filter(function(b){return b.itemId===i.id;})[0]; if(b0){ b0.cur=i.cur; i.cur=null; } });
   }
@@ -1178,6 +1178,7 @@ var ICOLS=[["red","빨강"],["maroon","자주"],["pink","분홍"],["orange","주
 /* 품목 전체 파렛트 수 (상자+혼합) — 약도 그릴 때 한 번만 셈 */
 var PALC=null;
 function palCache(id){ if(!PALC){ PALC={}; ST().boxes.forEach(function(b){ if(b.itemId) PALC[b.itemId]=(PALC[b.itemId]||0)+palletsOf(b.cur); (b.mix||[]).forEach(function(m){ PALC[m.itemId]=(PALC[m.itemId]||0)+palletsOf(m.cur); }); }); } return PALC[id]||0; }
+function chkKey(){ var v=ST().survey; return v.date+"_"+v.round; }
 function colorOf(it){ if(typeof it.color==="string") return it.color; var c=C().colors; return c&&c[it.code]?c[it.code]:""; }
 function codeHTML(it){ var c=colorOf(it), t=esc(it.code)+(it.alias?' <small>('+esc(it.alias)+')</small>':''); return c?'<span class="cchip c-'+c+'">'+t+'</span>':t; }
 function label(it){ return it.code+(it.alias?" ("+it.alias+")":""); }
@@ -1280,7 +1281,7 @@ function renderMap(){ PALC=null;
     var bc=b.bg?"":colorOf(it);
     return '<button class="cell box'+half+(b.fixed?" fixed":"")+' '+(stt==="todo"?"":stt)+((mine!==null||mixHas)?" has":"")+(mixN?" mixed":"")+(isTwo(mp,r)?" twobox":"")+(bc?" colored c-"+bc:"")+pc+sel+'" style="--grp:'+grp(it.group).color+'" data-b="'+b.id+'" aria-label="'+esc(label(it))+'">'+
        tl+'<span class="stripe"></span><span class="t1">'+(mixN?'<b class="mixt1">혼합+'+mixN+'</b>':esc(sp[0]))+'</span><span class="t2'+sz+'">'+esc(sp[1])+'</span><span class="t3">'+line+'</span>'+
-       (it.note?'<span class="flag">!</span>':'')+((bc||b.bg||b.fixed)&&(mine!==null||mixHas)?'<span class="donemark" aria-label="입력함">✓</span>':'')+'</button>';
+       (it.note?'<span class="flag">!</span>':'')+(b.chk&&b.chk===chkKey()?'<span class="donemark" aria-label="확인함">✓</span>':'')+'</button>';
   }
   for(var ri=0;ri<mp.rows;ri++) for(var ci=0;ci<mp.cols;ci++){ var r=fl.v?mp.rows-1-ri:ri, c=fl.h?mp.cols-1-ci:ci;
     var two=isTwo(mp,r);
@@ -1830,6 +1831,8 @@ function gridClick(e){
     if(b.mark===SEQ){ seqQ=""; openSheet({boxId:b.id,mode:"seq"}); return; }
     if(b.mark||!(b.itemId&&item(b.itemId))){ if(viewOnly()) return; }
     if(b.mark){ pickQ=""; openSheet({boxId:b.id,mode:"pick"}); return; }
+    /* 상자를 누르면 이번 회차에 "확인함" ✓ (수정 가능할 때만 · 회차가 바뀌면 저절로 사라짐) */
+    if(b.itemId&&item(b.itemId)&&b.chk!==chkKey()&&!viewOnly()&&(PRACTICE||!(retired()||(GAS&&!canEdit())))){ b.chk=chkKey(); persist(); }
     pickQ=""; openSheet(b.itemId&&item(b.itemId)?{boxId:b.id}:{boxId:b.id,mode:"pick"});
     return;
   }
