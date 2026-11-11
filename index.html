@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112084011";</script>
+<script>window.HG_BUILD="20261112084451";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1292,7 +1292,7 @@ function breakdown(it,arr){
   if(!u) return arr.length>1?(arr.join(" + ")+" = "+t):String(t);
   var full=arr.filter(function(n){return n===u;}).length, part=arr.filter(function(n){return n!==u;});
   var s=[]; if(full) s.push(u+"×"+full); if(part.length) s.push(part.join("+"));
-  return arr.length+"파렛트 · "+s.join(" + ")+" = "+t;
+  return palletsOf(arr,it)+"파렛트 · "+s.join(" + ")+" = "+t;
 }
 var toastT; function toast(m){ var t=$("toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove("on");},1800); }
 var dlgCb=null; function ask(msg,yes,cb,no){ $("dlgMsg").textContent=msg; $("dlgYes").textContent=yes||"확인"; $("dlgNo").textContent=no||"취소"; dlgCb=cb; $("dlg").classList.add("on"); }
