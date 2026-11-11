@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112084856";</script>
+<script>window.HG_BUILD="20261112085455";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1370,7 +1370,7 @@ function renderMap(){ PALC=null;
     var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":"";
     var mixN=(b.mix||[]).length, mixSum=(b.mix||[]).reduce(function(a,m){return a+(m.cur?sumA(m.cur):0);},0), mixHas=(b.mix||[]).some(function(m){return m.cur!==null;});
     var multi=boxesOf(it.id).length>1||it.cur!==null||seqDed(it.id)!==0||mixOf(it.id).length>0, mine=b.cur===null?null:sumA(b.cur), line;
-    if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>'):((it.prev===null?"-":it.prev)+'→<b>'+mine+'</b>'+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>');
+    if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>'):('<b>'+mine+'</b>'+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>');
     else line=t===null?('이전 <b>'+(it.prev===null?"-":it.prev)+'</b>'):('–/'+t);
     if(mine===null&&!mixHas) stt="todo";
     var bc=b.bg?"":colorOf(it);
