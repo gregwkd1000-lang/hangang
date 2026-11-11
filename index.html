@@ -652,7 +652,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261111095755";</script>
+<script>window.HG_BUILD="20261111125305";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1363,7 +1363,8 @@ function renderShare(){
   var gmsg=c.gongMsg||(ui.cid==="sejong"?"공용기 {n}개 있습니다.":"");
   var gn=gmsg?ST().boxes.filter(function(b){ return String(b.mark||"").replace(/\s+/g,"")==="공용기"&&(!om||sendMap(b)===om); }).length:0;
   $("noGong").hidden=!gn;
-  if(gn&&!ui.noGong){ if(lines.length) lines.push(""); lines.push(gmsg.replace("{n}",gn)); }
+  $("noGong").setAttribute("aria-pressed",!!ui.noGongBy[ui.cid]);
+  if(gn&&!ui.noGongBy[ui.cid]){ if(lines.length) lines.push(""); lines.push(gmsg.replace("{n}",gn)); }
   $("out").value=lines.join("\n");
 }
 /* 검색한 파렛트만: 상자 위치별 한 줄 + 품목 합계 */
@@ -2357,15 +2358,17 @@ function findOnMap(it){
 $("q").oninput=function(){ ui.q=this.value; renderItems(); };
 Array.prototype.forEach.call(document.querySelectorAll("[data-f]"),function(b){ b.onclick=function(){ ui.filter=b.dataset.f; document.querySelectorAll("[data-f]").forEach(function(x){x.setAttribute("aria-pressed",x===b);}); renderItems(); }; });
 Array.prototype.forEach.call(document.querySelectorAll("[data-o]"),function(b){ b.onclick=function(){ ui.out=b.dataset.o; document.querySelectorAll("[data-o]").forEach(function(x){x.setAttribute("aria-pressed",x===b);}); renderShare(); }; });
-try{ var so=JSON.parse(localStorage.getItem("stockmap-shareopt")||"{}"); ui.noNote=!!so.noNote; ui.noGong=!!so.noGong; }catch(e){}
-function shareOpts(){ $("noGong").setAttribute("aria-pressed",!!ui.noGong); try{localStorage.setItem("stockmap-shareopt",JSON.stringify({noNote:!!ui.noNote,noGong:!!ui.noGong}));}catch(e){} renderShare(); }
-$("noGong").onclick=function(){ ui.noGong=!ui.noGong; shareOpts(); };
+/* 보내기 옵션은 탭마다 따로 기억 */
+ui.noNoteBy={}; ui.noGongBy={};
+try{ var so=JSON.parse(localStorage.getItem("stockmap-shareopt")||"{}"); ui.noNoteBy=so.noNoteBy||{}; ui.noGongBy=so.noGongBy||{}; }catch(e){}
+function shareOpts(){ try{localStorage.setItem("stockmap-shareopt",JSON.stringify({noNoteBy:ui.noNoteBy,noGongBy:ui.noGongBy}));}catch(e){} renderShare(); }
+$("noGong").onclick=function(){ ui.noGongBy[ui.cid]=!ui.noGongBy[ui.cid]; shareOpts(); };
 /* 5공장: 괄호 특이사항은 기본으로 빼고, 버튼을 눌렀을 때만 넣음 (그때만, 저장 안 함) */
 ui.noteIn={};
-function notesOff(){ if(C().noteAlways) return false; return C().noteOff?!ui.noteIn[ui.cid]:!!ui.noNote; }
-function noteBtn(){ var b=$("noNote"); b.hidden=!!C().noteAlways; if(C().noteOff){ b.textContent="괄호 특이사항 넣기"; b.setAttribute("aria-pressed",!!ui.noteIn[ui.cid]); } else { b.textContent="괄호 특이사항 빼기"; b.setAttribute("aria-pressed",!!ui.noNote); } }
-$("noNote").onclick=function(){ if(C().noteOff){ ui.noteIn[ui.cid]=!ui.noteIn[ui.cid]; renderShare(); } else { ui.noNote=!ui.noNote; shareOpts(); } };
-$("noNote").setAttribute("aria-pressed",!!ui.noNote); $("noGong").setAttribute("aria-pressed",!!ui.noGong);
+function notesOff(){ if(C().noteAlways) return false; return C().noteOff?!ui.noteIn[ui.cid]:!!ui.noNoteBy[ui.cid]; }
+function noteBtn(){ var b=$("noNote"); b.hidden=!!C().noteAlways; if(C().noteOff){ b.textContent="괄호 특이사항 넣기"; b.setAttribute("aria-pressed",!!ui.noteIn[ui.cid]); } else { b.textContent="괄호 특이사항 빼기"; b.setAttribute("aria-pressed",!!ui.noNoteBy[ui.cid]); } }
+$("noNote").onclick=function(){ if(C().noteOff){ ui.noteIn[ui.cid]=!ui.noteIn[ui.cid]; renderShare(); } else { ui.noNoteBy[ui.cid]=!ui.noNoteBy[ui.cid]; shareOpts(); } };
+
 /* 보낼 재고 내용을 그림(PNG)으로 저장 */
 function drawTextCanvas(txt){
   var sc=2, W=720, pad=28, fs=17, lh=26, font='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif';
