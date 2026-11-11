@@ -333,7 +333,7 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .box.colored.diff{border-color:var(--warn);border-width:2.5px}
 .box.colored .t1,.box.colored .t2,.box.colored .t3,.box.colored .t3 b{color:var(--cfg)!important}
 .box.colored .t1,.box.colored .t3{opacity:.85}
-.donemark{position:absolute;right:3px;bottom:3px;width:16px;height:16px;border-radius:50%;background:var(--good);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center}
+.donemark{position:absolute;right:3px;top:7px;width:16px;height:16px;border-radius:50%;background:var(--good);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center}
 .sizer .insrow{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
 .sizer .insbtn{border-style:dashed}
 .grid.insmode .cell{border-color:var(--accent)}
@@ -370,7 +370,9 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 #grid .box.seqbox .t3.seqno{font-size:max(7px,calc(var(--cell) * .197))}
 #grid .box.unset{font-size:max(7px,calc(var(--cell) * .182))}
 #grid .box .flag{top:max(3px,calc(var(--cell) * .1));min-width:max(10px,calc(var(--cell) * .227));height:max(10px,calc(var(--cell) * .227));font-size:max(7px,calc(var(--cell) * .152))}
-#grid .donemark{width:max(10px,calc(var(--cell) * .242));height:max(10px,calc(var(--cell) * .242));font-size:max(7px,calc(var(--cell) * .152))}
+#grid .box .flag + .donemark{right:calc(5px + max(10px,calc(var(--cell) * .227)))}
+.box .flag + .donemark{right:21px}
+#grid .donemark{top:max(3px,calc(var(--cell) * .1));width:max(10px,calc(var(--cell) * .242));height:max(10px,calc(var(--cell) * .242));font-size:max(7px,calc(var(--cell) * .152))}
 #grid .box .t1,#grid .box .t2,#grid .box .t3{padding-left:max(2px,calc(var(--cell) * .06));padding-right:max(2px,calc(var(--cell) * .06))}
 .box.half .flag,.box.half .donemark{width:14px;height:14px;min-width:14px;font-size:9px}
 .box.half.mark,.box.half.unset{font-size:11px}
@@ -679,7 +681,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261112073221";</script>
+<script>window.HG_BUILD="20261112073941";</script>
 <script src="config.js"></script>
 <script>
 (function(){
