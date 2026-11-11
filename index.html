@@ -233,6 +233,7 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .mkown{margin-top:8px}
 .mkown[hidden]{display:none}
 #placeBtn[hidden]{display:none!important}
+.chipbtn[hidden]{display:none!important}
 .btn.mkseq{background:var(--seq-bg);border-color:var(--seq-bg);color:#fff}
 .btn.mkgong{background:#e8590c;border-color:#e8590c;color:#fff;font-weight:800}
 .box.mark.gong{background:repeating-linear-gradient(45deg,#e8590c,#e8590c 7px,#f76707 7px,#f76707 14px) #e8590c;border:2px solid #b8420a;color:#fff;font-weight:800;font-size:13px;text-shadow:0 1px 1px rgba(0,0,0,.25)}
@@ -651,7 +652,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261111092157";</script>
+<script>window.HG_BUILD="20261111095755";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -690,7 +691,7 @@ var COMPANIES=[
  {id:"fu",name:"에프유",seqLast:true,unit:12,alt:[9],seedV:1,groups:[
   {k:"NX",name:"NX4/NX5 HEV HPCU",seed:"E50||1\nE51||2\nE52||2\nE53||1\nE54||1\nE55||\nE56||34\nE57||84|불량1개포함\nE58||6\nE59||\nE60||17\nE61||19\nE62||11\nE63||18\nHPB||59"},
   {k:"RG3",name:"RG3 HEV HPCU",seed:"36600-3WBA0|HPA1|35\n36600-3WBB0|HPB1|14"}]},
- {id:"kangho",name:"강호산업",unit:12,seedV:1,groups:[
+ {id:"kangho",name:"강호산업",noteAlways:true,unit:12,seedV:1,groups:[
   {k:"A",name:"재고현황",seed:"Y01||6|불량1포함\nY02||10|불량3포함\nY03||7\nY04||11\nY05||1\nY06||1\nY07||5\nY09||8\nY12||17|불량1포함\nY13||86|불량2포함\n#시컨스|44번"}]},
  {id:"jinwoo",name:"진우JIS",unit:12,seedV:1,groups:[
   {k:"A",name:"재고현황",seed:"K01||54\nK03||4\nK04||17\nK05||15\nK07||17\nK08||9"}]},
@@ -2361,8 +2362,8 @@ function shareOpts(){ $("noGong").setAttribute("aria-pressed",!!ui.noGong); try{
 $("noGong").onclick=function(){ ui.noGong=!ui.noGong; shareOpts(); };
 /* 5공장: 괄호 특이사항은 기본으로 빼고, 버튼을 눌렀을 때만 넣음 (그때만, 저장 안 함) */
 ui.noteIn={};
-function notesOff(){ return C().noteOff?!ui.noteIn[ui.cid]:!!ui.noNote; }
-function noteBtn(){ var b=$("noNote"); if(C().noteOff){ b.textContent="괄호 특이사항 넣기"; b.setAttribute("aria-pressed",!!ui.noteIn[ui.cid]); } else { b.textContent="괄호 특이사항 빼기"; b.setAttribute("aria-pressed",!!ui.noNote); } }
+function notesOff(){ if(C().noteAlways) return false; return C().noteOff?!ui.noteIn[ui.cid]:!!ui.noNote; }
+function noteBtn(){ var b=$("noNote"); b.hidden=!!C().noteAlways; if(C().noteOff){ b.textContent="괄호 특이사항 넣기"; b.setAttribute("aria-pressed",!!ui.noteIn[ui.cid]); } else { b.textContent="괄호 특이사항 빼기"; b.setAttribute("aria-pressed",!!ui.noNote); } }
 $("noNote").onclick=function(){ if(C().noteOff){ ui.noteIn[ui.cid]=!ui.noteIn[ui.cid]; renderShare(); } else { ui.noNote=!ui.noNote; shareOpts(); } };
 $("noNote").setAttribute("aria-pressed",!!ui.noNote); $("noGong").setAttribute("aria-pressed",!!ui.noGong);
 /* 보낼 재고 내용을 그림(PNG)으로 저장 */
