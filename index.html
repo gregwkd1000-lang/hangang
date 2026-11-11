@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112083521";</script>
+<script>window.HG_BUILD="20261112084011";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1269,7 +1269,7 @@ function placedText(id){
 var ICOLS=[["red","빨강"],["maroon","자주"],["pink","분홍"],["coral","산호"],["orange","주황"],["gold","금색"],["yellow","노랑"],["beige","베이지"],["lime","연두"],["green","초록"],["olive","올리브"],["mint","민트"],["teal","청록"],["cyan","시안"],["sky","하늘"],["blue","파랑"],["navy","남색"],["lavender","연보라"],["purple","보라"],["brown","갈색"],["gray","회색"],["black","검정"],["white","흰색"]];
 /* 품목 전체 파렛트 수 (상자+혼합) — 약도 그릴 때 한 번만 셈 */
 var PALC=null;
-function palCache(id){ if(!PALC){ PALC={}; ST().boxes.forEach(function(b){ if(b.itemId) PALC[b.itemId]=(PALC[b.itemId]||0)+palletsOf(b.cur); (b.mix||[]).forEach(function(m){ PALC[m.itemId]=(PALC[m.itemId]||0)+palletsOf(m.cur); }); }); } return PALC[id]||0; }
+function palCache(id){ if(!PALC){ PALC={}; ST().boxes.forEach(function(b){ if(b.itemId) PALC[b.itemId]=(PALC[b.itemId]||0)+palletsOf(b.cur,item(b.itemId)); (b.mix||[]).forEach(function(m){ PALC[m.itemId]=(PALC[m.itemId]||0)+palletsOf(m.cur,item(m.itemId)); }); }); } return PALC[id]||0; }
 function chkKey(){ var v=ST().survey; return v.date+"_"+v.round; }
 function colorOf(it){ if(typeof it.color==="string") return it.color; var c=C().colors; return c&&c[it.code]?c[it.code]:""; }
 function codeHTML(it){ var c=colorOf(it), t=esc(it.code)+(it.alias?' <small>('+esc(it.alias)+')</small>':''); return c?'<span class="cchip c-'+c+'">'+t+'</span>':t; }
@@ -1367,7 +1367,7 @@ function renderMap(){ PALC=null;
     var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":"";
     var mixN=(b.mix||[]).length, mixSum=(b.mix||[]).reduce(function(a,m){return a+(m.cur?sumA(m.cur):0);},0), mixHas=(b.mix||[]).some(function(m){return m.cur!==null;});
     var multi=boxesOf(it.id).length>1||it.cur!==null||seqDed(it.id)!==0||mixOf(it.id).length>0, mine=b.cur===null?null:sumA(b.cur), line;
-    if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur)+'/'+palCache(it.id)+')</span>'):((it.prev===null?"-":it.prev)+'→<b>'+mine+'</b>'+'<span class="pl">('+palletsOf(b.cur)+'/'+palCache(it.id)+')</span>');
+    if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>'):((it.prev===null?"-":it.prev)+'→<b>'+mine+'</b>'+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>');
     else line=t===null?('이전 <b>'+(it.prev===null?"-":it.prev)+'</b>'):('–/'+t);
     if(mine===null&&!mixHas) stt="todo";
     var bc=b.bg?"":colorOf(it);
@@ -1507,7 +1507,7 @@ function findText(fq,om,areaName){
   var L=bx.map(function(b){
     var mp=st.maps.filter(function(m){return m.id===sendMap(b);})[0]||{};
     return (multi?"["+mp.name+"] ":"")+hitParts(b,fq).map(function(p){
-      var n=palletsOf(p.cur); pal+=n; if(!sums[p.it.id]){ sums[p.it.id]={it:p.it,q:0,has:false,n:0}; order.push(p.it.id); }
+      var n=palletsOf(p.cur,p.it); pal+=n; if(!sums[p.it.id]){ sums[p.it.id]={it:p.it,q:0,has:false,n:0}; order.push(p.it.id); }
       var S2=sums[p.it.id]; S2.n+=n; if(p.cur!==null){ S2.q+=sumA(p.cur); S2.has=true; }
       return label(p.it)+" "+(p.cur===null?"미입력":sumA(p.cur)+(n>1?" ("+n+"파렛)":""));
     }).join(", ");
@@ -2076,13 +2076,14 @@ function hitParts(b,q){
 }
 function palletText(mp){
   var st=ST(), here=0, all=0;
-  st.boxes.forEach(function(b){ var n=palletsOf(b.cur)+(b.mix||[]).reduce(function(a,m){return a+palletsOf(m.cur);},0);
-    if(IMGQ){ n=hitParts(b,IMGQ).reduce(function(a,p){return a+palletsOf(p.cur);},0); if(!n) return; }
+  st.boxes.forEach(function(b){ var n=palletsOf(b.cur,b.itemId&&item(b.itemId))+(b.mix||[]).reduce(function(a,m){return a+palletsOf(m.cur,item(m.itemId));},0);
+    if(IMGQ){ n=hitParts(b,IMGQ).reduce(function(a,p){return a+palletsOf(p.cur,p.it);},0); if(!n) return; }
     if(b.itemId||(b.mix||[]).length){ all+=n; if(b.mapId===mp.id) here+=n; } });
   if(!all) return "";
   return st.maps.length>1?("총 "+here+"파렛 · 전체 구역 "+all+"파렛"):("총 "+all+"파렛");
 }
-function palletsOf(cur){ return Array.isArray(cur)?cur.length:0; }
+/* 파렛트 수: 입력한 숫자마다 (파렛트 단위로 나눠 올림). 예) 단위 16에 69 → 5파렛트, 16+16+5 → 3파렛트 */
+function palletsOf(cur,it){ if(!Array.isArray(cur)) return 0; var u=it?unitOf(it):0; if(!(u>0)) return cur.length; return cur.reduce(function(a,v){ return a+Math.max(1,Math.ceil((+v||0)/u)); },0); }
 function wrapText(ctx,txt,w){ var out=[], cur=""; Array.from(String(txt)).forEach(function(ch){ if(ctx.measureText(cur+ch).width>w&&cur){ out.push(cur); cur=ch.trim()?ch:""; } else cur+=ch; }); if(cur) out.push(cur); return out.length?out:[""]; }
 /* 상자 하나에 들어갈 글줄: [{t,font,col}] */
 function detailLines(b,ctx,w){
@@ -2094,7 +2095,7 @@ function detailLines(b,ctx,w){
   if(!it){ add("빈렉or","500",13); add("타업체","500",13); return L; }
   add(it.code,"700",14); if(it.alias) add("("+it.alias+")","500",12,"muted");
   if(b.cur===null) add("미입력","500",13,"muted");
-  else { add(sumA(b.cur)+"개","800",18); if(b.cur.length>1) add(b.cur.join("+")+" ("+b.cur.length+"파렛)","500",12,"muted"); }
+  else { add(sumA(b.cur)+"개","800",18); var _pn=palletsOf(b.cur,it); if(b.cur.length>1||_pn>1) add((b.cur.length>1?b.cur.join("+")+" ":"")+"("+_pn+"파렛)","500",12,"muted"); }
   (b.mix||[]).forEach(function(m){ var x=item(m.itemId); if(!x) return; add("+ "+x.code+(x.alias?" ("+x.alias+")":""),"700",12); add(m.cur===null?"미입력":sumA(m.cur)+"개"+(m.cur.length>1?" ("+m.cur.join("+")+")":""),"700",13); });
   return L;
 }
@@ -2169,8 +2170,8 @@ function palletRows(mp){
     if(IMGQ&&!itemHit(it,IMGQ)) return;
     var here={box:0,pal:0,qty:0,has:false}, all={pal:0,qty:0};
     st.boxes.forEach(function(b){
-      if(b.itemId===it.id){ if(b.mapId===mp.id){ here.box++; if(b.cur!==null){ here.pal+=palletsOf(b.cur); here.qty+=sumA(b.cur); here.has=true; } } if(b.cur!==null){ all.pal+=palletsOf(b.cur); } }
-      (b.mix||[]).forEach(function(m2){ if(m2.itemId!==it.id) return; if(b.mapId===mp.id){ here.box++; if(m2.cur!==null){ here.pal+=palletsOf(m2.cur); here.qty+=sumA(m2.cur); here.has=true; } } if(m2.cur!==null) all.pal+=palletsOf(m2.cur); });
+      if(b.itemId===it.id){ if(b.mapId===mp.id){ here.box++; if(b.cur!==null){ here.pal+=palletsOf(b.cur,it); here.qty+=sumA(b.cur); here.has=true; } } if(b.cur!==null){ all.pal+=palletsOf(b.cur,it); } }
+      (b.mix||[]).forEach(function(m2){ if(m2.itemId!==it.id) return; if(b.mapId===mp.id){ here.box++; if(m2.cur!==null){ here.pal+=palletsOf(m2.cur,it); here.qty+=sumA(m2.cur); here.has=true; } } if(m2.cur!==null) all.pal+=palletsOf(m2.cur,it); });
     });
     if(!here.box) return;
     var t=total(it); rows.push({it:it,g:g,here:here,allPal:all.pal,tot:t,multi:multi});
@@ -2724,7 +2725,7 @@ function renderItemInfo(s){
   var st=ST(), g=grp(it.group), ed=!viewOnly(), rows=[], pal=0, qty=0, has=false;
   st.boxes.forEach(function(b){
     var parts=[]; if(b.itemId===it.id) parts.push(b.cur); (b.mix||[]).forEach(function(m){ if(m.itemId===it.id) parts.push(m.cur); });
-    parts.forEach(function(cur){ var n=palletsOf(cur); pal+=n; if(cur!==null){ qty+=sumA(cur); has=true; } rows.push({b:b,n:n,cur:cur}); });
+    parts.forEach(function(cur){ var n=palletsOf(cur,it); pal+=n; if(cur!==null){ qty+=sumA(cur); has=true; } rows.push({b:b,n:n,cur:cur}); });
   });
   var mo={}; st.maps.forEach(function(m,i){ mo[m.id]=i; });
   rows.sort(function(a,b){ return (mo[a.b.mapId]-mo[b.b.mapId])||(a.b.r-b.b.r)||(a.b.c-b.b.c); });
