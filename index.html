@@ -314,6 +314,15 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .c-purple{--cbg:#8e24aa;--cfg:#ffffff;--cbd:#6a1b9a}
 .c-pink{--cbg:#f48fb1;--cfg:#1a1f25;--cbd:#d36b90}
 .c-gray{--cbg:#9aa5b1;--cfg:#1a1f25;--cbd:#6b7680}
+.c-sky{--cbg:#7cc6f2;--cfg:#1a1f25;--cbd:#4aa3d6}
+.c-teal{--cbg:#0f8b8d;--cfg:#ffffff;--cbd:#0a6668}
+.c-navy{--cbg:#1f2f7a;--cfg:#ffffff;--cbd:#141f55}
+.c-brown{--cbg:#8d5a3b;--cfg:#ffffff;--cbd:#6b4029}
+.c-beige{--cbg:#e9d8b4;--cfg:#1a1f25;--cbd:#c7b28a}
+.c-mint{--cbg:#a8e6cf;--cfg:#1a1f25;--cbd:#6fc7a5}
+.c-lavender{--cbg:#c9b6f2;--cfg:#1a1f25;--cbd:#9f86d6}
+.c-gold{--cbg:#d4a017;--cfg:#1a1f25;--cbd:#a87d0b}
+.c-maroon{--cbg:#8e1b4b;--cfg:#ffffff;--cbd:#6a1238}
 .icol{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}
 .icol button{min-width:40px;height:36px;border-radius:9px;border:2px solid var(--cbd,var(--line));background:var(--cbg,var(--surface));color:var(--cfg,var(--muted));font:inherit;font-size:12px;font-weight:700;padding:0 8px}
 .icol button.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
@@ -670,7 +679,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261112072124";</script>
+<script>window.HG_BUILD="20261112073221";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1163,7 +1172,7 @@ function placedText(id){
   var by={}; bs.forEach(function(b){ by[b.mapId]=(by[b.mapId]||0)+1; });
   return ST().maps.filter(function(m){return by[m.id];}).map(function(m){return m.name+" "+by[m.id];}).join(" · ");
 }
-var ICOLS=[["red","빨강"],["orange","주황"],["yellow","노랑"],["lime","연두"],["green","초록"],["blue","파랑"],["purple","보라"],["pink","분홍"],["black","검정"],["gray","회색"],["white","흰색"]];
+var ICOLS=[["red","빨강"],["maroon","자주"],["pink","분홍"],["orange","주황"],["gold","금색"],["yellow","노랑"],["beige","베이지"],["lime","연두"],["green","초록"],["mint","민트"],["teal","청록"],["sky","하늘"],["blue","파랑"],["navy","남색"],["lavender","연보라"],["purple","보라"],["brown","갈색"],["gray","회색"],["black","검정"],["white","흰색"]];
 /* 품목 전체 파렛트 수 (상자+혼합) — 약도 그릴 때 한 번만 셈 */
 var PALC=null;
 function palCache(id){ if(!PALC){ PALC={}; ST().boxes.forEach(function(b){ if(b.itemId) PALC[b.itemId]=(PALC[b.itemId]||0)+palletsOf(b.cur); (b.mix||[]).forEach(function(m){ PALC[m.itemId]=(PALC[m.itemId]||0)+palletsOf(m.cur); }); }); } return PALC[id]||0; }
@@ -1942,7 +1951,7 @@ function drawOvCanvas(){
 
 /* ---------- 상세 약도 이미지 (품명·갯수 안 잘리게) + 품목별 파렛트 수 ---------- */
 var PCOL={red:["#e53935","#fff","#b71c1c","#fbd3d2"],orange:["#fb8c00","#1a1f25","#c46a00","#ffe2bf"],yellow:["#fdd835","#1a1f25","#c9a800","#fff6c4"],green:["#43a047","#fff","#2e7d32","#d5efd6"],blue:["#1e88e5","#fff","#1565c0","#d3e7fa"],navy:["#283593","#fff","#1a237e","#d3d6ee"],purple:["#8e24aa","#fff","#6a1b9a","#ecd3f2"]};
-var CCOL={white:["#ffffff","#1a1f25","#9aa5b1"],blue:["#1d5fd1","#fff","#1d5fd1"],red:["#d23a3a","#fff","#d23a3a"],yellow:["#f5c400","#1a1f25","#d9ad00"],lime:["#9be15d","#1a1f25","#6fb52c"],black:["#1f2328","#fff","#000000"],orange:["#fb8c00","#1a1f25","#c46a00"],green:["#2e9e4f","#fff","#1f7a3b"],purple:["#8e24aa","#fff","#6a1b9a"],pink:["#f48fb1","#1a1f25","#d36b90"],gray:["#9aa5b1","#1a1f25","#6b7680"]};
+var CCOL={white:["#ffffff","#1a1f25","#9aa5b1"],blue:["#1d5fd1","#fff","#1d5fd1"],red:["#d23a3a","#fff","#d23a3a"],yellow:["#f5c400","#1a1f25","#d9ad00"],lime:["#9be15d","#1a1f25","#6fb52c"],black:["#1f2328","#fff","#000000"],orange:["#fb8c00","#1a1f25","#c46a00"],green:["#2e9e4f","#fff","#1f7a3b"],purple:["#8e24aa","#fff","#6a1b9a"],pink:["#f48fb1","#1a1f25","#d36b90"],gray:["#9aa5b1","#1a1f25","#6b7680"],sky:["#7cc6f2","#1a1f25","#4aa3d6"],teal:["#0f8b8d","#ffffff","#0a6668"],navy:["#1f2f7a","#ffffff","#141f55"],brown:["#8d5a3b","#ffffff","#6b4029"],beige:["#e9d8b4","#1a1f25","#c7b28a"],mint:["#a8e6cf","#1a1f25","#6fc7a5"],lavender:["#c9b6f2","#1a1f25","#9f86d6"],gold:["#d4a017","#1a1f25","#a87d0b"],maroon:["#8e1b4b","#ffffff","#6a1238"]};
 function gcol(k){ var c=grp(k).color||""; var m=/^var\((--[\w-]+)\)$/.exec(c); if(m){ var v=getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim(); return v||"#9aa5b1"; } return c||"#9aa5b1"; }
 var IMGFONT='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif';
 /* 검색한 파렛트만 (이미지·보내기) */
