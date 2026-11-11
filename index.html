@@ -92,6 +92,7 @@ main{flex:1;min-height:0;overflow:auto;padding:12px 16px calc(24px + env(safe-ar
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 12px;font-weight:600;font-size:14px;min-height:40px}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .btn.danger{color:var(--warn)}
+.btn.kakaobtn{background:#fee500;border-color:#fee500;color:#191600;font-weight:700}
 .btn.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .btn:disabled{opacity:.4}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
@@ -599,6 +600,12 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
         <label class="field">종류<select id="newKind"><option value="stock">재고 품목</option><option value="info">정보 (시컨스·공용기 등)</option></select></label>
         <button class="btn primary" id="addItem" style="align-self:flex-end">추가</button>
       </div>
+      <h2 style="margin-top:16px">품목 삭제</h2>
+      <div class="toolbar" style="margin:0">
+        <label class="field" style="flex:1;min-width:0">삭제할 품목<select id="delSel" style="width:100%"></select></label>
+        <button class="btn danger" id="delItem" style="align-self:flex-end">삭제</button>
+      </div>
+      <p class="hint" id="delHint" style="margin:6px 0 0"></p>
     </div>
   </section>
 
@@ -618,7 +625,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
         <button class="chipbtn" aria-pressed="false" id="noGong" hidden>공용기 멘트 빼기</button>
       </div>
       <textarea id="out" readonly aria-label="보낼 내용"></textarea>
-      <div class="toolbar" style="margin:10px 0 0"><button class="btn primary" id="copyBtn">복사하기</button><button class="btn" id="outImg">이미지로 저장</button></div>
+      <div class="toolbar" style="margin:10px 0 0"><button class="btn primary" id="copyBtn">복사하기</button><button class="btn kakaobtn" id="outShare">공유하기 (카톡)</button><button class="btn" id="outImg">이미지로 저장</button></div>
     </div>
   </section>
 </main>
@@ -652,7 +659,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261111125305";</script>
+<script>window.HG_BUILD="20261112054237";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -1200,6 +1207,10 @@ function renderHeader(){
   $("legend").innerHTML=c.groups.map(function(g){return '<span><i style="background:'+g.color+'"></i>'+esc(g.name)+'</span>';}).join("")+
     '<span><i style="background:var(--has-bg);border:1px solid var(--line)"></i>수량 입력함</span><span><i style="border:1.5px solid var(--good)"></i>이전과 같음</span><span><i style="border:1.5px solid var(--warn)"></i>차이 있음</span><span><i style="background:var(--accent)"></i>특이사항</span>';
   $("newGrp").innerHTML=c.groups.map(function(g){return '<option value="'+g.k+'">'+esc(g.name)+'</option>';}).join("");
+  var ds=$("delSel"), keep=ds.value;
+  ds.innerHTML='<option value="">— 품목 고르기 —</option>'+c.groups.map(function(g){ var its=ST().items.filter(function(it){return it.group===g.k;}); if(!its.length) return "";
+    return '<optgroup label="'+esc(g.name)+'">'+its.map(function(it){ return '<option value="'+it.id+'">'+esc(it.kind==="info"?it.code:label(it))+'</option>'; }).join("")+'</optgroup>'; }).join("");
+  if(keep&&item(keep)) ds.value=keep; delHint();
   $("shareTitle").textContent=c.name+" · 카톡에 붙여넣을 재고 현황";
 }
 function renderMap(){
@@ -2404,6 +2415,18 @@ $("copyBtn").onclick=function(){
   function fallback(){ var ta=$("out"); ta.removeAttribute("readonly"); ta.select(); var ok=false; try{ok=document.execCommand("copy");}catch(e){} ta.setAttribute("readonly",""); toast(ok?"복사했습니다":"글자를 길게 눌러 복사하세요"); }
   try{ navigator.clipboard.writeText(txt).then(function(){toast("복사했습니다. 카톡에 붙여넣으세요");},fallback); }catch(e){ fallback(); }
 };
+/* 공유하기: 복사 + 휴대폰 공유창(카카오톡 → 단톡방 고르면 바로 전송). 공유창이 없으면 복사 후 카톡 열기 */
+$("outShare").onclick=function(){
+  var txt=$("out").value; if(!txt.trim()){ toast("보낼 내용이 없습니다"); return; }
+  try{ navigator.clipboard&&navigator.clipboard.writeText(txt).catch(function(){}); }catch(e){}
+  if(navigator.share&&!(window.claude&&window.claude.use)){
+    navigator.share({text:txt}).then(function(){ toast("공유했습니다"); }).catch(function(e){ if(e&&e.name==="AbortError") return; openKakao(); });
+  } else openKakao();
+  function openKakao(){
+    toast("복사했습니다 · 카카오톡 단톡방에 붙여넣으세요");
+    if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&!/KAKAOTALK/i.test(navigator.userAgent)) setTimeout(function(){ location.href="kakaotalk://launch"; },400);
+  }
+};
 /* ---------- 회차(일자별 재고조사) ---------- */
 function nextRoundOf(sv){ if(sv.manual) return {date:sv.date,round:sv.round+1,manual:true}; var d=today(); return sv.date===d?{date:d,round:sv.round+1}:{date:d,round:1}; }
 function startRound(copy){
@@ -2617,6 +2640,26 @@ function renderRO(s){
   $("shBody").innerHTML=h;
 }
 $("mapTabs").addEventListener("click",function(e){ var t=e.target.closest("[data-map]"); if(!t) return; ui.multi=null; ui.groupMove=null; ui.map[ui.cid]=t.dataset.map; try{localStorage.setItem("stockmap-mapsel",JSON.stringify(ui.map));}catch(e2){} renderMap(); });
+/* 품목 삭제: 약도에서 그 품목만 들어 있던 상자는 빈 상자(빈렉or타업체)로, 섞인 상자에서는 그 품목만 빠짐 */
+function delHint(){ var it=item($("delSel").value), h=$("delHint"); if(!it){ h.textContent=""; return; }
+  var n=ST().boxes.filter(function(b){ return b.itemId===it.id||(b.mix||[]).some(function(m){return m.itemId===it.id;}); }).length;
+  h.textContent=n?"약도에 이 품목 상자가 "+n+"곳 있습니다. 삭제하면 그 칸은 빈렉or타업체 상자로 남습니다.":"약도에 놓인 상자는 없습니다."; }
+$("delSel").onchange=delHint;
+$("delItem").onclick=function(){
+  if(ro()) return; var it=item($("delSel").value); if(!it){ toast("삭제할 품목을 고르세요"); return; }
+  var nm=it.kind==="info"?it.code:label(it);
+  ask(nm+" 품목을 삭제할까요? 수량·특이사항도 함께 지워집니다.","삭제",function(){
+    var st=ST();
+    st.boxes.forEach(function(b){
+      if(b.mix) b.mix=b.mix.filter(function(m){return m.itemId!==it.id;});
+      if(b.itemId===it.id){ if(b.mix&&b.mix.length){ var m=b.mix.shift(); b.itemId=m.itemId; b.cur=m.cur; } else { b.itemId=null; b.cur=null; } }
+      if(b.seq&&b.seq[it.id]){ delete b.seq[it.id]; if(!Object.keys(b.seq).length) b.seq=null; }
+      if(b.seqInfo===it.id) b.seqInfo=null;
+    });
+    st.items=st.items.filter(function(x){return x.id!==it.id;});
+    $("delSel").value=""; persist(); toast(nm+" 삭제했습니다");
+  },"취소");
+};
 $("addItem").onclick=function(){
   if(ro()) return; var kind=$("newKind").value, raw=$("newCode").value.trim().replace(/\s+/g," ");
   if(!raw){toast("품번이나 항목명을 입력하세요");return;}
