@@ -651,7 +651,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>window.HG_BUILD="20261111081319";</script>
+<script>window.HG_BUILD="20261111091544";</script>
 <script src="config.js"></script>
 <script>
 (function(){
@@ -687,7 +687,7 @@ var COMPANIES=[
   {k:"JK",name:"JK HEV HPCU",seed:"36600-3WCA0|HR01|\n36600-3WCA5|HR02|5\n36600-3WCB0|HR03|12\n#시컨스|"}]},
  {id:"youngsil",name:"영실",unit:16,seedV:1,groups:[
   {k:"JW",name:"JW ICCU",seed:"CBO||\nCCO||\nCB1||\nCA1||\nCA5||\nCB5||\nCA6||73\nCB6||17"}]},
- {id:"fu",name:"에프유",unit:12,alt:[9],seedV:1,groups:[
+ {id:"fu",name:"에프유",seqLast:true,unit:12,alt:[9],seedV:1,groups:[
   {k:"NX",name:"NX4/NX5 HEV HPCU",seed:"E50||1\nE51||2\nE52||2\nE53||1\nE54||1\nE55||\nE56||34\nE57||84|불량1개포함\nE58||6\nE59||\nE60||17\nE61||19\nE62||11\nE63||18\nHPB||59"},
   {k:"RG3",name:"RG3 HEV HPCU",seed:"36600-3WBA0|HPA1|35\n36600-3WBB0|HPB1|14"}]},
  {id:"kangho",name:"강호산업",unit:12,seedV:1,groups:[
@@ -1344,6 +1344,7 @@ function renderShare(){
     Array.prototype.forEach.call(ofd.querySelectorAll("[data-of]"),function(x){ x.onclick=function(){ ui.outFind=x.dataset.of==="1"; renderShare(); }; });
   } else { ofd.hidden=true; ofd.innerHTML=""; ui.outFind=false; }
   if(fq&&ui.outFind){ $("out").value=findText(fq,om,areaName); return; }
+  var tail=[]; /* 에프유: 시퀀스는 맨 밑으로 */
   c.groups.forEach(function(g){
     var rows=ST().items.filter(function(it){return it.group===g.k&&(!om||it.kind==="info"||inArea(it,om));}); if(!rows.some(function(it){return it.kind!=="info";})&&om) return; if(!rows.length) return;
     if(lines.length) lines.push("");
@@ -1352,10 +1353,11 @@ function renderShare(){
       var t=om?areaTotal(it,om):total(it), v;
       if(ui.out==="cmp") v=(it.prev===null?"-":it.prev)+"→"+(t===null?"?":t);
       else v=t===null?"":String(t);
-      if(it.kind==="info"){ lines.push(it.code+" : "+v); return; }
+      if(it.kind==="info"){ if(c.seqLast&&/시[퀀컨]스/.test(it.code)){ tail.push(it.code+" : "+v); return; } lines.push(it.code+" : "+v); return; }
       lines.push(label(it)+":"+v+(it.note&&!notesOff()?"("+it.note+")":""));
     });
   });
+  if(tail.length){ if(lines.length) lines.push(""); lines=lines.concat(tail); }
   /* 세종공업: 약도에 공용기 칸이 있으면 맨 밑에 멘트 */
   var gmsg=c.gongMsg||(ui.cid==="sejong"?"공용기 {n}개 있습니다.":"");
   var gn=gmsg?ST().boxes.filter(function(b){ return String(b.mark||"").replace(/\s+/g,"")==="공용기"&&(!om||sendMap(b)===om); }).length:0;
