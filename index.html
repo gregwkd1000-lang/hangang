@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112220442";</script>
+<script>window.HG_BUILD="20261112220804";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1001,8 +1001,29 @@ function startPractice(fresh){
   }
   PRAC_REAL={}; COMPANIES.forEach(function(c){ PRAC_REAL[c.id]=JSON.parse(JSON.stringify(S[c.id].state)); });
   PRACTICE=true; ui.snap=null; ui.vdate=null; document.body.classList.add("practice"); closeDlg();
-  if(sv&&fresh===false){ COMPANIES.forEach(function(c){ if(sv.states[c.id]) S[c.id].state=normalize(c,sv.states[c.id]); }); renderAll(); toast("연습을 이어서 합니다"); return; }
-  renderAll(); pracSave(); toast("연습 모드 시작 · 마음껏 입력해 보세요");
+  if(sv&&fresh===false){ COMPANIES.forEach(function(c){ if(sv.states[c.id]) S[c.id].state=normalize(c,sv.states[c.id]); }); pracBaseAll(); renderAll(); toast("연습을 이어서 합니다"); return; }
+  pracBaseAll(); renderAll(); pracSave(); toast("연습 모드 시작 · 마음껏 입력해 보세요");
+}
+/* 연습 모드는 약도(상자·수량)만 연습. 품목 등록·삭제·이름·색·특이사항 등은 실제 데이터에도 그대로 반영 */
+var PRAC_IB={};
+function imeta(it){ var o={}; Object.keys(it).forEach(function(k){ if(k!=="cur"&&k!=="prev") o[k]=it[k]; }); return o; }
+function pracBaseAll(){ PRAC_IB={}; COMPANIES.forEach(function(c){ var m={}; S[c.id].state.items.forEach(function(it){ m[it.id]=JSON.stringify(imeta(it)); }); PRAC_IB[c.id]=m; }); }
+function isSeqInfo(it){ return it.kind==="info"&&/시[퀀컨]스/.test(it.code||""); }
+function pracItemSync(id){
+  var base=PRAC_IB[id], real=PRAC_REAL[id]; if(!base||!real) return;
+  var items=S[id].state.items, now={}, ch=false, rmap={}; real.items.forEach(function(i){ rmap[i.id]=i; });
+  items.forEach(function(it){ var m=JSON.stringify(imeta(it)); now[it.id]=m;
+    if(base[it.id]===undefined){ if(isSeqInfo(it)||rmap[it.id]) return; var n=JSON.parse(m); n.cur=null; n.prev=null; real.items.push(n); ch=true; }
+    else if(base[it.id]!==m){ var r=rmap[it.id]; if(!r) return; var mm=JSON.parse(m); Object.keys(r).forEach(function(k){ if(k!=="cur"&&k!=="prev"&&!(k in mm)) delete r[k]; }); Object.keys(mm).forEach(function(k){ r[k]=mm[k]; }); ch=true; }
+  });
+  Object.keys(base).forEach(function(k){ if(now[k]!==undefined||!rmap[k]) return;
+    real.items=real.items.filter(function(i){ return i.id!==k; });
+    real.boxes=real.boxes.filter(function(b){ return b.itemId!==k; }); real.boxes.forEach(function(b){ if(b.mix) b.mix=b.mix.filter(function(m){ return m.itemId!==k; }); }); ch=true; });
+  PRAC_IB[id]=now;
+  if(!ch||retired()||(GAS&&!canEdit())) return;
+  try{ localStorage.setItem(lsKey(id),JSON.stringify(real)); }catch(e){}
+  var x=S[id]; if(!x.ref||readOnly) return;
+  (async function(){ try{ var res=await x.ref.set(JSON.parse(JSON.stringify(real))); if(res&&res.merged&&PRACTICE) PRAC_REAL[id]=normalize(CMAP[id],res.merged); toast("품목 변경은 실제 데이터에도 저장했습니다"); }catch(e){ toast("품목 변경을 서버에 저장하지 못했습니다"); } })();
 }
 function leavePractice(keep){
   if(keep) pracSave(); else pracClear();
@@ -1231,7 +1252,7 @@ function editFp(st){
   return bx.join(",")+"#"+it.join(",");
 }
 function persist(){
-  if(PRACTICE) setTimeout(pracSave,0);
+  if(PRACTICE){ setTimeout(pracSave,0); try{ pracItemSync(ui.cid); }catch(e){} }
   if(ui.snap&&!PRACTICE){ /* 지난 기록 고치기: 그 기록에 그대로 저장 */
     var sp=ui.snap; if(sp.none||retired()){ renderAll(); return; } if(GAS&&!canEdit()){ askCode(); renderAll(); return; }
     var fp=editFp(sp.state); if(sp.fp!==undefined&&sp.fp!==fp){ sp.state.survey.editedAt=Date.now(); sp.state.survey.editedBy=who(); } sp.fp=fp;
@@ -1437,7 +1458,7 @@ function renderHeader(){
   $("title").innerHTML=esc(c.name)+'<small>'+esc(c.groups.map(function(g){return g.name;}).join(" · "))+'</small>';
   var k=countsSt(ST()), sv=ST().survey, old=!ui.snap&&sv.date!==today(); if(ui.snap&&ui.snap.none) sv={date:ui.snap.date,round:""}; var _x=0, manualTxt=sv.manual?' · 지정 날짜':' · 지난 날짜';
   $("summary").innerHTML='<button class="survey'+(old?" old":"")+(ui.snap?" snap":"")+(locked()?" locked":"")+'" id="surveyBtn">'+fmtDate(sv.date)+' '+sv.round+(ui.snap?(ui.snap.none?'':'차 기록')+(ui.snap.none?' 기록 없음':(locked()?' · 마감':''))+' ✕':'차 조사'+(old?manualTxt:'')+(locked()?' · 마감':'')+' ▾')+'</button>'+(ui.snap&&ui.snap.none?'':'<button class="closebtn'+(locked()?' on':'')+'" id="closeRound">'+(locked()?'마감 해제':'마감')+'</button>')+'<span>품목 <b>'+k.n+'</b></span><span>· 입력 <b>'+(k.done+k.diff)+'</b></span><span>· 차이 <b>'+k.diff+'</b></span><span>· 미입력 <b>'+k.todo+'</b></span><span>· 약도 상자 <b>'+k.boxes+'</b></span>'+timesHTML(sv);
-  $("snapBanner").innerHTML=PRACTICE?'<div class="banner pracb"><span>연습 모드 · 입력해도 실제 재고에 저장되지 않습니다</span><button id="pracEnd">끝내기 · 일시중단</button></div>':'';
+  $("snapBanner").innerHTML=PRACTICE?'<div class="banner pracb"><span>연습 모드 · 약도·수량은 저장되지 않습니다 (품목 추가·삭제·색은 실제로 저장)</span><button id="pracEnd">끝내기 · 일시중단</button></div>':'';
   if(PRACTICE&&$("pracEnd")) $("pracEnd").onclick=endPractice;
   $("legend").innerHTML=c.groups.map(function(g){return '<span><i style="background:'+g.color+'"></i>'+esc(g.name)+'</span>';}).join("")+
     '<span><i style="background:var(--has-bg);border:1px solid var(--line)"></i>수량 입력함</span><span><i style="border:1.5px solid var(--good)"></i>이전과 같음</span><span><i style="border:1.5px solid var(--warn)"></i>차이 있음</span><span><i style="background:var(--accent)"></i>특이사항</span>';
