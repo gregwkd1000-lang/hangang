@@ -2,8 +2,9 @@
  * 재고 약도 — 저장 서버 (구글 앱스 스크립트)
  * 이 스크립트는 구글 시트에 붙어 있어야 합니다. (시트 > 확장 프로그램 > Apps Script)
  *  - "수정권한" 시트에 등록된 사람만 이름+비밀번호로 로그인해서 볼 수 있음
- *  - 권한(C칸): 조회 = 보기만 · 수정(또는 빈칸) = 보기+고치기 · 관리자 = 고치기+백업+회원등록
+ *  - 권한(C칸): 조회 = 보기만 · 수정(또는 빈칸) = 보기+고치기 · 관리자는 안상우 한 명 (고치기+백업+회원등록)
  */
+const ADMIN_NAME = '안상우';    // 관리자는 이 한 명뿐 (다른 회원은 조회/수정만)
 const CHUNK = 40000;           // 시트 한 칸에 넣는 글자 수 (칸 한도 5만 자)
 const HIST_KEEP = 80;          // 탭마다 남길 지난 기록 수
 
@@ -82,7 +83,8 @@ function who_(code, name) {
   name = name === undefined || name === null ? '' : String(name).trim();
   const v = edRows_();
   for (let i = 1; i < v.length; i++) {
-    const n = String(v[i][0]).trim(), c = String(v[i][1]).trim(), role = roleOf_(v[i][2]);
+    const n = String(v[i][0]).trim(), c = String(v[i][1]).trim();
+    let role = roleOf_(v[i][2]); if (role === 'admin' && n !== ADMIN_NAME) role = 'edit';
     if (n && c && c === code && (!name || name === n)) return { name: n, admin: role === 'admin', role: role, row: i + 1 };
   }
   return null;
@@ -189,7 +191,7 @@ function doPost(e) {
   if (b.action === 'addUser') {         // 회원 등록: 관리자만
     if (!me.admin) return out_({ ok: false, error: 'admin' });
     const nn = String(b.newName || '').trim(), nc = String(b.newCode || '').trim();
-    const nr = b.newRole === 'admin' ? '관리자' : b.newRole === 'view' ? '조회' : '수정';
+    const nr = b.newRole === 'view' ? '조회' : '수정';   // 관리자 권한은 줄 수 없음
     if (!nn || nn.length > 20) return out_({ ok: false, error: 'name' });
     if (nc.length < 4 || nc.length > 20) return out_({ ok: false, error: 'len' });
     const v = editSheet_().getDataRange().getDisplayValues();
@@ -203,7 +205,7 @@ function doPost(e) {
   if (b.action === 'listUsers') {       // 회원 목록: 관리자만 (비밀번호는 보내지 않음)
     if (!me.admin) return out_({ ok: false, error: 'admin' });
     const v = editSheet_().getDataRange().getDisplayValues(), us = [];
-    for (let i = 1; i < v.length; i++) { const n = String(v[i][0]).trim(); if (n && String(v[i][1]).trim()) us.push({ name: n, role: roleOf_(v[i][2]) }); }
+    for (let i = 1; i < v.length; i++) { const n = String(v[i][0]).trim(); if (n && String(v[i][1]).trim()) { let r = roleOf_(v[i][2]); if (r === 'admin' && n !== ADMIN_NAME) r = 'edit'; us.push({ name: n, role: r }); } }
     return out_({ ok: true, users: us });
   }
   if (b.action === 'resetPw') {         // 관리자가 다른 사람 비밀번호 새로 정해 주기
@@ -225,7 +227,7 @@ function doPost(e) {
     const sh = editSheet_(), v = sh.getDataRange().getDisplayValues();
     for (let i = 1; i < v.length; i++) if (String(v[i][0]).trim() === tn) {
       if (b.action === 'delUser') { sh.deleteRow(i + 1); edDirty_(); logSheet_().appendRow([new Date(), name, '-', '회원 삭제: ' + tn]); return out_({ ok: true }); }
-      const nr = b.newRole === 'admin' ? '관리자' : b.newRole === 'view' ? '조회' : '수정';
+      const nr = b.newRole === 'view' ? '조회' : '수정';   // 관리자 권한은 줄 수 없음
       sh.getRange(i + 1, 3).setNumberFormat('@').setValue(nr); edDirty_();
       logSheet_().appendRow([new Date(), name, '-', '권한 변경: ' + tn + ' → ' + nr]);
       return out_({ ok: true });

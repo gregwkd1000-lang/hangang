@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112221357";</script>
+<script>window.HG_BUILD="20261112221543";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1107,10 +1107,10 @@ async function restoreBackup(file){
 /* 회원등록 (관리자만): 이름 + 비밀번호 → 그 이름·비밀번호로 로그인 가능 */
 function askUser(){
   var ip='style="width:100%;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:4px 0;box-sizing:border-box;background:var(--surface);color:var(--ink)"';
-  $("imgBox").innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px"><h3 style="margin:0;text-align:left">회원등록</h3><button class="btn" id="nuX2" type="button" style="padding:6px 12px">닫기 ✕</button></div><p class="hint" style="text-align:left">등록한 이름과 비밀번호로 바로 로그인할 수 있습니다. <b>조회</b>는 보기만, <b>수정</b>은 보기+고치기, <b>관리자</b>는 고치기+백업+회원등록까지 됩니다.</p>'+
+  $("imgBox").innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px"><h3 style="margin:0;text-align:left">회원등록</h3><button class="btn" id="nuX2" type="button" style="padding:6px 12px">닫기 ✕</button></div><p class="hint" style="text-align:left">등록한 이름과 비밀번호로 바로 로그인할 수 있습니다. <b>조회</b>는 보기만, <b>수정</b>은 보기+고치기까지 됩니다. 관리자는 안상우 한 명입니다.</p>'+
     '<input id="nuName" type="text" autocomplete="off" placeholder="이름 (예: 홍길동)" '+ip+'>'+
     '<input id="nuCode" type="text" inputmode="numeric" autocomplete="off" placeholder="비밀번호 (4자리 이상)" '+ip+'>'+
-    '<p class="hint" style="text-align:left;margin:8px 0 4px">권한</p><div class="filters" id="nuRole" style="margin-bottom:4px"><button class="chipbtn" data-nr="view" aria-pressed="false">조회만 가능</button><button class="chipbtn" data-nr="edit" aria-pressed="true">수정 가능</button><button class="chipbtn" data-nr="admin" aria-pressed="false">관리자</button></div>'+
+    '<p class="hint" style="text-align:left;margin:8px 0 4px">권한</p><div class="filters" id="nuRole" style="margin-bottom:4px"><button class="chipbtn" data-nr="view" aria-pressed="false">조회만 가능</button><button class="chipbtn" data-nr="edit" aria-pressed="true">수정 가능</button></div>'+
     '<p class="hint" id="nuMsg" style="min-height:1.2em;text-align:left"></p><div class="toolbar" style="justify-content:center"><button class="btn primary" id="nuGo">등록</button><button class="btn" id="nuX">닫기</button></div>'+
     '<h3 style="margin:16px 0 4px;text-align:left">회원 목록 · 권한 바꾸기</h3><p class="hint" style="text-align:left">버튼을 누르면 바로 바뀝니다. 바뀐 권한은 그 사람 화면에 1분 안에 적용됩니다.</p><div id="nuList" class="hint">불러오는 중…</div>';
   $("imgDlg").classList.add("on"); setTimeout(function(){ try{ $("nuName").focus(); }catch(e){} },50);
@@ -1134,8 +1134,9 @@ async function loadUsers(){
     if(!r.ok){ box.textContent=r.error==="admin"?"관리자만 볼 수 있습니다":"목록을 못 불러왔습니다 (서버를 새 버전으로 배포했는지 확인)"; return; }
     var us=r.users.slice().sort(function(a,b){ return (b.name==="안상우")-(a.name==="안상우"); });   /* 안상우 맨 위, 나머지는 가입한 순서(시트 순서) */
     box.innerHTML=us.map(function(u){ var me=u.name===EDIT.name;
+      if(u.role==="admin") return '<div class="urow" data-u="'+esc(u.name)+'"><b class="un">'+esc(u.name)+(me?' <small>(나)</small>':'')+'</b><span class="filters"><button class="chipbtn" aria-pressed="true" disabled>관리자</button></span></div>';
       return '<div class="urow" data-u="'+esc(u.name)+'"><b class="un">'+esc(u.name)+(me?' <small>(나)</small>':'')+'</b><span class="filters">'+
-        ["view","edit","admin"].map(function(k){ return '<button class="chipbtn" data-ur="'+k+'" aria-pressed="'+(u.role===k)+'"'+(me?' disabled':'')+'>'+ROLE_KO[k]+'</button>'; }).join("")+
+        ["view","edit"].map(function(k){ return '<button class="chipbtn" data-ur="'+k+'" aria-pressed="'+(u.role===k)+'"'+(me?' disabled':'')+'>'+ROLE_KO[k]+'</button>'; }).join("")+
         (me?'':'<button class="chipbtn" data-up="1" title="비밀번호 다시 정하기">비번</button><button class="chipbtn udel" data-ud="1" title="삭제">✕</button>')+'</span>'+
         (me?'':'<div class="upw" hidden><input type="text" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자리 이상)"><button class="btn primary">저장</button></div>')+'</div>'; }).join("")||"등록된 회원이 없습니다";
     Array.prototype.forEach.call(box.querySelectorAll("[data-ur]"),function(b){ b.onclick=async function(){
