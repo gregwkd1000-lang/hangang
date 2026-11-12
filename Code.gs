@@ -6,7 +6,6 @@
  */
 const ADMIN_NAME = '안상우';    // 마스터는 이 한 명뿐 (다른 회원은 조회/관리자만)
 const CHUNK = 40000;           // 시트 한 칸에 넣는 글자 수 (칸 한도 5만 자)
-const HIST_KEEP = 80;          // 탭마다 남길 지난 기록 수
 
 function ss_() { return SpreadsheetApp.getActiveSpreadsheet(); }
 function sheet_(name, header) {
@@ -20,13 +19,12 @@ function sheet_(name, header) {
   return sh;
 }
 function docsSheet_() { return sheet_('docs', ['탭', '버전', '저장시각', '저장한 사람', '조각수', '데이터']); }
-function histSheet_() { return sheet_('history', ['키', '탭', '저장시각', '조각수', '데이터']); }
 function logSheet_()  { return sheet_('log', ['시각', '이름', '탭', '내용']); }
 function editSheet_() { return sheet_('수정권한', ['이름', '코드', '권한']); }
 
 /** 처음 한 번 실행: 시트를 만들고 관리자 코드를 하나 만들어 둡니다. */
 function setup() {
-  docsSheet_(); histSheet_(); logSheet_();
+  docsSheet_(); logSheet_();
   const ed = editSheet_();
   if (ed.getLastRow() < 2) {
     const code = String(Math.floor(100000 + Math.random() * 900000));
@@ -132,34 +130,95 @@ function writeDoc_(cid, v, name, data) {
   rg.setValues([[cid, String(v), new Date().toISOString(), name, String(ch.length)].concat(ch)]);
 }
 
-/* ---------- 지난 기록 ---------- */
-function readHist_(cid, limit) {
-  const list = [];
-  rowsOf_(histSheet_()).forEach(function (r) {
-    if (String(r[1]) !== cid) return;
-    const n = +r[3] || 1;
-    try { list.push(JSON.parse(r.slice(4, 4 + n).join(''))); } catch (e) {}
-  });
+/* ---------- 지난 기록 ----------
+ * 연도별 탭("기록_2026", "기록_2027" …)에 한 회차 = 한 줄로 저장.
+ * 앞 6칸(키·탭·날짜·회차·저장시각·조각수)이 이름표라서, 열 때는 이름표만 훑고 필요한 줄만 꺼냄 → 몇 년이 쌓여도 빠름.
+ * 10년이 지난 연도 탭은 통째로 자동 삭제.
+ */
+const HMETA = 6, HIST_YEARS = 10;
+function yearOf_(data) { const d = String((data && data.date) || ''); return /^\d{4}-/.test(d) ? d.slice(0, 4) : String(new Date().getFullYear()); }
+function histYear_(y) { return sheet_('기록_' + y, ['키', '탭', '날짜', '회차', '저장시각', '조각수', '데이터']); }
+function histYears_() {   // 있는 연도 탭, 최근 연도부터
+  return ss_().getSheets().map(function (sh) { const m = /^기록_(\d{4})$/.exec(sh.getName()); return m ? { y: +m[1], sh: sh } : null; })
+    .filter(Boolean).sort(function (a, b) { return b.y - a.y; });
+}
+function histMeta_(sh) { const n = sh.getLastRow(); return n < 2 ? [] : sh.getRange(2, 1, n - 1, HMETA).getValues(); }
+/* 고른 줄들만 꺼내기: 그 줄들이 있는 구간만 한 번에 읽음 */
+function histRows_(sh, rows) {
+  if (!rows.length) return [];
+  const lo = Math.min.apply(null, rows), hi = Math.max.apply(null, rows);
+  const vals = sh.getRange(lo, 1, hi - lo + 1, sh.getLastColumn()).getValues(), out = [];
+  rows.forEach(function (r) { const v = vals[r - lo], n = +v[5] || 1; try { out.push(JSON.parse(v.slice(HMETA, HMETA + n).join(''))); } catch (e) {} });
+  return out;
+}
+function readHist_(cid, limit) {   // 이 탭의 최근 기록 limit개
+  limit = limit || 60; const picks = [];
+  const ys = histYears_();
+  for (let k = 0; k < ys.length && picks.length < limit * 3; k++) {
+    histMeta_(ys[k].sh).forEach(function (m, i) { if (String(m[1]) === cid) picks.push({ sh: ys[k].sh, row: i + 2, t: +m[4] || 0 }); });
+  }
+  picks.sort(function (a, b) { return b.t - a.t; });
+  const top = picks.slice(0, limit), by = {};
+  top.forEach(function (p) { const k = p.sh.getName(); (by[k] = by[k] || { sh: p.sh, rows: [] }).rows.push(p.row); });
+  let list = []; Object.keys(by).forEach(function (k) { list = list.concat(histRows_(by[k].sh, by[k].rows)); });
   list.sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
-  return list.slice(0, limit || 60);
+  return list;
+}
+function readDay_(date) {   // 그 날짜의 모든 탭 기록 {탭: [기록…]}
+  const y = String(date).slice(0, 4), sh = ss_().getSheetByName('기록_' + y), res = {};
+  if (!sh) return res;
+  const rows = [], cids = [];
+  histMeta_(sh).forEach(function (m, i) { if (String(m[2]) === date) { rows.push(i + 2); cids.push(String(m[1])); } });
+  if (!rows.length) return res;
+  const lo = Math.min.apply(null, rows), hi = Math.max.apply(null, rows), vals = sh.getRange(lo, 1, hi - lo + 1, sh.getLastColumn()).getValues();
+  rows.forEach(function (r, k) { const v = vals[r - lo], n = +v[5] || 1; try { (res[cids[k]] = res[cids[k]] || []).push(JSON.parse(v.slice(HMETA, HMETA + n).join(''))); } catch (e) {} });
+  return res;
 }
 function writeHist_(cid, id, data) {
-  const sh = histSheet_(), key = cid + '|' + id, n = sh.getLastRow();
-  const meta = n < 2 ? [] : sh.getRange(2, 1, n - 1, 3).getValues();
-  let row = 0; for (let i = 0; i < meta.length; i++) if (String(meta[i][0]) === key) { row = i + 2; break; }
+  const y = yearOf_(data), sh = histYear_(y), key = cid + '|' + id, n = sh.getLastRow();
+  const keys = n < 2 ? [] : sh.getRange(2, 1, n - 1, 1).getValues();
+  let row = 0; for (let i = keys.length - 1; i >= 0; i--) if (String(keys[i][0]) === key) { row = i + 2; break; }
   if (!row) row = n + 1;
   const ch = chunks_(JSON.stringify(data));
-  ensureCols_(sh, 4 + ch.length);
-  const rg = sh.getRange(row, 1, 1, 4 + ch.length);
+  ensureCols_(sh, HMETA + ch.length);
+  const rg = sh.getRange(row, 1, 1, HMETA + ch.length);
   rg.setNumberFormat('@');
-  rg.setValues([[key, cid, String(data.savedAt || Date.now()), String(ch.length)].concat(ch)]);
-  // 오래된 기록 정리
-  const mine = []; meta.forEach(function (m, i) { if (String(m[1]) === cid && String(m[0]) !== key) mine.push({ row: i + 2, t: +m[2] || 0 }); });
-  if (mine.length + 1 > HIST_KEEP) {
-    mine.sort(function (a, b) { return a.t - b.t; });
-    mine.slice(0, mine.length + 1 - HIST_KEEP).map(function (m) { return m.row; }).sort(function (a, b) { return b - a; })
-      .forEach(function (r) { sh.deleteRow(r); });
+  rg.setValues([[key, cid, String(data.date || ''), String(data.round || ''), String(data.savedAt || Date.now()), String(ch.length)].concat(ch)]);
+  pruneYears_();
+}
+function pruneYears_() {   // 10년 지난 연도 탭 삭제 (하루 한 번만 확인)
+  const pr = PropertiesService.getScriptProperties(), today = new Date().toISOString().slice(0, 10);
+  if (pr.getProperty('pruneDay') === today) return; pr.setProperty('pruneDay', today);
+  const min = new Date().getFullYear() - HIST_YEARS;
+  histYears_().forEach(function (o) { if (o.y < min && ss_().getSheets().length > 1) ss_().deleteSheet(o.sh); });
+}
+/* 한 번만: 예전 "history" 탭 → 연도별 탭으로 옮기기 (예전 탭은 "history_예전"으로 이름만 바꿔 보관) */
+function migrateHist_() {
+  const pr = PropertiesService.getScriptProperties();
+  if (pr.getProperty('mig5') === '1') return;
+  const lk = LockService.getScriptLock(); if (!lk.tryLock(30000)) return;
+  try {
+  if (pr.getProperty('mig5') === '1') return;
+  const old = ss_().getSheetByName('history');
+  if (old && old.getLastRow() >= 2) {
+    const by = {};
+    old.getRange(2, 1, old.getLastRow() - 1, old.getLastColumn()).getValues().forEach(function (r) {
+      const key = String(r[0]); if (!key) return; const n = +r[3] || 1, json = r.slice(4, 4 + n).join('');
+      let d; try { d = JSON.parse(json); } catch (e) { return; }
+      const y = yearOf_(d); (by[y] = by[y] || []).push([key, String(r[1]), String(d.date || ''), String(d.round || ''), String(d.savedAt || r[2] || ''), String(n)].concat(r.slice(4, 4 + n).map(String)));
+    });
+    Object.keys(by).forEach(function (y) {
+      const sh = histYear_(y), have = {}; histMeta_(sh).forEach(function (m) { have[String(m[0])] = 1; });
+      const rows = by[y].filter(function (r) { return !have[r[0]]; }); if (!rows.length) return;
+      const w = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+      rows.forEach(function (r) { while (r.length < w) r.push(''); });
+      ensureCols_(sh, w);
+      const rg = sh.getRange(sh.getLastRow() + 1, 1, rows.length, w); rg.setNumberFormat('@'); rg.setValues(rows);
+    });
   }
+  if (old) old.setName('history_예전');
+  pr.setProperty('mig5', '1');
+  } finally { lk.releaseLock(); }
 }
 function log_(name, cid, text) {
   const ck = CacheService.getScriptCache(), k = 'log|' + name + '|' + cid;
@@ -173,7 +232,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   try {
     if (p.action) {                      // 등록된 사람만 조회 가능
-      try { migrate_(); migrate3_(); migrate4_(); } catch (err) {}
+      try { migrate_(); migrate3_(); migrate4_(); migrateHist_(); } catch (err) {}
       if (!String(p.name || '').trim() || !who_(p.code, p.name)) return out_({ ok: false, error: 'auth' });
     }
     const me = p.action ? who_(p.code, p.name) : null, role = me ? me.role : '';
@@ -181,7 +240,8 @@ function doGet(e) {
       case 'ver':  return out_({ ok: true, vers: versions_(), role: role });
       case 'all':  return out_({ ok: true, docs: readDocs_(), role: role });
       case 'docs': return out_({ ok: true, docs: readDocs_(String(p.cids || '').split(',')) });
-      case 'hist': return out_({ ok: true, items: readHist_(String(p.cid || ''), +p.limit || 60) });
+      case 'hist': return out_({ ok: true, items: readHist_(String(p.cid || ''), Math.min(+p.limit || 60, 150)) });
+      case 'histDay': return out_({ ok: true, byTab: readDay_(String(p.date || '')) });
       default:     return out_({ ok: true, app: '재고 약도 저장 서버' });
     }
   } catch (err) { return out_({ ok: false, error: String(err) }); }
@@ -190,7 +250,7 @@ function doGet(e) {
 function doPost(e) {
   let b = {};
   try { b = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: 'bad' }); }
-  try { migrate_(); migrate3_(); migrate4_(); } catch (err) {}
+  try { migrate_(); migrate3_(); migrate4_(); migrateHist_(); } catch (err) {}
   if (b.action === 'auth') {
     const nm = String(b.name || '').trim();
     if (!nm) return out_({ ok: false, error: 'name' });   // 이름과 코드를 둘 다 넣어야 로그인

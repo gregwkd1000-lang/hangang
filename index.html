@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112231646";</script>
+<script>window.HG_BUILD="20261112232612";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -2958,6 +2958,15 @@ function prevSnap(id){ // 지금 회차 바로 앞 기록
   var sv=S[id].state.survey;
   return histList(id).filter(function(v){ return v.date<sv.date||(v.date===sv.date&&v.round<sv.round); })[0]||histList(id)[0]||null;
 }
+/* 오래된 날짜(최근 목록에 없는 날짜)는 서버에서 그 날짜 기록만 따로 받아옴 */
+var DAYGOT={};
+async function fetchDay(d){
+  if(!d||DAYGOT[d]||typeof GAS==="undefined"||!GAS||!EDIT.code) return; DAYGOT[d]=1;
+  try{ var r=await apiGet({action:"histDay",date:d}); if(!r||!r.ok||!r.byTab){ delete DAYGOT[d]; return; }
+    Object.keys(r.byTab).forEach(function(cid){ if(!S[cid]) return; var h=histCache[cid]||(histCache[cid]=histLocal(cid)); r.byTab[cid].forEach(function(v){ if(v&&v.id&&v.state&&(!h[v.id]||(h[v.id].savedAt||0)<(v.savedAt||0))) h[v.id]=v; }); });
+    if(ui.sheet&&ui.sheet.mode==="hist") renderSheet();
+  }catch(e){ delete DAYGOT[d]; }
+}
 function ensureHist(id){ if(!histCache[id]){ histCache[id]=histLocal(id); loadHist(id); } }
 function renderHist(){
   var id=ui.cid, st=S[id].state, sv=st.survey, nx=nextRoundOf(sv);
@@ -2989,7 +2998,7 @@ function renderHist(){
   var h=histCache[id];
   each("[data-r2]",function(b){ b.onclick=function(){ startRound(b.dataset.r2==="copy"); }; });
   each("[data-hd]",function(b){ b.onclick=function(){ ui.histDate=b.dataset.hd||null; renderHist(); }; });
-  $("hdIn").onchange=function(){ ui.histDate=this.value||null; this.blur(); renderHist(); };
+  $("hdIn").onchange=function(){ ui.histDate=this.value||null; this.blur(); renderHist(); if(ui.histDate) fetchDay(ui.histDate); };
   if($("sdView")) $("sdView").onclick=function(){ setVdate(ui.histDate); };
   if($("sdGo")) $("sdGo").onclick=function(){ var d=ui.histDate; ask(fmtDate(d)+" 날짜로 모든 탭의 재고조사를 바꿀까요? 지금 회차는 기록에 저장되고, "+fmtDate(d)+" 기록이 있으면 그날 마지막 회차가 열리고 없으면 그날 1차를 새로 시작합니다.","바꾸기",function(){ switchDate(d); }); };
   if($("sdToday")) $("sdToday").onclick=function(){ var d=today(); ask("모든 탭을 오늘("+fmtDate(d)+") 재고조사로 바꿀까요?","바꾸기",function(){ switchDate(d); }); };
@@ -3037,7 +3046,7 @@ function applyVdate(round){
 }
 async function setVdate(d,round){
   closeSheet(); toast(fmtDate(d)+" 기록 불러오는 중…");
-  await Promise.race([Promise.all(COMPANIES.map(function(c){ return loadHist(c.id).catch(function(){}); })),sleep(4000)]);
+  await Promise.race([Promise.all(COMPANIES.map(function(c){ return loadHist(c.id).catch(function(){}); }).concat([fetchDay(d)])),sleep(8000)]);
   ui.vdate=d; ui.moving=null; ui.insMode=false; ui.multi=null; ui.groupMove=null; ui.histDate=null;
   applyVdate(round); renderAll(); document.querySelector("main").scrollTop=0;
   var n=COMPANIES.filter(function(c){ return recsOn(c.id,d).length||S[c.id].state.survey.date===d; }).length;
