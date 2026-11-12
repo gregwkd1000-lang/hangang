@@ -174,8 +174,7 @@ function doPost(e) {
   if (b.action === 'passwd') {          // 비밀번호(수정 코드) 바꾸기: 기존 코드가 맞아야 함
     const nc = String(b.newCode || '').trim();
     if (nc.length < 4 || nc.length > 20) return out_({ ok: false, error: 'len' });
-    const v = editSheet_().getDataRange().getDisplayValues();
-    for (let i = 1; i < v.length; i++) if (i + 1 !== me.row && String(v[i][1]).trim() === nc) return out_({ ok: false, error: 'dup' });
+    // 다른 사람과 같은 비밀번호여도 됨 (로그인할 때 이름으로 구분)
     editSheet_().getRange(me.row, 2).setNumberFormat('@').setValue(nc);
     logSheet_().appendRow([new Date(), name, '-', '비밀번호 변경']);
     return out_({ ok: true });
