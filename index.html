@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112231450";</script>
+<script>window.HG_BUILD="20261112231646";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -274,6 +274,9 @@ textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:
 .prevrec b{font-family:var(--font-num);color:var(--ink);font-size:15px}
 .prevrec .btn{min-height:34px;padding:6px 12px}
 .hrow{display:flex;align-items:center;gap:8px}
+.hclosed{background:#fff7d1!important}
+:root[data-theme="dark"] .hclosed{background:#3d3517!important}
+.hcl{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#f2c94c;color:#5a4300;vertical-align:middle}
 .hrow .code{flex:1;min-width:0}
 .hrow .code small{display:block;font-family:var(--font-body);font-size:12px}
 .hbtns{display:flex;gap:6px}
@@ -2966,7 +2969,7 @@ function renderHist(){
     (ui.histDate&&ui.histDate<today()&&ui.histDate!==sv.date?'<button class="btn primary sdbtn" id="sdView">'+fmtDate(ui.histDate)+' 기록 보기 (모든 탭)</button><p class="hint">지난 날짜로는 재고조사를 새로 시작할 수 없습니다. 기록을 열고 <b>마감 해제</b>하면 그 기록을 고칠 수 있습니다.</p>':'')+
     (ui.histDate&&ui.histDate===today()&&sv.date!==today()?'<button class="btn primary sdbtn" id="sdGo">오늘('+fmtDate(ui.histDate)+') 재고조사 하기 (모든 탭)</button>':'')+
     (sv.manual&&sv.date!==today()?'<button class="btn sdbtn" id="sdToday">오늘('+fmtDate(today())+')로 돌아가기 (모든 탭)</button>':'')+
-    '<div class="spots" style="margin-bottom:12px"><div class="spot me"><span>지금 회차 · '+fmtDate(sv.date)+' '+sv.round+'차</span><b>입력 '+(k.done+k.diff)+'/'+k.n+'</b></div></div>'+
+    '<div class="spots" style="margin-bottom:12px"><div class="spot me'+(sv.closed?' hclosed':'')+'"><span>지금 회차 · '+fmtDate(sv.date)+' '+sv.round+'차'+(sv.closed?' <span class="hcl">마감됨</span>':'')+'</span><b>입력 '+(k.done+k.diff)+'/'+k.n+'</b></div></div>'+
     '<p class="hint">다음은 <b>'+fmtDate(nx.date)+' '+nx.round+'차</b>입니다. 상자 위치는 그대로 둡니다.</p>'+
     '<div class="quick"><button class="btn primary" data-r2="copy">수량 복사해서 시작</button><button class="btn" data-r2="blank">빈 상태로 시작</button></div>'+
     '<p class="hint" style="margin-top:14px">지난 기록 · <b>보기</b>를 누르면 그때 약도를 볼 수 있습니다</p>';
@@ -2978,7 +2981,8 @@ function renderHist(){
   shown.forEach(function(v){
     if(v.date!==lastDate){ if(lastDate!==null) out+='</div>'; out+='<div class="grp-h">'+esc(v.date)+'</div><div class="list">'; lastDate=v.date; }
     var t=new Date(v.savedAt), hm=String(t.getHours()).padStart(2,"0")+":"+String(t.getMinutes()).padStart(2,"0");
-    out+='<div class="row hrow"><span class="code">'+v.round+'차 <small>입력 '+(v.done||0)+'/'+(v.n||0)+(v.diff?' · 차이 '+v.diff:'')+' · '+hm+'</small></span><span class="hbtns"><button class="btn" data-snapview="'+esc(v.id)+'">보기</button></span></div>';
+    var vs=v.state&&v.state.survey, vc=!!(vs&&(vs.closed||!vs.reopened));
+    out+='<div class="row hrow'+(vc?' hclosed':'')+'"><span class="code">'+v.round+'차'+(vc?' <span class="hcl">마감됨</span>':'')+' <small>입력 '+(v.done||0)+'/'+(v.n||0)+(v.diff?' · 차이 '+v.diff:'')+' · '+hm+'</small></span><span class="hbtns"><button class="btn" data-snapview="'+esc(v.id)+'">보기</button></span></div>';
   });
   if(lastDate!==null) out+='</div>';
   $("shBody").innerHTML=out;
