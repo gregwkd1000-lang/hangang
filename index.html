@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112233919";</script>
+<script>window.HG_BUILD="20261112234708";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -192,6 +192,7 @@ body.gated>header,body.gated>main{display:none}
 .logrow .lx{flex:1;min-width:0;word-break:break-all}
 .la{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px;margin-right:2px;background:var(--surface2);color:var(--ink)}
 .la-qty{background:#dbeafe;color:#1d4ed8}.la-move{background:#fef3c7;color:#92400e}.la-box{background:#dcfce7;color:#166534}
+.la.a-add{background:#e5484d;color:#fff}.la.a-del{background:#2f6fde;color:#fff}.la.a-mv{background:#2f9e5b;color:#fff}.la.a-chg{background:#8e44ad;color:#fff}
 .box .t3 .pl{font-size:.82em;opacity:.85;margin-left:1px;letter-spacing:-.02em}
 .box.has{background:var(--has-bg)}
 .box.has .t1{color:var(--has-ink)}
@@ -1567,7 +1568,7 @@ function renderLog(s){
   var h='<div class="filters" style="margin-bottom:8px">'+[["all","전체"],["qty","수량 입력·수정"],["move","이동"],["box","상자 추가·삭제·변경"]].map(function(x){ return '<button class="chipbtn" data-lf="'+x[0]+'" aria-pressed="'+(f===x[0])+'">'+x[1]+'</button>'; }).join("")+'</div>';
   h+=shown.length?'<div class="loglist">'+shown.map(function(e){ var d=new Date(e.t), hm=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
       var ub=e.done?'<span class="lgu dnbox"><span class="dn">복구됨</span>'+(e.db?'<small class="hint dnw">'+esc(e.db)+(e.dt?' '+hmOf(e.dt):'')+'</small>':'')+'</span>':EDIT.admin&&e.u&&e.t>=Date.now()-LKEEP?'<button class="ilb res lgu" data-lu="'+esc(e.id)+'">복구</button>':'';
-      return '<div class="logrow"><div class="lt"><b>'+hm+'</b><span>'+esc(e.by||"이름 없음")+'</span></div><div class="lx"><span class="la la-'+grpOf(e.a)+'">'+esc(e.a)+'</span> '+esc(e.x)+'</div>'+ub+'</div>'; }).join("")+'</div>'
+      return '<div class="logrow"><div class="lt"><b>'+hm+'</b><span>'+esc(e.by||"이름 없음")+'</span></div><div class="lx"><span class="la la-'+grpOf(e.a)+({"추가":" a-add","삭제":" a-del","이동":" a-mv","품목 변경":" a-chg"}[e.a]||"")+'">'+esc(e.a)+'</span> '+esc(e.x)+'</div>'+ub+'</div>'; }).join("")+'</div>'
     :'<p class="hint">이번 회차에 남은 수정 이력이 없습니다.</p>';
   h+='<p class="hint" style="margin-top:10px">이번 회차('+esc(fmtDate(st.survey.date)+" "+st.survey.round+"차")+')의 이력입니다. 회차가 바뀌면 새로 쌓이고, 지난 회차 이력은 지난 기록을 열면 볼 수 있습니다.</p>';
   $("shBody").innerHTML=h;
