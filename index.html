@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112234708";</script>
+<script>window.HG_BUILD="20261112235844";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -137,7 +137,7 @@ body.practice>header{background:#fbe0ea}
 .box .stripe{height:5px;background:var(--grp,var(--mark));flex:none}
 .box .t1{font-size:9.5px;color:var(--muted);padding:2px 4px 0;line-height:1.1;font-family:var(--font-num);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .box .t2{font-size:15px;font-weight:700;padding:0 4px;line-height:1.1;font-family:var(--font-num);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.box .t2.s{font-size:12px} .box .t2.xs{font-size:10px}
+.box .t2.s{font-size:12px} .box .t2.xs{font-size:10px} .box .t2.xl{font-size:20px;font-weight:800;letter-spacing:.5px}
 .box .t3{font-size:11px;padding:0 4px 3px;line-height:1.15;font-family:var(--font-num);color:var(--muted);white-space:nowrap}
 .box .t3 b{color:var(--ink)}
 .btn.logbtn{background:#1d5fd1;border-color:#1d5fd1;color:#fff;font-weight:700;padding-left:22px;padding-right:22px}
@@ -804,7 +804,7 @@ var COMPANIES=[
   {k:"SX2",name:"HPCU SX2",seed:"Y15||1\n#시컨스|828 ~ 852번까지"}]},
  {id:"plant3ext",name:"3공장 외부재고",seedV:1,stockify:"공용기",groups:[
   {k:"EXT",name:"재고",seed:"81600-K2000MMH|외부|36\n공용기|외부|2\n81600-K2000MMH|라인|37\n공용기|라인|0"}]},
- {id:"plant1",name:"1공장(NE)",unit:16,colors:{"01N":"white","02N":"blue","NO3":"red","N04":"yellow"},seedV:1,maps:[{id:"in",name:"라인"},{id:"out",name:"재고장"}],groups:[
+ {id:"plant1",name:"1공장(NE)",unit:16,codeBig:true,colors:{"01N":"white","02N":"blue","NO3":"red","N04":"yellow"},seedV:1,maps:[{id:"in",name:"라인"},{id:"out",name:"재고장"}],groups:[
   {k:"N",name:"N사양",seed:"01N|내수|12\n02N|유럽|6"},
   {k:"EV",name:"이벤트",seed:"NO3|AA5|47\nN04|AB5|89\n#시컨스|136"}]},
  {id:"sejong",name:"세종공업",unit:32,quick:[16,8,1],seedV:1,groups:[
@@ -1604,7 +1604,7 @@ function codeHTML(it){ var c=colorOf(it), t=esc(it.code)+(it.alias?' <small>('+e
 function label(it){ return it.code+(it.alias?" ("+it.alias+")":""); }
 function splitCode(it){
   if(it.alias&&String(it.code).replace(/\s+/g,"")==="공용기") return [it.alias,it.code]; /* 공용기는 크게, 라인·외부는 위에 작게 */
-  if(it.alias) return [it.code,it.alias];
+  if(it.alias) return C().codeBig?[it.alias,it.code]:[it.code,it.alias];   /* 1공장: 품번(NO3 등)을 가운데 크게 */
   var c=it.code, i=c.lastIndexOf(" "); if(i>0) return [c.slice(0,i),c.slice(i+1)];
   i=c.lastIndexOf("-"); if(i>0) return [c.slice(0,i),c.slice(i+1)];
   return [grp(it.group).name,c];
@@ -1693,7 +1693,7 @@ function renderMap(){ PALC=null; try{ renderGlog(); }catch(e){}
     if(b.mark){ return '<button class="cell box mark'+(b.mark==="공용기"?" gong":"")+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+esc(b.mark)+'</button>'; }
     var it=b.itemId?item(b.itemId):null;
     if(!it){ return '<button class="cell box unset'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'<span class="emptylbl">빈렉or<br>타업체</span></button>'; }
-    var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":"";
+    var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":(C().codeBig&&sp[1].length<=4?" xl":"");
     var mixN=(b.mix||[]).length, mixSum=(b.mix||[]).reduce(function(a,m){return a+(m.cur?sumA(m.cur):0);},0), mixHas=(b.mix||[]).some(function(m){return m.cur!==null;});
     var multi=boxesOf(it.id).length>1||it.cur!==null||seqDed(it.id)!==0||mixOf(it.id).length>0, mine=b.cur===null?null:sumA(b.cur), line;
     if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>'):('<b>'+mine+'</b>'+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>');
