@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112233640";</script>
+<script>window.HG_BUILD="20261112233919";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -176,6 +176,10 @@ body.gated>header,body.gated>main{display:none}
 .qalert>div{flex:1}
 .qalert button{flex:none;background:#e5484d;color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:700}
 :root[data-theme="dark"] .qalert{background:#4a1f22;color:#ffd6d6}
+.dn{display:inline-block;font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;background:#e7f6ec;color:#1f7a3b;border:1px solid #2f9e5b}
+.dnw{display:block;font-size:11px;margin-top:2px;text-align:right}
+.dnbox{text-align:right}
+:root[data-theme="dark"] .dn{background:#173d24;color:#9fe0b4}
 .ilbt{text-align:right!important;white-space:nowrap}
 .ilb{font:inherit;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;border:0;color:#fff;cursor:pointer}
 .ilb.del{background:#e5484d}.ilb.res{background:#2f6fde}
@@ -866,8 +870,8 @@ function normalize(c,s){
   var st={v:4,seedV:+s.seedV||1,survey:sv,maps:maps,
     unitV:+s.unitV||1,
     glog:(Array.isArray(s.glog)?s.glog:[]).filter(function(e){return e&&e.x;}).slice(-200),
-    ilog:(Array.isArray(s.ilog)?s.ilog:[]).filter(function(e){return e&&e.a;}).slice(-300).map(function(e){var o={t:+e.t||0,by:String(e.by||""),a:String(e.a),c:String(e.c||""),al:String(e.al||""),g:String(e.g||"")}; if(e.id) o.id=String(e.id); if(e.it&&typeof e.it==="object") o.it=e.it; if(e.r) o.r=1; return o;}),
-    log:(Array.isArray(s.log)?s.log:[]).filter(function(e){return e&&e.id&&e.k;}).slice(-600).map(function(e){var o={id:String(e.id),k:String(e.k),t:+e.t||0,by:String(e.by||""),a:String(e.a||""),x:String(e.x||"")}; if(e.u&&typeof e.u==="object") o.u=e.u; if(e.done) o.done=1; return o;}),
+    ilog:(Array.isArray(s.ilog)?s.ilog:[]).filter(function(e){return e&&e.a;}).slice(-300).map(function(e){var o={t:+e.t||0,by:String(e.by||""),a:String(e.a),c:String(e.c||""),al:String(e.al||""),g:String(e.g||"")}; if(e.id) o.id=String(e.id); if(e.it&&typeof e.it==="object") o.it=e.it; if(e.r) o.r=1; if(e.done){ o.done=1; o.db=String(e.db||""); o.dt=+e.dt||0; } return o;}),
+    log:(Array.isArray(s.log)?s.log:[]).filter(function(e){return e&&e.id&&e.k;}).slice(-600).map(function(e){var o={id:String(e.id),k:String(e.k),t:+e.t||0,by:String(e.by||""),a:String(e.a||""),x:String(e.x||"")}; if(e.u&&typeof e.u==="object") o.u=e.u; if(e.done){ o.done=1; o.db=String(e.db||""); o.dt=+e.dt||0; } return o;}),
     items:s.items.filter(function(i){return i&&i.id&&i.code;}).map(function(i){
       var info=i.kind==="info";
       return {id:String(i.id),kind:info?"info":"stock",code:String(i.code),alias:String(i.alias||""),group:gk[i.group]?i.group:c.groups[0].k,
@@ -949,6 +953,7 @@ function gsnap(st){ var ic={}; st.items.forEach(function(i){ if(i.cur!==null&&i.
 var GKEEP=Infinity;   /* 복구 기간 제한 없음 (칸·줄 복구용 약도 사본만 최근 40개 보관) */
 function glogAdd(st,x,pre,kind,mname){ if(!st||PRACTICE) return; var e={t:Date.now(),by:who(),x:x,k:kind||"grid",m:mname!==undefined?mname:((MAP()||{}).name||""),s:pre};
   var L=(st.glog||[]).concat([e]), old=Date.now()-GKEEP, keep=0; for(var i=L.length-1;i>=0;i--){ if(!L[i].s) continue; if(L[i].t<old){ delete L[i].s; continue; } if(L[i].k==="qty") continue; keep++; if(keep>40) delete L[i].s; } st.glog=L.slice(-200); }
+function hmOf(ms){ var d=new Date(ms); return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
 function glogUndo(cid,t){
   if(!EDIT.admin){ toast("마스터만 할 수 있습니다"); return; } if(PRACTICE){ toast("연습모드를 끝낸 뒤에 해 주세요"); return; }
   var isSnap=!!ui.snap&&cid===ui.cid, st=isSnap?ui.snap.state:S[cid].state, e=(st.glog||[]).filter(function(x){return x.t===+t;})[0]; if(!e||!e.s) return;
@@ -959,20 +964,20 @@ function glogUndo(cid,t){
       var pre=qsnap(st), n=0; st.boxes.forEach(function(b){ var v=e.s.q[b.id]; if(!v) return; n++; b.cur=JSON.parse(JSON.stringify(v[0]));
         if(v[1]&&b.mix) v[1].forEach(function(p){ b.mix.forEach(function(m){ if(m.itemId===p[0]) m.cur=JSON.parse(JSON.stringify(p[1])); }); }); if(v[2]) b.seq=JSON.parse(JSON.stringify(v[2])); });
       st.items.forEach(function(i){ if(e.s.ic[i.id]!==undefined) i.cur=JSON.parse(JSON.stringify(e.s.ic[i.id])); });
-      e.done=1; glogAdd(st,"수량 복원: "+e.x,pre,"qty",""); if(isSnap){ persist(); } else { S[cid].state=normalize(CMAP[cid],st); persistId(cid); } toast("수량을 복원했습니다 · 상자 "+n+"곳");
+      e.done=1; e.db=who(); e.dt=Date.now(); if(isSnap){ persist(); } else { S[cid].state=normalize(CMAP[cid],st); persistId(cid); } toast("수량을 복원했습니다 · 상자 "+n+"곳");
     },"취소"); return; }
   ask("「"+e.x+"」 하기 전 상태로 약도를 되돌릴까요? 그 뒤에 이 탭 약도에서 바꾼 상자 위치·수량도 그때 상태로 돌아갑니다.","복구",function(){
     var pre=gsnap(st); st.maps=JSON.parse(JSON.stringify(e.s.maps)); st.boxes=JSON.parse(JSON.stringify(e.s.boxes));
     if(e.k==="qty") st.items.forEach(function(i){ if(e.s.ic[i.id]!==undefined) i.cur=JSON.parse(JSON.stringify(e.s.ic[i.id])); });
     if(isSnap&&locked()){ toast("이 기록이 마감되어 있습니다. 마감 해제 후 복구하세요"); return; }
-    e.done=1; glogAdd(st,"복구: "+e.x,pre,e.k); if(isSnap){ persist(); } else { S[cid].state=normalize(CMAP[cid],st); persistId(cid); } toast("복구했습니다");
+    e.done=1; e.db=who(); e.dt=Date.now(); if(isSnap){ persist(); } else { S[cid].state=normalize(CMAP[cid],st); persistId(cid); } toast("복구했습니다");
   },"취소");
 }
 function renderGlog(){
   var card=$("glogCard"); if(!card) return; var show=!!(EDIT&&EDIT.admin); card.hidden=!show; if(!show||!card.open) return;
   var st=ST(), L=(st.glog||[]).slice().reverse(), p=function(n){return (n<10?"0":"")+n;};
   $("glogList").innerHTML=L.length?'<table class="iltab"><tr><th>언제</th><th>누가</th><th>내용</th><th></th></tr>'+L.map(function(e){ var d=new Date(e.t);
-    return '<tr><td>'+(d.getMonth()+1)+'/'+d.getDate()+'<br>'+p(d.getHours())+':'+p(d.getMinutes())+'</td><td>'+esc(e.by||"-")+'</td><td>'+(e.m&&st.maps.length>1?'<small>'+esc(e.m)+' · </small>':'')+esc(e.x)+'</td><td class="ilbt">'+(e.s&&e.t>=Date.now()-GKEEP?'<button class="ilb res" data-gu="'+e.t+'">'+(e.s.q?(e.done?'다시 복원':'수량 복원'):(e.done?'다시 복구':'복구'))+'</button>':'<small class="hint">'+(e.s||e.t<Date.now()-GKEEP?'-':'-')+'</small>')+'</td></tr>'; }).join("")+'</table><p class="hint">수량 복원은 상자 자리는 그대로 두고 수량만 되돌립니다. 칸·줄 복구는 최근 40건까지 됩니다.</p>':'<p class="hint">아직 내역이 없습니다. 지금부터 가로·세로 칸 조절, 중간 줄 넣기·빼기, 수량 초기화(회차·날짜가 바뀔 때 자동 초기화 포함)를 하면 여기에 남습니다.</p>';
+    return '<tr><td>'+(d.getMonth()+1)+'/'+d.getDate()+'<br>'+p(d.getHours())+':'+p(d.getMinutes())+'</td><td>'+esc(e.by||"-")+'</td><td>'+(e.m&&st.maps.length>1?'<small>'+esc(e.m)+' · </small>':'')+esc(e.x)+'</td><td class="ilbt">'+(e.done?'<span class="dn">복구됨</span>'+(e.db?'<small class="hint dnw">'+esc(e.db)+(e.dt?' '+hmOf(e.dt):'')+'</small>':''):e.s&&e.t>=Date.now()-GKEEP?'<button class="ilb res" data-gu="'+e.t+'">'+(e.s.q?'수량 복원':'복구')+'</button>':'<small class="hint">'+(e.s||e.t<Date.now()-GKEEP?'-':'-')+'</small>')+'</td></tr>'; }).join("")+'</table><p class="hint">수량 복원은 상자 자리는 그대로 두고 수량만 되돌립니다. 칸·줄 복구는 최근 40건까지 됩니다.</p>':'<p class="hint">아직 내역이 없습니다. 지금부터 가로·세로 칸 조절, 중간 줄 넣기·빼기, 수량 초기화(회차·날짜가 바뀔 때 자동 초기화 포함)를 하면 여기에 남습니다.</p>';
 }
 /* 품목 지우기 (약도 상자는 빈 상자로, 섞인 상자에서는 그 품목만 빠짐) */
 function removeItem(st,it){
@@ -991,15 +996,16 @@ function ilogUndo(cid,t){
   var nm=e.c+(e.al?" ("+e.al+")":""), tab=CMAP[cid].name;
   if(e.a==="add"){
     var it=st.items.filter(function(x){ return e.id?x.id===e.id:(x.code===e.c&&x.group===e.g); })[0]; if(!it){ toast("이미 없는 품목입니다"); return; }
-    ask(tab+" · "+nm+" 품목을 삭제할까요? 약도에 놓인 상자는 빈 상자로 남습니다.","삭제",function(){ removeItem(st,it); ilogAdd(st,"del",it,true); persistId(cid); toast(nm+" 삭제했습니다"); },"취소");
+    ask(tab+" · "+nm+" 품목을 삭제할까요? 약도에 놓인 상자는 빈 상자로 남습니다.","삭제",function(){ removeItem(st,it); e.done=1; e.db=who(); e.dt=Date.now(); persistId(cid); toast(nm+" 삭제했습니다"); },"취소");
   } else {
     if(!e.it){ toast("예전 기록이라 복원할 내용이 없습니다"); return; }
     if(st.items.some(function(x){ return x.id===e.it.id||(x.code===e.it.code&&x.group===e.it.group); })){ toast("이미 같은 품목이 있습니다"); return; }
-    ask(tab+" · "+nm+" 품목을 복원할까요? 품목만 되살아나고 약도 상자는 다시 놓아야 합니다.","복원",function(){ var n=JSON.parse(JSON.stringify(e.it)); n.cur=null; n.prev=null; if(!CMAP[cid].groups.some(function(g){return g.k===n.group;})) n.group=(CMAP[cid].groups[0]||{}).k||n.group; st.items.push(n); ilogAdd(st,"add",n,true); persistId(cid); toast(nm+" 복원했습니다"); },"취소");
+    ask(tab+" · "+nm+" 품목을 복원할까요? 품목만 되살아나고 약도 상자는 다시 놓아야 합니다.","복원",function(){ var n=JSON.parse(JSON.stringify(e.it)); n.cur=null; n.prev=null; if(!CMAP[cid].groups.some(function(g){return g.k===n.group;})) n.group=(CMAP[cid].groups[0]||{}).k||n.group; st.items.push(n); e.done=1; e.db=who(); e.dt=Date.now(); persistId(cid); toast(nm+" 복원했습니다"); },"취소");
   }
 }
 var ILOG_ALL=true;
 function ilBtn(r){ var e=r.e, st=r.st;
+  if(e.done) return '<span class="dn">복구됨</span>'+(e.db?'<small class="hint dnw">'+esc(e.db)+(e.dt?' '+hmOf(e.dt):'')+'</small>':'');
   var has=st.items.some(function(x){ return e.id?x.id===e.id:(x.code===e.c&&x.group===e.g); });
   if(e.a==="add") return has?'<button class="ilb del" data-ilu="'+r.c.id+'|'+e.t+'">삭제</button>':'<small class="hint">없음</small>';
   if(has) return '<small class="hint">있음</small>';
@@ -1519,10 +1525,11 @@ function logUndo(id){
     else if(e.a==="혼합") b.mix=cp(u.mix)||[];
     else if(e.a==="시컨스 조정") b.seq=cp(u.seq);
     if(!ok){ toast("이미 없는 상자라 되돌릴 수 없습니다"); return; }
-    e.done=1; persist(); if(ui.sheet&&ui.sheet.mode==="log") renderSheet(); toast("한 건을 되돌렸습니다");
+    e.done=1; e.db=who(); e.dt=Date.now(); SKIPLOG=true; try{ persist(); } finally { SKIPLOG=false; } if(ui.sheet&&ui.sheet.mode==="log") renderSheet(); toast("복구했습니다");
   },"취소");
 }
-function addLog(o,n){
+var SKIPLOG=false;
+function addLog(o,n){ if(SKIPLOG) return;
   var key=n.survey.date+"_"+n.survey.round, by=who()||"", now=Date.now(), out=[];
   function lab(st,b){ if(b.mark) return b.mark===SEQ?"시컨스":b.mark; var it=b.itemId&&st.items.filter(function(i){return i.id===b.itemId;})[0]; return it?label(it):"빈렉or타업체"; }
   function pos(st,b){ var mp=st.maps.filter(function(m){return m.id===b.mapId;})[0]||{}; return (st.maps.length>1?(mp.name||"")+" ":"")+posTxt(b.r,b.c,isTwo(mp,b.r)?(b.t||0):null); }
@@ -1559,8 +1566,8 @@ function renderLog(s){
   $("shTitle").innerHTML='약도 수정 이력<small>'+esc(C().name+" · "+fmtDate(st.survey.date)+" "+st.survey.round+"차 · "+L.length+"건")+'</small>';
   var h='<div class="filters" style="margin-bottom:8px">'+[["all","전체"],["qty","수량 입력·수정"],["move","이동"],["box","상자 추가·삭제·변경"]].map(function(x){ return '<button class="chipbtn" data-lf="'+x[0]+'" aria-pressed="'+(f===x[0])+'">'+x[1]+'</button>'; }).join("")+'</div>';
   h+=shown.length?'<div class="loglist">'+shown.map(function(e){ var d=new Date(e.t), hm=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
-      var ub=EDIT.admin&&e.u&&e.t>=Date.now()-LKEEP?'<button class="ilb res lgu" data-lu="'+esc(e.id)+'">'+(e.done?'다시 복구':'복구')+'</button>':'';
-      return '<div class="logrow"><div class="lt"><b>'+hm+'</b><span>'+esc(e.by||"이름 없음")+'</span></div><div class="lx"><span class="la la-'+grpOf(e.a)+'">'+esc(e.a)+'</span> '+esc(e.x)+(e.done?' <small>(되돌림)</small>':'')+'</div>'+ub+'</div>'; }).join("")+'</div>'
+      var ub=e.done?'<span class="lgu dnbox"><span class="dn">복구됨</span>'+(e.db?'<small class="hint dnw">'+esc(e.db)+(e.dt?' '+hmOf(e.dt):'')+'</small>':'')+'</span>':EDIT.admin&&e.u&&e.t>=Date.now()-LKEEP?'<button class="ilb res lgu" data-lu="'+esc(e.id)+'">복구</button>':'';
+      return '<div class="logrow"><div class="lt"><b>'+hm+'</b><span>'+esc(e.by||"이름 없음")+'</span></div><div class="lx"><span class="la la-'+grpOf(e.a)+'">'+esc(e.a)+'</span> '+esc(e.x)+'</div>'+ub+'</div>'; }).join("")+'</div>'
     :'<p class="hint">이번 회차에 남은 수정 이력이 없습니다.</p>';
   h+='<p class="hint" style="margin-top:10px">이번 회차('+esc(fmtDate(st.survey.date)+" "+st.survey.round+"차")+')의 이력입니다. 회차가 바뀌면 새로 쌓이고, 지난 회차 이력은 지난 기록을 열면 볼 수 있습니다.</p>';
   $("shBody").innerHTML=h;
