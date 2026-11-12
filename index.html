@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112220308";</script>
+<script>window.HG_BUILD="20261112220442";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -984,10 +984,11 @@ function gasRef(cid){
 
 /* 연습 모드: 지금 데이터를 복사해 마음껏 입력해 보고, 끝내면 원래대로.
    일시중단: 연습 내용은 이 기기에 보관해 두고 실제 재고로 돌아감 → 다음에 이어서 */
-var PRAC_KEY="stockmap-practice";
-function pracSaved(){ try{ var o=JSON.parse(localStorage.getItem(PRAC_KEY)||"null"); return o&&o.states?o:null; }catch(e){ return null; } }
-function pracSave(){ if(!PRACTICE) return; try{ var o={savedAt:Date.now(),cid:ui.cid,states:{}}; COMPANIES.forEach(function(c){ o.states[c.id]=S[c.id].state; }); localStorage.setItem(PRAC_KEY,JSON.stringify(o)); }catch(e){} }
-function pracClear(){ try{ localStorage.removeItem(PRAC_KEY); }catch(e){} }
+/* 연습 내용은 계정(이름)마다 따로 보관 */
+function pracKey(){ return "stockmap-practice"+(EDIT&&EDIT.name?":"+EDIT.name:""); }
+function pracSaved(){ try{ var o=JSON.parse(localStorage.getItem(pracKey())||"null"); return o&&o.states?o:null; }catch(e){ return null; } }
+function pracSave(){ if(!PRACTICE) return; try{ var o={savedAt:Date.now(),cid:ui.cid,states:{}}; COMPANIES.forEach(function(c){ o.states[c.id]=S[c.id].state; }); localStorage.setItem(pracKey(),JSON.stringify(o)); }catch(e){} }
+function pracClear(){ try{ localStorage.removeItem(pracKey()); }catch(e){} }
 function startPractice(fresh){
   if(PRACTICE) return;
   var sv=pracSaved();
@@ -1149,7 +1150,7 @@ function askPw(){
 }
 /* ---------- 첫 화면 로그인 (등록된 회원만 조회) ---------- */
 function roleSync(r){ if(!r||!EDIT.code) return; var adm=r==="admin"; if(EDIT.role!==r||!!EDIT.admin!==adm){ EDIT.role=r; EDIT.admin=adm; try{ localStorage.setItem("stockmap-editor",JSON.stringify(EDIT)); }catch(e){} renderAll(); } }
-function logoutTo(msg){ EDIT={}; try{ localStorage.removeItem("stockmap-editor"); }catch(e){} closeDlg(); showGate(msg); }
+function logoutTo(msg){ if(PRACTICE) leavePractice(true); EDIT={}; try{ localStorage.removeItem("stockmap-editor"); }catch(e){} closeDlg(); showGate(msg); }
 function showGate(msg){
   if(!GAS) return; document.body.classList.add("gated"); var g=$("gate"); g.hidden=false;
   if(msg) $("gtMsg").textContent=msg; setTimeout(function(){ try{ $("gtName").focus(); }catch(e){} },60);
