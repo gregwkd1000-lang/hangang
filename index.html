@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112131450";</script>
+<script>window.HG_BUILD="20261112214854";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -996,7 +996,7 @@ function openDataMenu(){
   var who=GAS?(EDIT.code?'<p style="text-align:left"><b>'+esc(EDIT.name||"")+'</b>님으로 수정 중입니다.</p>':'<p style="text-align:left">지금은 <b>보기 전용</b>입니다. 수정하려면 수정 코드를 넣으세요.</p>'):'';
   $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">저장 · 백업</h3>'+who+
     '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px">'+
-    (GAS?(EDIT.code?'<button class="btn" id="dmPw">비밀번호 변경</button><button class="btn" id="dmOut">로그아웃 (보기 전용으로)</button>':'<button class="btn primary" id="dmCode">로그인 (이름·비밀번호)</button>'):'')+
+    (GAS&&EDIT.code&&EDIT.admin?'<button class="btn primary" id="dmUser">회원등록</button>':'')+(GAS?(EDIT.code?'<button class="btn" id="dmPw">비밀번호 변경</button><button class="btn" id="dmOut">로그아웃 (보기 전용으로)</button>':'<button class="btn primary" id="dmCode">로그인 (이름·비밀번호)</button>'):'')+
     (PRACTICE?'<button class="btn primary" id="dmPrac">연습 끝내기 · 일시중단</button>':'<button class="btn" id="dmPrac">'+(pracSaved()?'연습 모드 이어서 하기 (저장 안 됨)':'연습 모드 시작 (저장 안 됨)')+'</button>')+
     (PRACTICE||!EDIT.admin?'':'<button class="btn" id="dmBackup">전체 백업 파일 받기</button>')+
     (EDIT.admin&&canEdit()&&!PRACTICE?'<button class="btn" id="dmRestore">백업 파일 불러오기</button><input type="file" id="dmFile" accept=".json,application/json,text/plain" hidden>':'')+
@@ -1006,6 +1006,7 @@ function openDataMenu(){
   $("dmClose").onclick=closeDlg;
   if($("dmCode")) $("dmCode").onclick=function(){ closeDlg(); askCode(); };
   if($("dmPw")) $("dmPw").onclick=askPw;
+  if($("dmUser")) $("dmUser").onclick=askUser;
   if($("dmOut")) $("dmOut").onclick=function(){ EDIT={}; try{ localStorage.removeItem("stockmap-editor"); }catch(e){} closeDlg(); renderAll(); toast("보기 전용으로 바뀌었습니다"); };
   $("dmPrac").onclick=function(){ if(PRACTICE){ endPractice(); } else { closeDlg(); startPractice(); } };
   if($("dmBackup")) $("dmBackup").onclick=function(){ makeBackup(this); };
@@ -1043,6 +1044,26 @@ async function restoreBackup(file){
 }
 /* 수정 코드 */
 /* 비밀번호(수정 코드) 바꾸기: 기존 비밀번호가 맞아야 바뀜 */
+/* 회원등록 (관리자만): 이름 + 비밀번호 → 그 이름·비밀번호로 로그인 가능 */
+function askUser(){
+  var ip='style="width:100%;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:4px 0;box-sizing:border-box;background:var(--surface);color:var(--ink)"';
+  $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">회원등록</h3><p class="hint" style="text-align:left">등록한 이름과 비밀번호로 바로 로그인할 수 있습니다. 관리자 기능(백업·회원등록)은 주어지지 않습니다.</p>'+
+    '<input id="nuName" type="text" autocomplete="off" placeholder="이름 (예: 홍길동)" '+ip+'>'+
+    '<input id="nuCode" type="text" inputmode="numeric" autocomplete="off" placeholder="비밀번호 (4자리 이상)" '+ip+'>'+
+    '<p class="hint" id="nuMsg" style="min-height:1.2em;text-align:left"></p><div class="toolbar" style="justify-content:center"><button class="btn primary" id="nuGo">등록</button><button class="btn" id="nuX">닫기</button></div>';
+  $("imgDlg").classList.add("on"); setTimeout(function(){ try{ $("nuName").focus(); }catch(e){} },50);
+  $("nuX").onclick=closeDlg;
+  $("nuGo").onclick=async function(){
+    var n=$("nuName").value.trim(), c=$("nuCode").value.trim(), m=$("nuMsg"), btn=this;
+    if(!n){ m.textContent="이름을 넣어 주세요"; return; } if(c.length<4){ m.textContent="비밀번호는 4자리 이상으로 넣어 주세요"; return; }
+    btn.disabled=true; m.textContent="등록 중…";
+    try{ var r=await apiPost({action:"addUser",name:EDIT.name,code:EDIT.code,newName:n,newCode:c});
+      if(r.ok){ m.textContent=""; $("nuName").value=""; $("nuCode").value=""; toast(n+"님을 등록했습니다 · 이름 "+n+" / 비밀번호 "+c+"로 로그인"); }
+      else m.textContent=r.error==="exists"?"이미 등록된 이름입니다":r.error==="admin"?"관리자만 등록할 수 있습니다":r.error==="len"?"비밀번호는 4~20자리로 넣어 주세요":r.error==="name"?"이름을 확인해 주세요":r.error==="auth"?"로그인이 풀렸습니다. 다시 로그인해 주세요":"등록하지 못했습니다 (서버를 새 버전으로 배포했는지 확인)";
+    }catch(e){ m.textContent="연결이 안 됩니다. 잠시 후 다시 해 보세요"; }
+    btn.disabled=false;
+  };
+}
 function askPw(){
   var ip='style="width:100%;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:4px 0;box-sizing:border-box;background:var(--surface);color:var(--ink)"';
   $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">비밀번호 변경</h3><p class="hint" style="text-align:left"><b>'+esc(EDIT.name||"")+'</b>님의 비밀번호를 바꿉니다.</p>'+

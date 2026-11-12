@@ -171,6 +171,18 @@ function doPost(e) {
   const me = who_(b.code, b.name);
   if (!me) return out_({ ok: false, error: 'auth' });
   const name = me.name;
+  if (b.action === 'addUser') {         // 회원 등록: 관리자만
+    if (!me.admin) return out_({ ok: false, error: 'admin' });
+    const nn = String(b.newName || '').trim(), nc = String(b.newCode || '').trim();
+    if (!nn || nn.length > 20) return out_({ ok: false, error: 'name' });
+    if (nc.length < 4 || nc.length > 20) return out_({ ok: false, error: 'len' });
+    const v = editSheet_().getDataRange().getDisplayValues();
+    for (let i = 1; i < v.length; i++) if (String(v[i][0]).trim() === nn) return out_({ ok: false, error: 'exists' });
+    const sh = editSheet_(), r = sh.getLastRow() + 1;
+    sh.getRange(r, 1, 1, 3).setNumberFormat('@').setValues([[nn, nc, '']]);
+    logSheet_().appendRow([new Date(), name, '-', '회원 등록: ' + nn]);
+    return out_({ ok: true });
+  }
   if (b.action === 'passwd') {          // 비밀번호(수정 코드) 바꾸기: 기존 코드가 맞아야 함
     const nc = String(b.newCode || '').trim();
     if (nc.length < 4 || nc.length > 20) return out_({ ok: false, error: 'len' });
