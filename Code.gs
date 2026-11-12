@@ -53,6 +53,20 @@ function migrate_() {
   if (!hasAdmin) { const r = sh.getLastRow() + 1; sh.getRange(r, 1, 1, 3).setNumberFormat('@').setValues([['안상우', '031700', '관리자']]); }
   pr.setProperty('mig2', '1');
 }
+/* 한 번만: 강미소 계정 추가(031700), 윤명희 비밀번호 123456으로 */
+function migrate3_() {
+  const pr = PropertiesService.getScriptProperties();
+  if (pr.getProperty('mig3') === '1') return;
+  const sh = editSheet_(), v = sh.getDataRange().getDisplayValues();
+  let hasKang = false;
+  for (let i = 1; i < v.length; i++) {
+    const n = String(v[i][0]).trim();
+    if (n === '윤명희' || n === '관리자') sh.getRange(i + 1, 1, 1, 2).setNumberFormat('@').setValues([['윤명희', '123456']]);
+    if (n === '강미소') { hasKang = true; sh.getRange(i + 1, 2).setNumberFormat('@').setValue('031700'); }
+  }
+  if (!hasKang) { const r = sh.getLastRow() + 1; sh.getRange(r, 1, 1, 3).setNumberFormat('@').setValues([['강미소', '031700', '']]); }
+  pr.setProperty('mig3', '1');
+}
 /* 이름(있으면)과 코드가 같은 줄에 있어야 통과. 돌려주는 값: {name, admin, row} */
 function who_(code, name) {
   code = String(code || '').trim(); if (!code) return null;
@@ -148,7 +162,7 @@ function doGet(e) {
 function doPost(e) {
   let b = {};
   try { b = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: 'bad' }); }
-  try { migrate_(); } catch (err) {}
+  try { migrate_(); migrate3_(); } catch (err) {}
   if (b.action === 'auth') {
     if (!String(b.name || '').trim()) return out_({ ok: false, error: 'name' });   // 이름과 코드를 둘 다 넣어야 로그인
     const a = who_(b.code, b.name);
