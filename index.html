@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112221957";</script>
+<script>window.HG_BUILD="20261112222206";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -686,11 +686,11 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
       </div>
       <p class="hint" id="delHint" style="margin:6px 0 0"></p>
     </div>
-    <div class="card" id="ilogCard" hidden>
-      <h2>품목 추가 · 삭제 이력 <small style="font-weight:400;color:var(--muted)">(관리자만 보임)</small></h2>
-      <div class="filters" id="ilogTabs" style="margin-bottom:6px"></div>
+    <details class="card" id="ilogCard" hidden>
+      <summary><h2 style="display:inline">품목 추가 · 삭제 이력 보기</h2> <small style="color:var(--muted)">(관리자만 보임 · 누르면 열림)</small></summary>
+      <div class="filters" id="ilogTabs" style="margin:8px 0 6px"></div>
       <div id="ilogList"></div>
-    </div>
+    </details>
   </section>
 
   <section class="view" id="v-share">
