@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113054357";</script>
+<script>window.HG_BUILD="20261113065111";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -897,7 +897,7 @@ function normalize(c,s){
     unitV:+s.unitV||1,
     glog:(Array.isArray(s.glog)?s.glog:[]).filter(function(e){return e&&e.x;}).slice(-200),
     ilog:(Array.isArray(s.ilog)?s.ilog:[]).filter(function(e){return e&&e.a;}).slice(-300).map(function(e){var o={t:+e.t||0,by:String(e.by||""),a:String(e.a),c:String(e.c||""),al:String(e.al||""),g:String(e.g||"")}; if(e.id) o.id=String(e.id); if(e.it&&typeof e.it==="object") o.it=e.it; if(e.r) o.r=1; if(e.done){ o.done=1; o.db=String(e.db||""); o.dt=+e.dt||0; } return o;}),
-    log:(Array.isArray(s.log)?s.log:[]).filter(function(e){return e&&e.id&&e.k;}).slice(-600).map(function(e){var o={id:String(e.id),k:String(e.k),t:+e.t||0,by:String(e.by||""),a:String(e.a||""),x:String(e.x||"")}; if(e.u&&typeof e.u==="object") o.u=e.u; if(e.done){ o.done=1; o.db=String(e.db||""); o.dt=+e.dt||0; } return o;}),
+    log:(Array.isArray(s.log)?s.log:[]).filter(function(e){return e&&e.id&&e.k;}).slice(-600).map(function(e){var o={id:String(e.id),k:String(e.k),t:+e.t||0,by:String(e.by||""),a:String(e.a||""),x:String(e.x||"")}; if(e.u&&typeof e.u==="object") o.u=e.u; if(e.q0!==undefined) o.q0=String(e.q0); if(e.done){ o.done=1; o.db=String(e.db||""); o.dt=+e.dt||0; } return o;}),
     items:s.items.filter(function(i){return i&&i.id&&i.code;}).map(function(i){
       var info=i.kind==="info";
       return {id:String(i.id),kind:info?"info":"stock",code:String(i.code),alias:String(i.alias||""),group:gk[i.group]?i.group:c.groups[0].k,
@@ -1584,7 +1584,7 @@ function addLog(o,n){ if(SKIPLOG) return;
     if(!a){ out.push(["추가",pos(n,b)+" · "+lab(n,b)+(b.cur?" "+q(b.cur):""),{bid:b.id}]); return; }
     if(a.mapId!==b.mapId||a.r!==b.r||a.c!==b.c||(a.t||0)!==(b.t||0)) out.push(["이동",lab(n,b)+" · "+pos(o,a)+" → "+pos(n,b),{bid:b.id,p:[a.mapId,a.r,a.c,a.t||0]}]);
     if((a.itemId||null)!==(b.itemId||null)||(a.mark||null)!==(b.mark||null)) out.push(["품목 변경",pos(n,b)+" · "+lab(o,a)+" → "+lab(n,b),{bid:b.id,f:{itemId:a.itemId||null,mark:a.mark||null,cur:cp(a.cur)}}]);
-    else if(cq(a.cur)!==cq(b.cur)) out.push(["수량",pos(n,b)+" · "+lab(n,b)+" "+q(a.cur)+" → "+q(b.cur),{bid:b.id,cur:cp(a.cur)}]);
+    else if(cq(a.cur)!==cq(b.cur)) out.push(["수량",pos(n,b)+" · "+lab(n,b)+" "+q(a.cur)+" → "+q(b.cur),{bid:b.id,cur:cp(a.cur)},{pfx:pos(n,b)+" · "+lab(n,b),q0:q(a.cur),q1:q(b.cur)}]);
     if(mixT(o,a)!==mixT(n,b)) out.push(["혼합",pos(n,b)+" · "+(mixT(n,b)||"혼합 품목 없음"),{bid:b.id,mix:cp(a.mix||null)}]);
     if(seqT(a)!==seqT(b)&&b.mark===SEQ) out.push(["시컨스 조정",pos(n,b)+" · 조정값 변경",{bid:b.id,seq:cp(a.seq||null)}]);
   });
@@ -1595,7 +1595,15 @@ function addLog(o,n){ if(SKIPLOG) return;
     if(label(a)!==label(i)) out.push(["품목 이름",label(a)+" → "+label(i)]); });
   o.items.forEach(function(a){ if(!n.items.some(function(i){return i.id===a.id;})) out.push(["품목 삭제",label(a)]); });
   var lg=(n.log||[]).filter(function(e){return e.k===key;});
-  out.forEach(function(e){ var x={id:uid(),k:key,t:now,by:by,a:e[0],x:e[1]}; if(e[2]) x.u=e[2]; lg.push(x); });
+  out.forEach(function(e){
+    /* 같은 상자 수량을 같은 사람이 3분 안에 연달아 바꾸면 한 줄로 합침 (4→3→2→1 → "4 → 1") */
+    if(e[0]==="수량"&&e[3]){ var m=e[3];
+      for(var j=lg.length-1;j>=0&&j>=lg.length-60;j--){ var o2=lg[j]; if(o2.k!==key) continue;
+        if(o2.a==="수량"&&o2.u&&o2.u.bid===e[2].bid&&o2.by===by&&!o2.done&&now-o2.t<180000&&o2.q0!==undefined){
+          if(o2.q0===m.q1) lg.splice(j,1); else { o2.x=m.pfx+" "+o2.q0+" → "+m.q1; o2.t=now; lg.push(lg.splice(j,1)[0]); }
+          return; }
+        if(o2.u&&o2.u.bid===e[2].bid) break; } }
+    var x={id:uid(),k:key,t:now,by:by,a:e[0],x:e[1]}; if(e[2]) x.u=e[2]; if(e[3]) x.q0=e[3].q0; lg.push(x); });
 
   n.log=lg.slice(-500);
 }
