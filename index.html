@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112233324";</script>
+<script>window.HG_BUILD="20261112233640";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1136,7 +1136,11 @@ function imeta(it){ var o={}; Object.keys(it).forEach(function(k){ if(k!=="cur"&
 function pracBaseAll(){ PRAC_IB={}; COMPANIES.forEach(function(c){ var m={}; S[c.id].state.items.forEach(function(it){ m[it.id]=JSON.stringify(imeta(it)); }); PRAC_IB[c.id]=m; }); }
 function isSeqInfo(it){ return it.kind==="info"&&/시[퀀컨]스/.test(it.code||""); }
 function pracItemSync(id){
-  if(retired()||(typeof GAS!=="undefined"&&GAS&&!canEdit())) return;   /* 조회 권한자: 연습 중 품목 변경도 실제에 반영 안 함 */
+  if(retired()||(typeof GAS!=="undefined"&&GAS&&!canEdit())){   /* 조회 권한자: 연습 중 품목 변경도 실제에 반영 안 함 → 안내만 */
+    var b0=PRAC_IB[id]||{}, ids={}, chg=false; S[id].state.items.forEach(function(it){ ids[it.id]=JSON.stringify(imeta(it)); if(b0[it.id]===undefined&&!isSeqInfo(it)) chg=true; });
+    Object.keys(b0).forEach(function(k){ if(ids[k]===undefined) chg=true; }); PRAC_IB[id]=ids;
+    if(chg) setTimeout(function(){ toast("연습모드라서 실제 프로그램에서는 반영되지 않습니다"); },60);
+    return; }
   var base=PRAC_IB[id], real=PRAC_REAL[id]; if(!base||!real) return;
   var items=S[id].state.items, now={}, ch=false, rmap={}; real.items.forEach(function(i){ rmap[i.id]=i; });
   items.forEach(function(it){ var m=JSON.stringify(imeta(it)); now[it.id]=m;
