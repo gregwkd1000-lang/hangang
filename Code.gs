@@ -2,9 +2,9 @@
  * 재고 약도 — 저장 서버 (구글 앱스 스크립트)
  * 이 스크립트는 구글 시트에 붙어 있어야 합니다. (시트 > 확장 프로그램 > Apps Script)
  *  - "수정권한" 시트에 등록된 사람만 이름+비밀번호로 로그인해서 볼 수 있음
- *  - 권한(C칸): 조회 = 보기만 · 수정(또는 빈칸) = 보기+고치기 · 관리자는 안상우 한 명 (고치기+백업+회원등록)
+ *  - 권한(C칸): 조회 = 보기만 · 관리자(또는 수정·빈칸) = 보기+고치기 · 마스터는 안상우 한 명 (고치기+백업+회원등록)
  */
-const ADMIN_NAME = '안상우';    // 관리자는 이 한 명뿐 (다른 회원은 조회/수정만)
+const ADMIN_NAME = '안상우';    // 마스터는 이 한 명뿐 (다른 회원은 조회/관리자만)
 const CHUNK = 40000;           // 시트 한 칸에 넣는 글자 수 (칸 한도 5만 자)
 const HIST_KEEP = 80;          // 탭마다 남길 지난 기록 수
 
@@ -68,6 +68,18 @@ function migrate3_() {
   if (!hasKang) { const r = sh.getLastRow() + 1; sh.getRange(r, 1, 1, 3).setNumberFormat('@').setValues([['강미소', '031700', '']]); }
   pr.setProperty('mig3', '1'); edDirty_();
 }
+/* 한 번만: 권한 이름 바꾸기 — 안상우 = 마스터, 수정 = 관리자 */
+function migrate4_() {
+  const pr = PropertiesService.getScriptProperties();
+  if (pr.getProperty('mig4') === '1') return;
+  const sh = editSheet_(), v = sh.getDataRange().getDisplayValues();
+  for (let i = 1; i < v.length; i++) {
+    const n = String(v[i][0]).trim(), r = String(v[i][2]).trim(); if (!n) continue;
+    if (n === ADMIN_NAME) sh.getRange(i + 1, 3).setNumberFormat('@').setValue('마스터');
+    else if (r === '' || r === '수정') sh.getRange(i + 1, 3).setNumberFormat('@').setValue('관리자');
+  }
+  pr.setProperty('mig4', '1'); edDirty_();
+}
 /* 이름(있으면)과 코드가 같은 줄에 있어야 통과. 돌려주는 값: {name, admin, row} */
 function edRows_() {   // 회원 목록 (30초 캐시: 12초마다 오는 조회 요청 때문에)
   const ck = CacheService.getScriptCache(), hit = ck.get('ed');
@@ -77,7 +89,7 @@ function edRows_() {   // 회원 목록 (30초 캐시: 12초마다 오는 조회
   return v;
 }
 function edDirty_() { try { CacheService.getScriptCache().remove('ed'); } catch (e) {} }
-function roleOf_(r) { r = String(r || '').trim(); if (r === '관리자' || r.toLowerCase() === 'admin') return 'admin'; if (r === '조회' || r.indexOf('조회') === 0) return 'view'; return 'edit'; }
+function roleOf_(r) { r = String(r || '').trim(); if (r === '마스터' || r === '관리자' || r.toLowerCase() === 'admin') return 'admin'; if (r === '조회' || r.indexOf('조회') === 0) return 'view'; return 'edit'; }
 function who_(code, name) {
   code = String(code || '').trim(); if (!code) return null;
   name = name === undefined || name === null ? '' : String(name).trim();
@@ -161,7 +173,7 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   try {
     if (p.action) {                      // 등록된 사람만 조회 가능
-      try { migrate_(); migrate3_(); } catch (err) {}
+      try { migrate_(); migrate3_(); migrate4_(); } catch (err) {}
       if (!String(p.name || '').trim() || !who_(p.code, p.name)) return out_({ ok: false, error: 'auth' });
     }
     const me = p.action ? who_(p.code, p.name) : null, role = me ? me.role : '';
@@ -178,7 +190,7 @@ function doGet(e) {
 function doPost(e) {
   let b = {};
   try { b = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: 'bad' }); }
-  try { migrate_(); migrate3_(); } catch (err) {}
+  try { migrate_(); migrate3_(); migrate4_(); } catch (err) {}
   if (b.action === 'auth') {
     if (!String(b.name || '').trim()) return out_({ ok: false, error: 'name' });   // 이름과 코드를 둘 다 넣어야 로그인
     const a = who_(b.code, b.name);
@@ -191,7 +203,7 @@ function doPost(e) {
   if (b.action === 'addUser') {         // 회원 등록: 관리자만
     if (!me.admin) return out_({ ok: false, error: 'admin' });
     const nn = String(b.newName || '').trim(), nc = String(b.newCode || '').trim();
-    const nr = b.newRole === 'view' ? '조회' : '수정';   // 관리자 권한은 줄 수 없음
+    const nr = b.newRole === 'view' ? '조회' : '관리자';   // 관리자 = 수정 가능 (마스터는 안상우 한 명)
     if (!nn || nn.length > 20) return out_({ ok: false, error: 'name' });
     if (nc.length < 4 || nc.length > 20) return out_({ ok: false, error: 'len' });
     const v = editSheet_().getDataRange().getDisplayValues();
@@ -227,7 +239,7 @@ function doPost(e) {
     const sh = editSheet_(), v = sh.getDataRange().getDisplayValues();
     for (let i = 1; i < v.length; i++) if (String(v[i][0]).trim() === tn) {
       if (b.action === 'delUser') { sh.deleteRow(i + 1); edDirty_(); logSheet_().appendRow([new Date(), name, '-', '회원 삭제: ' + tn]); return out_({ ok: true }); }
-      const nr = b.newRole === 'view' ? '조회' : '수정';   // 관리자 권한은 줄 수 없음
+      const nr = b.newRole === 'view' ? '조회' : '관리자';   // 관리자 = 수정 가능 (마스터는 안상우 한 명)
       sh.getRange(i + 1, 3).setNumberFormat('@').setValue(nr); edDirty_();
       logSheet_().appendRow([new Date(), name, '-', '권한 변경: ' + tn + ' → ' + nr]);
       return out_({ ok: true });

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112222206";</script>
+<script>window.HG_BUILD="20261112222544";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -687,7 +687,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
       <p class="hint" id="delHint" style="margin:6px 0 0"></p>
     </div>
     <details class="card" id="ilogCard" hidden>
-      <summary><h2 style="display:inline">품목 추가 · 삭제 이력 보기</h2> <small style="color:var(--muted)">(관리자만 보임 · 누르면 열림)</small></summary>
+      <summary><h2 style="display:inline">품목 추가 · 삭제 이력 보기</h2> <small style="color:var(--muted)">(마스터만 보임 · 누르면 열림)</small></summary>
       <div class="filters" id="ilogTabs" style="margin:8px 0 6px"></div>
       <div id="ilogList"></div>
     </details>
@@ -745,7 +745,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
   <input id="gtCode" type="password" inputmode="numeric" autocomplete="current-password" placeholder="비밀번호" aria-label="비밀번호">
   <p class="hint" id="gtMsg" style="min-height:1.2em"></p>
   <button class="btn primary" id="gtGo" type="button">로그인</button>
-  <p class="hint" style="margin-top:10px">회원 등록은 관리자에게 요청하세요. 한 번 로그인하면 이 기기에 기억됩니다.</p>
+  <p class="hint" style="margin-top:10px">회원 등록은 마스터에게 요청하세요. 한 번 로그인하면 이 기기에 기억됩니다.</p>
 </div></div>
 <div class="dlg imgdlg" id="imgDlg"><div class="panel" id="imgBox"></div></div>
 <div class="zv" id="zv" hidden><div class="zvbar"><span id="zvHint">두 손가락으로 확대 · 두 번 톡 치면 확대/원래대로</span><button class="btn" id="zvClose" type="button">닫기</button></div><div class="zvwrap" id="zvWrap"><img id="zvImg" alt="확대한 약도 이미지"></div></div>
@@ -928,7 +928,7 @@ function oldAdminOnly(date){ return typeof GAS!=="undefined"&&GAS&&!PRACTICE&&!E
 function snapLocked(){ return !!ui.snap&&(!!ui.snap.none||!ui.snap.state.survey.reopened||!!ui.snap.state.survey.closed||oldAdminOnly(ui.snap.date)); }
 function locked(){ if(PRACTICE) return false; if(ui.snap) return snapLocked(); return !!(S[ui.cid].state.survey&&S[ui.cid].state.survey.closed); }
 function viewOnly(){ return !!(ui.snap&&ui.snap.none)||(retired()&&!PRACTICE)||locked()||(!PRACTICE&&typeof GAS!=="undefined"&&GAS&&!canEdit()); }
-function ro(){ if(retired()&&!PRACTICE){ showMoved(); return true; } if(!PRACTICE&&GAS&&!canEdit()){ askCode(); return true; } if(ui.snap&&ui.snap.none){ toast("이 날짜에는 이 탭 기록이 없습니다"); return true; } if(locked()){ var od=ui.snap?ui.snap.date:S[ui.cid].state.survey.date; toast(oldAdminOnly(od)?"하루 지난 마감 기록은 관리자만 고칠 수 있습니다":ui.snap?"마감된 기록입니다. 마감 해제 후 고칠 수 있습니다":"마감된 회차입니다. 마감 해제 후 고칠 수 있습니다"); return true; } return false; }
+function ro(){ if(retired()&&!PRACTICE){ showMoved(); return true; } if(!PRACTICE&&GAS&&!canEdit()){ askCode(); return true; } if(ui.snap&&ui.snap.none){ toast("이 날짜에는 이 탭 기록이 없습니다"); return true; } if(locked()){ var od=ui.snap?ui.snap.date:S[ui.cid].state.survey.date; toast(oldAdminOnly(od)?"하루 지난 마감 기록은 마스터만 고칠 수 있습니다":ui.snap?"마감된 기록입니다. 마감 해제 후 고칠 수 있습니다":"마감된 회차입니다. 마감 해제 후 고칠 수 있습니다"); return true; } return false; }
 function MAP(){ var ms=ST().maps, id=ui.map[ui.cid]; for(var i=0;i<ms.length;i++) if(ms[i].id===id) return ms[i]; return ms[0]; }
 function mapName(id){ var ms=ST().maps; for(var i=0;i<ms.length;i++) if(ms[i].id===id) return ms[i].name; return ""; }
 var dbReady=false, readOnly=false;
@@ -1081,7 +1081,7 @@ function endPractice(){
 function closeDlg(){ $("imgDlg").classList.remove("on"); $("imgBox").innerHTML=""; }
 function openDataMenu(){
   var dlg=$("imgDlg"); if(dlg.classList.contains("on")) return;
-  var who=GAS?(EDIT.code?'<p style="text-align:left"><b>'+esc(EDIT.name||"")+'</b>님 · '+(EDIT.role==="view"?'조회 권한 (보기만)':EDIT.admin?'관리자':'수정 권한')+'</p>':'<p style="text-align:left">지금은 <b>보기 전용</b>입니다. 수정하려면 수정 코드를 넣으세요.</p>'):'';
+  var who=GAS?(EDIT.code?'<p style="text-align:left"><b>'+esc(EDIT.name||"")+'</b>님 · '+(EDIT.role==="view"?'조회 권한 (보기만)':EDIT.admin?'마스터':'관리자 (수정 가능)')+'</p>':'<p style="text-align:left">지금은 <b>보기 전용</b>입니다. 수정하려면 수정 코드를 넣으세요.</p>'):'';
   $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">저장 · 백업</h3>'+who+
     '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px">'+
     (GAS&&EDIT.code&&EDIT.admin?'<button class="btn primary" id="dmUser">회원등록</button>':'')+(GAS?(EDIT.code?'<button class="btn" id="dmPw">비밀번호 변경</button><button class="btn" id="dmOut">로그아웃</button>':'<button class="btn primary" id="dmCode">로그인 (이름·비밀번호)</button>'):'')+
@@ -1135,10 +1135,10 @@ async function restoreBackup(file){
 /* 회원등록 (관리자만): 이름 + 비밀번호 → 그 이름·비밀번호로 로그인 가능 */
 function askUser(){
   var ip='style="width:100%;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:4px 0;box-sizing:border-box;background:var(--surface);color:var(--ink)"';
-  $("imgBox").innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px"><h3 style="margin:0;text-align:left">회원등록</h3><button class="btn" id="nuX2" type="button" style="padding:6px 12px">닫기 ✕</button></div><p class="hint" style="text-align:left">등록한 이름과 비밀번호로 바로 로그인할 수 있습니다. <b>조회</b>는 보기만, <b>수정</b>은 보기+고치기까지 됩니다. 관리자는 안상우 한 명입니다.</p>'+
+  $("imgBox").innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px"><h3 style="margin:0;text-align:left">회원등록</h3><button class="btn" id="nuX2" type="button" style="padding:6px 12px">닫기 ✕</button></div><p class="hint" style="text-align:left">등록한 이름과 비밀번호로 바로 로그인할 수 있습니다. <b>조회</b>는 보기만, <b>관리자</b>는 보기+고치기까지 됩니다. 마스터는 안상우 한 명입니다.</p>'+
     '<input id="nuName" type="text" autocomplete="off" placeholder="이름 (예: 홍길동)" '+ip+'>'+
     '<input id="nuCode" type="text" inputmode="numeric" autocomplete="off" placeholder="비밀번호 (4자리 이상)" '+ip+'>'+
-    '<p class="hint" style="text-align:left;margin:8px 0 4px">권한</p><div class="filters" id="nuRole" style="margin-bottom:4px"><button class="chipbtn" data-nr="view" aria-pressed="false">조회만 가능</button><button class="chipbtn" data-nr="edit" aria-pressed="true">수정 가능</button></div>'+
+    '<p class="hint" style="text-align:left;margin:8px 0 4px">권한</p><div class="filters" id="nuRole" style="margin-bottom:4px"><button class="chipbtn" data-nr="view" aria-pressed="false">조회만 가능</button><button class="chipbtn" data-nr="edit" aria-pressed="true">관리자 (수정 가능)</button></div>'+
     '<p class="hint" id="nuMsg" style="min-height:1.2em;text-align:left"></p><div class="toolbar" style="justify-content:center"><button class="btn primary" id="nuGo">등록</button><button class="btn" id="nuX">닫기</button></div>'+
     '<h3 style="margin:16px 0 4px;text-align:left">회원 목록 · 권한 바꾸기</h3><p class="hint" style="text-align:left">버튼을 누르면 바로 바뀝니다. 바뀐 권한은 그 사람 화면에 1분 안에 적용됩니다.</p><div id="nuList" class="hint">불러오는 중…</div>';
   $("imgDlg").classList.add("on"); setTimeout(function(){ try{ $("nuName").focus(); }catch(e){} },50);
@@ -1149,20 +1149,20 @@ function askUser(){
     if(!n){ m.textContent="이름을 넣어 주세요"; return; } if(c.length<4){ m.textContent="비밀번호는 4자리 이상으로 넣어 주세요"; return; }
     btn.disabled=true; m.textContent="등록 중…";
     try{ var r=await apiPost({action:"addUser",name:EDIT.name,code:EDIT.code,newName:n,newCode:c,newRole:nrole});
-      if(r.ok){ m.textContent=""; $("nuName").value=""; $("nuCode").value=""; toast(n+"님을 "+({view:"조회",edit:"수정",admin:"관리자"})[nrole]+" 권한으로 등록했습니다"); loadUsers(); }
-      else m.textContent=r.error==="exists"?"이미 등록된 이름입니다":r.error==="admin"?"관리자만 등록할 수 있습니다":r.error==="len"?"비밀번호는 4~20자리로 넣어 주세요":r.error==="name"?"이름을 확인해 주세요":r.error==="auth"?"로그인이 풀렸습니다. 다시 로그인해 주세요":"등록하지 못했습니다 (서버를 새 버전으로 배포했는지 확인)";
+      if(r.ok){ m.textContent=""; $("nuName").value=""; $("nuCode").value=""; toast(n+"님을 "+({view:"조회",edit:"관리자",admin:"마스터"})[nrole]+" 권한으로 등록했습니다"); loadUsers(); }
+      else m.textContent=r.error==="exists"?"이미 등록된 이름입니다":r.error==="admin"?"마스터만 등록할 수 있습니다":r.error==="len"?"비밀번호는 4~20자리로 넣어 주세요":r.error==="name"?"이름을 확인해 주세요":r.error==="auth"?"로그인이 풀렸습니다. 다시 로그인해 주세요":"등록하지 못했습니다 (서버를 새 버전으로 배포했는지 확인)";
     }catch(e){ m.textContent="연결이 안 됩니다. 잠시 후 다시 해 보세요"; }
     btn.disabled=false;
   };
 }
-var ROLE_KO={view:"조회만",edit:"수정",admin:"관리자"};
+var ROLE_KO={view:"조회만",edit:"관리자",admin:"마스터"};
 async function loadUsers(){
   var box=$("nuList"); if(!box) return;
   try{ var r=await apiPost({action:"listUsers",name:EDIT.name,code:EDIT.code});
-    if(!r.ok){ box.textContent=r.error==="admin"?"관리자만 볼 수 있습니다":"목록을 못 불러왔습니다 (서버를 새 버전으로 배포했는지 확인)"; return; }
+    if(!r.ok){ box.textContent=r.error==="admin"?"마스터만 볼 수 있습니다":"목록을 못 불러왔습니다 (서버를 새 버전으로 배포했는지 확인)"; return; }
     var us=r.users.slice().sort(function(a,b){ return (b.name==="안상우")-(a.name==="안상우"); });   /* 안상우 맨 위, 나머지는 가입한 순서(시트 순서) */
     box.innerHTML=us.map(function(u){ var me=u.name===EDIT.name;
-      if(u.role==="admin") return '<div class="urow" data-u="'+esc(u.name)+'"><b class="un">'+esc(u.name)+(me?' <small>(나)</small>':'')+'</b><span class="filters"><button class="chipbtn" aria-pressed="true" disabled>관리자</button></span></div>';
+      if(u.role==="admin") return '<div class="urow" data-u="'+esc(u.name)+'"><b class="un">'+esc(u.name)+(me?' <small>(나)</small>':'')+'</b><span class="filters"><button class="chipbtn" aria-pressed="true" disabled>마스터</button></span></div>';
       return '<div class="urow" data-u="'+esc(u.name)+'"><b class="un">'+esc(u.name)+(me?' <small>(나)</small>':'')+'</b><span class="filters">'+
         ["view","edit"].map(function(k){ return '<button class="chipbtn" data-ur="'+k+'" aria-pressed="'+(u.role===k)+'"'+(me?' disabled':'')+'>'+ROLE_KO[k]+'</button>'; }).join("")+
         (me?'':'<button class="chipbtn" data-up="1" title="비밀번호 다시 정하기">비번</button><button class="chipbtn udel" data-ud="1" title="삭제">✕</button>')+'</span>'+
@@ -1230,7 +1230,7 @@ async function gateGo(){
 function askCode(){
   if(!GAS) return;
   var dlg=$("imgDlg"); if(dlg.classList.contains("on")) return;
-  if(EDIT.code){ if(EDIT.role==="view"){ toast("조회 권한만 있습니다 · 수정하려면 관리자에게 권한을 요청하세요"); return; } openDataMenu(); return; }
+  if(EDIT.code){ if(EDIT.role==="view"){ toast("조회 권한만 있습니다 · 수정하려면 마스터에게 권한을 요청하세요"); return; } openDataMenu(); return; }
   if(!EDIT.code){ showGate(); return; }
   if(false){
     $("imgBox").innerHTML='<h3 style="margin:4px 0 8px">'+esc(EDIT.name||"")+'님 수정 중</h3><p class="hint">이 기기에서 수정 코드를 지우면 보기 전용으로 바뀝니다.</p><div class="toolbar" style="justify-content:center"><button class="btn" id="codeOut">수정 코드 지우기</button><button class="btn primary" id="codeCancel">닫기</button></div>';
@@ -2762,12 +2762,12 @@ $("summary").addEventListener("click",function(e){
   if(e.target.closest("#closeRound")){
     if(ui.snap){ if(ui.snap.none) return; if(retired()){ showMoved(); return; } if(GAS&&!canEdit()){ askCode(); return; }
       var ssv=ui.snap.state.survey, son=!snapLocked(), snm=fmtDate(ui.snap.date)+" "+ui.snap.round+"차 기록";
-      if(oldAdminOnly(ui.snap.date)){ toast("하루 지난 마감 기록은 관리자만 마감 해제할 수 있습니다"); return; }
+      if(oldAdminOnly(ui.snap.date)){ toast("하루 지난 마감 기록은 마스터만 마감 해제할 수 있습니다"); return; }
       ask(son?snm+"을 마감할까요? 마감하면 고칠 수 없습니다.":snm+" 마감을 해제할까요? 지난 기록을 고칠 수 있게 됩니다.",son?"마감":"마감 해제",function(){
         ssv.closed=son; ssv.reopened=!son; ssv.closedAt=son?Date.now():null; ssv.closedBy=son?who():""; ui.moving=null; ui.insMode=false; closeSheet(); persist(); toast(son?snm+"을 마감했습니다":snm+" 마감을 해제했습니다 · 이제 고칠 수 있습니다");
       },"취소"); return; }
     var st=S[ui.cid].state, sv=st.survey, on=!sv.closed, nm=fmtDate(sv.date)+" "+sv.round+"차";
-    if(!on&&oldAdminOnly(sv.date)){ toast("하루 지난 마감 기록은 관리자만 마감 해제할 수 있습니다"); return; }
+    if(!on&&oldAdminOnly(sv.date)){ toast("하루 지난 마감 기록은 마스터만 마감 해제할 수 있습니다"); return; }
     /* 오늘 1차를 마감하면: 1차는 마감된 채 기록에 남고, 1차 수량 그대로 2차가 바로 시작 */
     if(on&&!PRACTICE&&+sv.round===1&&sv.date===today()&&!sv.manual){
       if(ro()) return;
