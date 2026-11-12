@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112223746";</script>
+<script>window.HG_BUILD="20261112223906";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -387,6 +387,7 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .icol{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:4px 0 12px}
 .icol button{min-width:0;height:36px;border-radius:9px;border:2px solid var(--cbd,var(--line));background:var(--cbg,var(--surface));color:var(--cfg,var(--muted));font:inherit;font-size:12px;font-weight:700;padding:0 8px}
 .icol[hidden]{display:none}
+.iidel{display:block;width:100%;margin:16px 0 4px;padding:12px;background:none;border:1px solid #e5484d;border-radius:10px;color:#e5484d;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
 .iimap{width:100%;padding:14px;font-size:17px;margin:0 0 12px}
 .icmore{width:100%;margin:-4px 0 10px;padding:8px;font-size:13px}
 .icol button.on{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
@@ -2998,6 +2999,7 @@ function renderItemInfo(s){
     (ed?'<button class="btn primary" id="iiSave" style="width:100%;margin-bottom:12px">이름·특이사항 저장</button>':'')+
     '<p class="hint" style="margin:0 0 4px"><b>약도 위치</b> · 총 <b>'+pal+'</b>파렛트'+(has?' · '+qty+'개':'')+(rows.length?' · '+rows.length+'곳':'')+'</p>'+
     (rows.length?'<div class="spots">'+rows.map(function(x){ return '<div class="spot"><span>'+esc(spotName(x.b))+'</span><b>'+(x.cur===null?'미입력':x.n+'파렛 · '+sumA(x.cur)+'개')+'</b></div>'; }).join("")+'</div>':'<p class="hint">약도에 놓인 상자가 없습니다.</p>')+
+    (ed?'<button class="iidel" id="iiDel" type="button">품목 삭제</button>':'')+
     '';
   $("shBody").innerHTML=h;
   function prev(){ var c=$("iiCode").value.trim(), a=$("iiAlias").value.trim(); $("iiPrev").textContent=c.toUpperCase()+(a?" ("+a+")":""); }
@@ -3010,6 +3012,8 @@ function renderItemInfo(s){
 
   }
   $("iiMap").onclick=function(){ closeSheet(); findOnMap(it); };
+  if($("iiDel")) $("iiDel").onclick=function(){ if(ro()) return; var nm=label(it);
+    ask("⚠️ 정말로 "+nm+" 품목을 삭제할까요? 약도에 놓인 이 품목 상자는 빈 상자로 남습니다.","예",function(){ var st=ST(); removeItem(st,it); ilogAdd(st,"del",it); closeSheet(); persist(); toast(nm+" 삭제했습니다"); },"아니오"); };
   if($("iiMore")) $("iiMore").onclick=function(){ var c2=$("iiCol2"), n=c2.querySelectorAll("button").length; c2.hidden=!c2.hidden; this.textContent=c2.hidden?'색 더보기 ('+n+'가지) ▼':'색 접기 ▲'; };
   Array.prototype.forEach.call($("shBody").querySelectorAll("[data-col]"),function(x){ x.onclick=function(){ if(ro()) return; it.color=x.dataset.col; persist(); toast(label(it)+" 상자 색: "+x.textContent); renderItemInfo(s); }; });
 }
