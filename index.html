@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112235844";</script>
+<script>window.HG_BUILD="20261113000201";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -137,7 +137,7 @@ body.practice>header{background:#fbe0ea}
 .box .stripe{height:5px;background:var(--grp,var(--mark));flex:none}
 .box .t1{font-size:9.5px;color:var(--muted);padding:2px 4px 0;line-height:1.1;font-family:var(--font-num);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .box .t2{font-size:15px;font-weight:700;padding:0 4px;line-height:1.1;font-family:var(--font-num);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.box .t2.s{font-size:12px} .box .t2.xs{font-size:10px} .box .t2.xl{font-size:20px;font-weight:800;letter-spacing:.5px}
+.box .t2.s{font-size:12px} .box .t2.xs{font-size:10px}
 .box .t3{font-size:11px;padding:0 4px 3px;line-height:1.15;font-family:var(--font-num);color:var(--muted);white-space:nowrap}
 .box .t3 b{color:var(--ink)}
 .btn.logbtn{background:#1d5fd1;border-color:#1d5fd1;color:#fff;font-weight:700;padding-left:22px;padding-right:22px}
@@ -453,6 +453,14 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 #grid .box .flag + .donemark{right:calc(5px + max(10px,calc(var(--cell) * .227)))}
 .box .flag + .donemark{right:21px}
 #grid .donemark{top:max(3px,calc(var(--cell) * .1));width:max(10px,calc(var(--cell) * .242));height:max(10px,calc(var(--cell) * .242));font-size:max(7px,calc(var(--cell) * .152))}
+.box.notop .t2{font-weight:800}
+.box.notop .t2.n3{font-size:20px} .box.notop .t2.n4{font-size:17px} .box.notop .t2.n5{font-size:14.5px} .box.notop .t2.n7{font-size:12px} .box.notop .t2.n9{font-size:10px}
+#grid .box.notop .t2.n3{font-size:max(9px,calc(var(--cell) * .30))}
+#grid .box.notop .t2.n4{font-size:max(8.5px,calc(var(--cell) * .255))}
+#grid .box.notop .t2.n5{font-size:max(8px,calc(var(--cell) * .215))}
+#grid .box.notop .t2.n7{font-size:max(7px,calc(var(--cell) * .175))}
+#grid .box.notop .t2.n9{font-size:max(6.5px,calc(var(--cell) * .14))}
+.box.notop{justify-content:center}
 #grid .box .t1,#grid .box .t2,#grid .box .t3{padding-left:max(2px,calc(var(--cell) * .06));padding-right:max(2px,calc(var(--cell) * .06))}
 .box.half .flag,.box.half .donemark{width:14px;height:14px;min-width:14px;font-size:9px}
 .box.half.mark,.box.half.unset{font-size:11px}
@@ -1693,15 +1701,16 @@ function renderMap(){ PALC=null; try{ renderGlog(); }catch(e){}
     if(b.mark){ return '<button class="cell box mark'+(b.mark==="공용기"?" gong":"")+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+esc(b.mark)+'</button>'; }
     var it=b.itemId?item(b.itemId):null;
     if(!it){ return '<button class="cell box unset'+half+(two?" twobox":"")+pc+(b.fixed?" fixed":"")+sel+'" data-b="'+b.id+'">'+tl+'<span class="emptylbl">빈렉or<br>타업체</span></button>'; }
-    var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":(C().codeBig&&sp[1].length<=4?" xl":"");
+    var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":"";
     var mixN=(b.mix||[]).length, mixSum=(b.mix||[]).reduce(function(a,m){return a+(m.cur?sumA(m.cur):0);},0), mixHas=(b.mix||[]).some(function(m){return m.cur!==null;});
     var multi=boxesOf(it.id).length>1||it.cur!==null||seqDed(it.id)!==0||mixOf(it.id).length>0, mine=b.cur===null?null:sumA(b.cur), line;
     if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>'):('<b>'+mine+'</b>'+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>');
     else line=t===null?('이전 <b>'+(it.prev===null?"-":it.prev)+'</b>'):('–/'+t);
     if(mine===null&&!mixHas) stt="todo";
-    var bc=b.bg?"":colorOf(it);
-    return '<button class="cell box'+half+(b.fixed?" fixed":"")+' '+(stt==="todo"?"":stt)+((mine!==null||mixHas)?" has":"")+(mixN?" mixed":"")+(isTwo(mp,r)?" twobox":"")+(bc?" colored c-"+bc:"")+pc+sel+'" style="--grp:'+grp(it.group).color+'" data-b="'+b.id+'" aria-label="'+esc(label(it))+'">'+
-       tl+'<span class="stripe"></span><span class="t1">'+(mixN?'<b class="mixt1">혼합+'+mixN+'</b>':esc(sp[0]))+'</span><span class="t2'+sz+'">'+esc(sp[1])+'</span><span class="t3">'+line+'</span>'+
+    var bc=b.bg?"":colorOf(it), noTop=!mixN&&["plant2","plant5"].indexOf(ui.cid)<0;   /* 2공장·5공장 말고는 위 작은 글씨 빼고 가운데 글씨 크게 */
+    if(noTop){ var L2=sp[1].length; sz=" n"+(L2<=3?3:L2<=4?4:L2<=5?5:L2<=7?7:9); }
+    return '<button class="cell box'+(noTop?" notop":"")+half+(b.fixed?" fixed":"")+' '+(stt==="todo"?"":stt)+((mine!==null||mixHas)?" has":"")+(mixN?" mixed":"")+(isTwo(mp,r)?" twobox":"")+(bc?" colored c-"+bc:"")+pc+sel+'" style="--grp:'+grp(it.group).color+'" data-b="'+b.id+'" aria-label="'+esc(label(it))+'">'+
+       tl+'<span class="stripe"></span>'+(noTop?'':'<span class="t1">'+(mixN?'<b class="mixt1">혼합+'+mixN+'</b>':esc(sp[0]))+'</span>')+'<span class="t2'+sz+'">'+esc(sp[1])+'</span><span class="t3">'+line+'</span>'+
        (it.note?'<span class="flag">!</span>':'')+(b.chk&&b.chk===chkKey()?'<span class="donemark" aria-label="확인함">✓</span>':'')+'</button>';
   }
   for(var ri=0;ri<mp.rows;ri++) for(var ci=0;ci<mp.cols;ci++){ var r=fl.v?mp.rows-1-ri:ri, c=fl.h?mp.cols-1-ci:ci;
