@@ -1,8 +1,8 @@
 /**
  * 재고 약도 — 저장 서버 (구글 앱스 스크립트)
  * 이 스크립트는 구글 시트에 붙어 있어야 합니다. (시트 > 확장 프로그램 > Apps Script)
- *  - 보기: 누구나 (로그인 없음)
- *  - 저장: "수정권한" 시트에 적힌 이름+코드(비밀번호)가 맞는 사람만 · 권한 칸이 "관리자"면 백업 불러오기 가능
+ *  - "수정권한" 시트에 등록된 사람만 이름+비밀번호로 로그인해서 볼 수 있음
+ *  - 권한(C칸): 조회 = 보기만 · 수정(또는 빈칸) = 보기+고치기 · 관리자 = 고치기+백업+회원등록
  */
 const CHUNK = 40000;           // 시트 한 칸에 넣는 글자 수 (칸 한도 5만 자)
 const HIST_KEEP = 80;          // 탭마다 남길 지난 기록 수
@@ -51,7 +51,7 @@ function migrate_() {
     if (n === '안상우') { hasAdmin = true; sh.getRange(i + 1, 3).setValue('관리자'); }
   }
   if (!hasAdmin) { const r = sh.getLastRow() + 1; sh.getRange(r, 1, 1, 3).setNumberFormat('@').setValues([['안상우', '031700', '관리자']]); }
-  pr.setProperty('mig2', '1');
+  pr.setProperty('mig2', '1'); edDirty_();
 }
 /* 한 번만: 강미소 계정 추가(031700), 윤명희 비밀번호 123456으로 */
 function migrate3_() {
@@ -65,16 +65,25 @@ function migrate3_() {
     if (n === '강미소') { hasKang = true; sh.getRange(i + 1, 2).setNumberFormat('@').setValue('031700'); }
   }
   if (!hasKang) { const r = sh.getLastRow() + 1; sh.getRange(r, 1, 1, 3).setNumberFormat('@').setValues([['강미소', '031700', '']]); }
-  pr.setProperty('mig3', '1');
+  pr.setProperty('mig3', '1'); edDirty_();
 }
 /* 이름(있으면)과 코드가 같은 줄에 있어야 통과. 돌려주는 값: {name, admin, row} */
+function edRows_() {   // 회원 목록 (30초 캐시: 12초마다 오는 조회 요청 때문에)
+  const ck = CacheService.getScriptCache(), hit = ck.get('ed');
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  const v = editSheet_().getDataRange().getDisplayValues();
+  try { ck.put('ed', JSON.stringify(v), 30); } catch (e) {}
+  return v;
+}
+function edDirty_() { try { CacheService.getScriptCache().remove('ed'); } catch (e) {} }
+function roleOf_(r) { r = String(r || '').trim(); if (r === '관리자' || r.toLowerCase() === 'admin') return 'admin'; if (r === '조회' || r.indexOf('조회') === 0) return 'view'; return 'edit'; }
 function who_(code, name) {
   code = String(code || '').trim(); if (!code) return null;
   name = name === undefined || name === null ? '' : String(name).trim();
-  const v = editSheet_().getDataRange().getDisplayValues();
+  const v = edRows_();
   for (let i = 1; i < v.length; i++) {
-    const n = String(v[i][0]).trim(), c = String(v[i][1]).trim(), role = String(v[i][2] || '').trim();
-    if (n && c && c === code && (!name || name === n)) return { name: n, admin: role === '관리자' || role.toLowerCase() === 'admin', row: i + 1 };
+    const n = String(v[i][0]).trim(), c = String(v[i][1]).trim(), role = roleOf_(v[i][2]);
+    if (n && c && c === code && (!name || name === n)) return { name: n, admin: role === 'admin', role: role, row: i + 1 };
   }
   return null;
 }
@@ -149,9 +158,14 @@ function log_(name, cid, text) {
 function doGet(e) {
   const p = (e && e.parameter) || {};
   try {
+    if (p.action) {                      // 등록된 사람만 조회 가능
+      try { migrate_(); migrate3_(); } catch (err) {}
+      if (!String(p.name || '').trim() || !who_(p.code, p.name)) return out_({ ok: false, error: 'auth' });
+    }
+    const me = p.action ? who_(p.code, p.name) : null, role = me ? me.role : '';
     switch (p.action) {
-      case 'ver':  return out_({ ok: true, vers: versions_() });
-      case 'all':  return out_({ ok: true, docs: readDocs_() });
+      case 'ver':  return out_({ ok: true, vers: versions_(), role: role });
+      case 'all':  return out_({ ok: true, docs: readDocs_(), role: role });
       case 'docs': return out_({ ok: true, docs: readDocs_(String(p.cids || '').split(',')) });
       case 'hist': return out_({ ok: true, items: readHist_(String(p.cid || ''), +p.limit || 60) });
       default:     return out_({ ok: true, app: '재고 약도 저장 서버' });
@@ -166,28 +180,51 @@ function doPost(e) {
   if (b.action === 'auth') {
     if (!String(b.name || '').trim()) return out_({ ok: false, error: 'name' });   // 이름과 코드를 둘 다 넣어야 로그인
     const a = who_(b.code, b.name);
-    return out_({ ok: !!a, name: a ? a.name : '', admin: a ? a.admin : false });
+    return out_({ ok: !!a, name: a ? a.name : '', admin: a ? a.admin : false, role: a ? a.role : '' });
   }
   const me = who_(b.code, b.name);
   if (!me) return out_({ ok: false, error: 'auth' });
   const name = me.name;
+  if ((b.action === 'set' || b.action === 'hist' || b.action === 'histBulk') && me.role === 'view') return out_({ ok: false, error: 'view' });
   if (b.action === 'addUser') {         // 회원 등록: 관리자만
     if (!me.admin) return out_({ ok: false, error: 'admin' });
     const nn = String(b.newName || '').trim(), nc = String(b.newCode || '').trim();
+    const nr = b.newRole === 'admin' ? '관리자' : b.newRole === 'view' ? '조회' : '수정';
     if (!nn || nn.length > 20) return out_({ ok: false, error: 'name' });
     if (nc.length < 4 || nc.length > 20) return out_({ ok: false, error: 'len' });
     const v = editSheet_().getDataRange().getDisplayValues();
     for (let i = 1; i < v.length; i++) if (String(v[i][0]).trim() === nn) return out_({ ok: false, error: 'exists' });
     const sh = editSheet_(), r = sh.getLastRow() + 1;
-    sh.getRange(r, 1, 1, 3).setNumberFormat('@').setValues([[nn, nc, '']]);
-    logSheet_().appendRow([new Date(), name, '-', '회원 등록: ' + nn]);
+    sh.getRange(r, 1, 1, 3).setNumberFormat('@').setValues([[nn, nc, nr]]);
+    edDirty_();
+    logSheet_().appendRow([new Date(), name, '-', '회원 등록: ' + nn + ' (' + nr + ')']);
     return out_({ ok: true });
+  }
+  if (b.action === 'listUsers') {       // 회원 목록: 관리자만 (비밀번호는 보내지 않음)
+    if (!me.admin) return out_({ ok: false, error: 'admin' });
+    const v = editSheet_().getDataRange().getDisplayValues(), us = [];
+    for (let i = 1; i < v.length; i++) { const n = String(v[i][0]).trim(); if (n && String(v[i][1]).trim()) us.push({ name: n, role: roleOf_(v[i][2]) }); }
+    return out_({ ok: true, users: us });
+  }
+  if (b.action === 'setRole' || b.action === 'delUser') {   // 권한 바꾸기 / 회원 삭제: 관리자만
+    if (!me.admin) return out_({ ok: false, error: 'admin' });
+    const tn = String(b.target || '').trim(); if (!tn) return out_({ ok: false, error: 'name' });
+    if (tn === name) return out_({ ok: false, error: 'self' });     // 자기 자신은 못 바꿈 (관리자가 0명 되는 것 방지)
+    const sh = editSheet_(), v = sh.getDataRange().getDisplayValues();
+    for (let i = 1; i < v.length; i++) if (String(v[i][0]).trim() === tn) {
+      if (b.action === 'delUser') { sh.deleteRow(i + 1); edDirty_(); logSheet_().appendRow([new Date(), name, '-', '회원 삭제: ' + tn]); return out_({ ok: true }); }
+      const nr = b.newRole === 'admin' ? '관리자' : b.newRole === 'view' ? '조회' : '수정';
+      sh.getRange(i + 1, 3).setNumberFormat('@').setValue(nr); edDirty_();
+      logSheet_().appendRow([new Date(), name, '-', '권한 변경: ' + tn + ' → ' + nr]);
+      return out_({ ok: true });
+    }
+    return out_({ ok: false, error: 'none' });
   }
   if (b.action === 'passwd') {          // 비밀번호(수정 코드) 바꾸기: 기존 코드가 맞아야 함
     const nc = String(b.newCode || '').trim();
     if (nc.length < 4 || nc.length > 20) return out_({ ok: false, error: 'len' });
     // 다른 사람과 같은 비밀번호여도 됨 (로그인할 때 이름으로 구분)
-    editSheet_().getRange(me.row, 2).setNumberFormat('@').setValue(nc);
+    editSheet_().getRange(me.row, 2).setNumberFormat('@').setValue(nc); edDirty_();
     logSheet_().appendRow([new Date(), name, '-', '비밀번호 변경']);
     return out_({ ok: true });
   }
