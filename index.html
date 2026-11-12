@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112222852";</script>
+<script>window.HG_BUILD="20261112223205";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -166,8 +166,13 @@ body.gated>header,body.gated>main{display:none}
 .iltab{width:100%;border-collapse:collapse;font-size:13px}
 .iltab th,.iltab td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
 .iltab th{color:var(--muted);font-weight:600}
-.iltab td:first-child{white-space:nowrap;font-family:var(--font-num)}
+.iltab td:first-child{font-family:var(--font-num);font-size:12px;line-height:1.3}
+.iltab td:nth-child(2){white-space:nowrap}
+.iltab td:nth-child(3){font-size:12px}
 .ila{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:6px;color:#fff}
+.ilbt{text-align:right!important;white-space:nowrap}
+.ilb{font:inherit;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;border:0;color:#fff;cursor:pointer}
+.ilb.del{background:#e5484d}.ilb.res{background:#2f6fde}
 .ila.add{background:#2f9e5b}.ila.del{background:#e5484d}
 .loglist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .logrow{display:flex;gap:10px;padding:8px 10px;border-top:1px solid var(--line);font-size:13px;line-height:1.35}
@@ -841,7 +846,7 @@ function normalize(c,s){
   var sv=s.survey&&/^\d{4}-\d{2}-\d{2}$/.test(s.survey.date)&&+s.survey.round>0?{date:s.survey.date,round:+s.survey.round,closed:!!s.survey.closed,manual:!!s.survey.manual,filled:!!s.survey.filled,closedAt:+s.survey.closedAt||null,closedBy:s.survey.closedBy?String(s.survey.closedBy):"",editedAt:+s.survey.editedAt||null,editedBy:s.survey.editedBy?String(s.survey.editedBy):"",reopened:!!s.survey.reopened}:{date:today(),round:1};
   var st={v:4,seedV:+s.seedV||1,survey:sv,maps:maps,
     unitV:+s.unitV||1,
-    ilog:(Array.isArray(s.ilog)?s.ilog:[]).filter(function(e){return e&&e.a;}).slice(-300).map(function(e){return {t:+e.t||0,by:String(e.by||""),a:String(e.a),c:String(e.c||""),al:String(e.al||""),g:String(e.g||"")};}),
+    ilog:(Array.isArray(s.ilog)?s.ilog:[]).filter(function(e){return e&&e.a;}).slice(-300).map(function(e){var o={t:+e.t||0,by:String(e.by||""),a:String(e.a),c:String(e.c||""),al:String(e.al||""),g:String(e.g||"")}; if(e.id) o.id=String(e.id); if(e.it&&typeof e.it==="object") o.it=e.it; if(e.r) o.r=1; return o;}),
     log:(Array.isArray(s.log)?s.log:[]).filter(function(e){return e&&e.id&&e.k;}).slice(-600).map(function(e){return {id:String(e.id),k:String(e.k),t:+e.t||0,by:String(e.by||""),a:String(e.a||""),x:String(e.x||"")};}),
     items:s.items.filter(function(i){return i&&i.id&&i.code;}).map(function(i){
       var info=i.kind==="info";
@@ -912,17 +917,46 @@ var APP_URL="https://gregwkd1000-lang.github.io/hangang/?v=3";
 function retired(){ return !!(window.claude&&window.claude.use); }
 /* 지난 날짜(하루 지난) 마감 기록은 관리자만 마감 해제·수정 가능 */
 /* 품목 추가·삭제 이력 (관리자만 봄) */
-function ilogAdd(st,a,it){ if(!st||!it) return; st.ilog=(st.ilog||[]).concat([{t:Date.now(),by:who(),a:a,c:it.code||"",al:it.alias||"",g:it.group||""}]).slice(-300); }
+function ilogAdd(st,a,it,undo){ if(!st||!it) return; var e={t:Date.now(),by:who(),a:a,c:it.code||"",al:it.alias||"",g:it.group||"",id:it.id,it:imeta(it)}; if(undo) e.r=1; st.ilog=(st.ilog||[]).concat([e]).slice(-300); }
+/* 품목 지우기 (약도 상자는 빈 상자로, 섞인 상자에서는 그 품목만 빠짐) */
+function removeItem(st,it){
+  st.boxes.forEach(function(b){
+    if(b.mix) b.mix=b.mix.filter(function(m){return m.itemId!==it.id;});
+    if(b.itemId===it.id){ if(b.mix&&b.mix.length){ var m=b.mix.shift(); b.itemId=m.itemId; b.cur=m.cur; } else { b.itemId=null; b.cur=null; } }
+    if(b.seq&&b.seq[it.id]){ delete b.seq[it.id]; if(!Object.keys(b.seq).length) b.seq=null; }
+    if(b.seqInfo===it.id) b.seqInfo=null;
+  });
+  st.items=st.items.filter(function(x){return x.id!==it.id;});
+}
+/* 이력에서 되돌리기: 추가된 품목은 삭제, 삭제된 품목은 복원 (마스터만) */
+function ilogUndo(cid,t){
+  if(!EDIT.admin){ toast("마스터만 할 수 있습니다"); return; } if(PRACTICE){ toast("연습모드를 끝낸 뒤에 해 주세요"); return; }
+  var st=S[cid].state, e=(st.ilog||[]).filter(function(x){return x.t===+t;})[0]; if(!e) return;
+  var nm=e.c+(e.al?" ("+e.al+")":""), tab=CMAP[cid].name;
+  if(e.a==="add"){
+    var it=st.items.filter(function(x){ return e.id?x.id===e.id:(x.code===e.c&&x.group===e.g); })[0]; if(!it){ toast("이미 없는 품목입니다"); return; }
+    ask(tab+" · "+nm+" 품목을 삭제할까요? 약도에 놓인 상자는 빈 상자로 남습니다.","삭제",function(){ removeItem(st,it); ilogAdd(st,"del",it,true); persistId(cid); toast(nm+" 삭제했습니다"); },"취소");
+  } else {
+    if(!e.it){ toast("예전 기록이라 복원할 내용이 없습니다"); return; }
+    if(st.items.some(function(x){ return x.id===e.it.id||(x.code===e.it.code&&x.group===e.it.group); })){ toast("이미 같은 품목이 있습니다"); return; }
+    ask(tab+" · "+nm+" 품목을 복원할까요? 품목만 되살아나고 약도 상자는 다시 놓아야 합니다.","복원",function(){ var n=JSON.parse(JSON.stringify(e.it)); n.cur=null; n.prev=null; if(!CMAP[cid].groups.some(function(g){return g.k===n.group;})) n.group=(CMAP[cid].groups[0]||{}).k||n.group; st.items.push(n); ilogAdd(st,"add",n,true); persistId(cid); toast(nm+" 복원했습니다"); },"취소");
+  }
+}
 var ILOG_ALL=true;
+function ilBtn(r){ var e=r.e, st=r.st;
+  var has=st.items.some(function(x){ return e.id?x.id===e.id:(x.code===e.c&&x.group===e.g); });
+  if(e.a==="add") return has?'<button class="ilb del" data-ilu="'+r.c.id+'|'+e.t+'">삭제</button>':'<small class="hint">없음</small>';
+  if(has) return '<small class="hint">있음</small>';
+  return e.it?'<button class="ilb res" data-ilu="'+r.c.id+'|'+e.t+'">복원</button>':'<small class="hint">-</small>'; }
 function renderIlog(){
   var card=$("ilogCard"); if(!card) return; var show=!!(EDIT&&EDIT.admin)||(typeof GAS!=="undefined"&&!GAS&&false);
   card.hidden=!show; if(!show) return;
   $("ilogTabs").innerHTML='<button class="chipbtn" data-il="all" aria-pressed="'+ILOG_ALL+'">모든 탭</button><button class="chipbtn" data-il="cur" aria-pressed="'+!ILOG_ALL+'">'+esc(C().name)+'만</button>';
-  var rows=[]; COMPANIES.forEach(function(c){ if(!ILOG_ALL&&c.id!==ui.cid) return; var st=(PRACTICE&&PRAC_REAL[c.id])?PRAC_REAL[c.id]:S[c.id].state; (st.ilog||[]).forEach(function(e){ rows.push({e:e,c:c}); }); });
+  var rows=[]; COMPANIES.forEach(function(c){ if(!ILOG_ALL&&c.id!==ui.cid) return; var st=(PRACTICE&&PRAC_REAL[c.id])?PRAC_REAL[c.id]:S[c.id].state; (st.ilog||[]).forEach(function(e){ rows.push({e:e,c:c,st:st}); }); });
   rows.sort(function(a,b){ return b.e.t-a.e.t; });
   var gname=function(c,k){ var g=(c.groups||[]).filter(function(x){return x.k===k;})[0]; return g?g.name:""; };
-  $("ilogList").innerHTML=rows.length?'<table class="iltab"><tr><th>언제</th><th>누가</th><th>탭</th><th>내용</th></tr>'+rows.slice(0,300).map(function(r){ var e=r.e, d=new Date(e.t), p=function(n){return (n<10?"0":"")+n;};
-    return '<tr><td>'+(d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes())+'</td><td>'+esc(e.by||"-")+'</td><td>'+esc(r.c.name)+'</td><td><span class="ila '+(e.a==="add"?"add":"del")+'">'+(e.a==="add"?"추가":"삭제")+'</span> '+esc(e.c)+(e.al?' <small>('+esc(e.al)+')</small>':'')+(gname(r.c,e.g)?' <small>· '+esc(gname(r.c,e.g))+'</small>':'')+'</td></tr>'; }).join("")+'</table>':'<p class="hint">아직 이력이 없습니다. 지금부터 품목을 추가·삭제하면 여기에 남습니다.</p>';
+  $("ilogList").innerHTML=rows.length?'<table class="iltab"><tr><th>언제</th><th>누가</th><th>탭</th><th>내용</th><th></th></tr>'+rows.slice(0,300).map(function(r){ var e=r.e, d=new Date(e.t), p=function(n){return (n<10?"0":"")+n;};
+    return '<tr><td>'+(d.getMonth()+1)+'/'+d.getDate()+'<br>'+p(d.getHours())+':'+p(d.getMinutes())+'</td><td>'+esc(e.by||"-")+'</td><td>'+esc(r.c.name)+'</td><td><span class="ila '+(e.a==="add"?"add":"del")+'">'+(e.a==="add"?"추가":"삭제")+'</span> '+esc(e.c)+(e.al?' <small>('+esc(e.al)+')</small>':'')+(gname(r.c,e.g)?' <small>· '+esc(gname(r.c,e.g))+'</small>':'')+(e.r?' <small>(되돌림)</small>':'')+'</td><td class="ilbt">'+ilBtn(r)+'</td></tr>'; }).join("")+'</table>':'<p class="hint">아직 이력이 없습니다. 지금부터 품목을 추가·삭제하면 여기에 남습니다.</p>';
 }
 function oldAdminOnly(date){ return typeof GAS!=="undefined"&&GAS&&!PRACTICE&&!EDIT.admin&&!!date&&date<today(); }
 function snapLocked(){ return !!ui.snap&&(!!ui.snap.none||!ui.snap.state.survey.reopened||!!ui.snap.state.survey.closed||oldAdminOnly(ui.snap.date)); }
@@ -2962,19 +2996,13 @@ function delHint(){ var it=item($("delSel").value), h=$("delHint"); if(!it){ h.t
   var n=ST().boxes.filter(function(b){ return b.itemId===it.id||(b.mix||[]).some(function(m){return m.itemId===it.id;}); }).length;
   h.textContent=n?"약도에 이 품목 상자가 "+n+"곳 있습니다. 삭제하면 그 칸은 빈렉or타업체 상자로 남습니다.":"약도에 놓인 상자는 없습니다."; }
 $("delSel").onchange=delHint;
+$("ilogList").addEventListener("click",function(e){ var b=e.target.closest("[data-ilu]"); if(!b) return; var p=b.dataset.ilu.split("|"); ilogUndo(p[0],p[1]); });
 $("ilogTabs").addEventListener("click",function(e){ var b=e.target.closest("[data-il]"); if(!b) return; ILOG_ALL=b.dataset.il==="all"; renderIlog(); });
 $("delItem").onclick=function(){
   if(ro()) return; var it=item($("delSel").value); if(!it){ toast("삭제할 품목을 고르세요"); return; }
   var nm=it.kind==="info"?it.code:label(it);
   ask(nm+" 품목을 삭제할까요? 수량·특이사항도 함께 지워집니다.","삭제",function(){
-    var st=ST();
-    st.boxes.forEach(function(b){
-      if(b.mix) b.mix=b.mix.filter(function(m){return m.itemId!==it.id;});
-      if(b.itemId===it.id){ if(b.mix&&b.mix.length){ var m=b.mix.shift(); b.itemId=m.itemId; b.cur=m.cur; } else { b.itemId=null; b.cur=null; } }
-      if(b.seq&&b.seq[it.id]){ delete b.seq[it.id]; if(!Object.keys(b.seq).length) b.seq=null; }
-      if(b.seqInfo===it.id) b.seqInfo=null;
-    });
-    st.items=st.items.filter(function(x){return x.id!==it.id;}); ilogAdd(st,"del",it);
+    var st=ST(); removeItem(st,it); ilogAdd(st,"del",it);
     $("delSel").value=""; persist(); toast(nm+" 삭제했습니다");
   },"취소");
 };
