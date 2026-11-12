@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112112837";</script>
+<script>window.HG_BUILD="20261112113536";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1286,6 +1286,7 @@ function colorOf(it){ if(typeof it.color==="string") return it.color; var c=C().
 function codeHTML(it){ var c=colorOf(it), t=esc(it.code)+(it.alias?' <small>('+esc(it.alias)+')</small>':''); return c?'<span class="cchip c-'+c+'">'+t+'</span>':t; }
 function label(it){ return it.code+(it.alias?" ("+it.alias+")":""); }
 function splitCode(it){
+  if(it.alias&&String(it.code).replace(/\s+/g,"")==="공용기") return [it.alias,it.code]; /* 공용기는 크게, 라인·외부는 위에 작게 */
   if(it.alias) return [it.code,it.alias];
   var c=it.code, i=c.lastIndexOf(" "); if(i>0) return [c.slice(0,i),c.slice(i+1)];
   i=c.lastIndexOf("-"); if(i>0) return [c.slice(0,i),c.slice(i+1)];
