@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113002524";</script>
+<script>window.HG_BUILD="20261113002719";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1719,7 +1719,8 @@ function renderMap(){ PALC=null; try{ renderGlog(); }catch(e){}
     else line=t===null?('이전 <b>'+(it.prev===null?"-":it.prev)+'</b>'):('–/'+t);
     if(mine===null&&!mixHas) stt="todo";
     var bc=b.bg?"":colorOf(it), noTop=!mixN&&["plant2","plant5"].indexOf(ui.cid)<0;   /* 2공장·5공장 말고는 위 작은 글씨 빼고 가운데 글씨 크게 */
-    if(noTop){ var L2=sp[1].length; sz=" n"+(L2<=3?3:L2<=4?4:L2<=5?5:L2<=7?7:9); }
+    if(noTop){ var L2=0; for(var ci=0;ci<sp[1].length;ci++) L2+=sp[1].charCodeAt(ci)>=0x1100?1.75:1;   /* 한글은 폭이 넓어서 1.75자로 셈 */
+      sz=" n"+(L2<=3?3:L2<=4?4:L2<=5.5?5:L2<=7?7:9); }
     return '<button class="cell box'+(noTop?" notop":"")+half+(b.fixed?" fixed":"")+' '+(stt==="todo"?"":stt)+((mine!==null||mixHas)?" has":"")+(mixN?" mixed":"")+(isTwo(mp,r)?" twobox":"")+(bc?" colored c-"+bc:"")+pc+sel+'" style="--grp:'+grp(it.group).color+'" data-b="'+b.id+'" aria-label="'+esc(label(it))+'">'+
        tl+'<span class="stripe"></span>'+(noTop?'':'<span class="t1">'+(mixN?'<b class="mixt1">혼합+'+mixN+'</b>':esc(sp[0]))+'</span>')+'<span class="t2'+sz+'">'+esc(sp[1])+'</span><span class="t3">'+line+'</span>'+
        (it.note?'<span class="flag">!</span>':'')+(b.chk&&b.chk===chkKey()?'<span class="donemark" aria-label="확인함">✓</span>':'')+'</button>';
