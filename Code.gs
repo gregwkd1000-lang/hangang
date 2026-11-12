@@ -206,6 +206,18 @@ function doPost(e) {
     for (let i = 1; i < v.length; i++) { const n = String(v[i][0]).trim(); if (n && String(v[i][1]).trim()) us.push({ name: n, role: roleOf_(v[i][2]) }); }
     return out_({ ok: true, users: us });
   }
+  if (b.action === 'resetPw') {         // 관리자가 다른 사람 비밀번호 새로 정해 주기
+    if (!me.admin) return out_({ ok: false, error: 'admin' });
+    const tn = String(b.target || '').trim(), nc = String(b.newCode || '').trim();
+    if (nc.length < 4 || nc.length > 20) return out_({ ok: false, error: 'len' });
+    const sh = editSheet_(), v = sh.getDataRange().getDisplayValues();
+    for (let i = 1; i < v.length; i++) if (String(v[i][0]).trim() === tn) {
+      sh.getRange(i + 1, 2).setNumberFormat('@').setValue(nc); edDirty_();
+      logSheet_().appendRow([new Date(), name, '-', '비밀번호 재지정: ' + tn]);
+      return out_({ ok: true });
+    }
+    return out_({ ok: false, error: 'none' });
+  }
   if (b.action === 'setRole' || b.action === 'delUser') {   // 권한 바꾸기 / 회원 삭제: 관리자만
     if (!me.admin) return out_({ ok: false, error: 'admin' });
     const tn = String(b.target || '').trim(); if (!tn) return out_({ ok: false, error: 'name' });
