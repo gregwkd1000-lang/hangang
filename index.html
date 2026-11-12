@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112113536";</script>
+<script>window.HG_BUILD="20261112131450";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1533,7 +1533,7 @@ function renderAll(){ renderCtabs(); renderHeader(); renderMap(); if(ui.view==="
 
 /* ---------- sheet ---------- */
 function resetPageZoom(){ var v=window.visualViewport; if(!v||v.scale<=1.01) return; var m=document.querySelector('meta[name="viewport"]'); if(!m) return; var c=m.content; m.content=c.replace("maximum-scale=1","maximum-scale=1.01"); setTimeout(function(){ m.content=c; },50); }
-function openSheet(s){ resetPageZoom(); ui.sheet=s; $("scrim").classList.add("on"); $("sheet").classList.add("on"); renderSheet(); }
+function openSheet(s){ resetPageZoom(); ui.sheet=s; $("scrim").classList.add("on"); $("sheet").classList.add("on"); renderSheet(); /* 새로 열 때는 항상 맨 위부터 */ [$("shBody"),$("shBody").parentNode,$("sheet")].forEach(function(e){ if(e) e.scrollTop=0; }); }
 function closeSheet(){ ui.sheet=null; $("scrim").classList.remove("on"); $("sheet").classList.remove("on"); }
 $("scrim").onclick=closeSheet; $("shClose").onclick=closeSheet;
 function each(sel,fn){ Array.prototype.forEach.call($("shBody").querySelectorAll(sel),fn); }
