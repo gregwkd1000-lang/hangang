@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113003432";</script>
+<script>window.HG_BUILD="20261113052536";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -948,7 +948,7 @@ COMPANIES.forEach(function(c){
   if(!st){ try{ var raw=localStorage.getItem(lsKey(c.id)); if(raw) st=normalize(c,JSON.parse(raw)); }catch(e){} }
   if(!st&&EMB&&EMB.states&&EMB.states[c.id]){ try{ st=normalize(c,JSON.parse(JSON.stringify(EMB.states[c.id]))); }catch(e){} }
   if(!st){ st=seedState(c); fresh=true; if(CARRY[c.id]){ st.items=CARRY[c.id].items; st.boxes=CARRY[c.id].boxes; delete CARRY[c.id]; } }
-  S[c.id]={state:st,fresh:fresh,ref:null,saving:false,dirty:false,timer:null,got:false,err:null};
+  S[c.id]={state:st,fresh:fresh,loc0:!fresh,ref:null,saving:false,dirty:false,timer:null,got:false,err:null};
 });
 var ui={cid:"plant5",view:"map",place:true,zoom:1,filter:"all",q:"",out:"cur",sheet:null,moving:null,map:{}};
 try{ var mm=JSON.parse(localStorage.getItem("stockmap-mapsel")||"{}"); if(mm&&typeof mm==="object") ui.map=mm; }catch(e){}
@@ -1058,8 +1058,10 @@ var EDIT={}; try{ EDIT=JSON.parse(localStorage.getItem("stockmap-editor")||"{}")
 function canEdit(){ return !GAS||(!!EDIT.code&&EDIT.role!=="view"); }
 function isViewer(){ return GAS&&!!EDIT.code&&EDIT.role==="view"; }
 var SHADOW={}, VER={};
-function apiGet(p){ if(EDIT&&EDIT.code){ p.name=EDIT.name||""; p.code=EDIT.code; } var q=Object.keys(p).map(function(k){return k+"="+encodeURIComponent(p[k]);}).join("&"); return fetch(API+(API.indexOf("?")<0?"?":"&")+q,{cache:"no-store"}).then(function(r){return r.json();}); }
-function apiPost(b){ return fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)}).then(function(r){return r.json();}); }
+function apiGet(p){ if(EDIT&&EDIT.code){ p.name=EDIT.name||""; p.code=EDIT.code; } var q=Object.keys(p).map(function(k){return k+"="+encodeURIComponent(p[k]);}).join("&"); return tfetch(API+(API.indexOf("?")<0?"?":"&")+q,{cache:"no-store"}).then(function(r){return r.json();}); }
+/* 응답이 없으면 40초 뒤 포기 (멈춘 요청 때문에 저장·받기가 막히지 않게) */
+function tfetch(u,o){ var ac=typeof AbortController!=="undefined"?new AbortController():null, t=ac?setTimeout(function(){ ac.abort(); },40000):0; o=o||{}; if(ac) o.signal=ac.signal; return fetch(u,o).finally(function(){ clearTimeout(t); }); }
+function apiPost(b){ return tfetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(b)}).then(function(r){return r.json();}); }
 function canon(o){ if(Array.isArray(o)) return "["+o.map(canon).join(",")+"]"; if(o&&typeof o==="object") return "{"+Object.keys(o).sort().filter(function(k){return o[k]!==undefined;}).map(function(k){return JSON.stringify(k)+":"+canon(o[k]);}).join(",")+"}"; return JSON.stringify(o===undefined?null:o); }
 function same(a,b){ return canon(a)===canon(b); }
 /* 두 사람이 같은 탭을 동시에 고쳤을 때: 내가 바꾼 칸만 내 것으로, 나머지는 서버 것으로 */
@@ -1096,7 +1098,7 @@ var POLL={refs:{},timer:null,busy:false,
         var need=Object.keys(self.refs).filter(function(cid){ var x=S[cid]; return (rv.vers[cid]||0)!==(VER[cid]||0)&&!(x.dirty||x.saving); });
         if(need.length){ var r2=await apiGet({action:"docs",cids:need.join(",")});
           need.forEach(function(cid){ var d=r2.docs&&r2.docs[cid], x=S[cid]; if(!d||x.dirty||x.saving) return; VER[cid]=d.v; SHADOW[cid]=d.data; self.refs[cid]._emit(d.data); }); }
-        Object.keys(self.refs).forEach(function(cid){ var x=S[cid]; if(x.err&&x.err.indexOf("연결")>=0){ x.err=null; } });
+        Object.keys(self.refs).forEach(function(cid){ var x=S[cid]; if(x.err&&x.err.indexOf("연결")>=0){ x.err=null; } if(x.dirty&&!x.saving&&!PRACTICE) flush(cid); });   /* 연결되면 못 보낸 것부터 보냄 */
         syncLabel();
       }
     }catch(e){ Object.keys(self.refs).forEach(function(cid){ if(first) self.refs[cid]._fail(); else { var x=S[cid]; if(!x.dirty&&!x.saving) x.err="연결 안 됨 · 다시 시도 중"; } }); syncLabel(); if(first) setTimeout(function(){ self.busy=false; self.tick(true); },8000); }
@@ -1451,12 +1453,15 @@ function persist(){
   }
   persistId(ui.cid);
 }
+/* 아직 서버에 못 보낸 변경이 있다는 표시 (기기에 남겨 둠) */
+function pendMark(id,on){ try{ var k="stockmap-pend-"+id; if(on) localStorage.setItem(k,String(Date.now())); else localStorage.removeItem(k); }catch(e){} }
+function pendHas(id){ try{ return !!localStorage.getItem("stockmap-pend-"+id); }catch(e){ return false; } }
 function persistId(id){
   var x=S[id];
   if(PRACTICE){ renderAll(); return; } // 연습 모드: 저장하지 않음
   if(retired()){ renderAll(); return; } // Claude 앱은 보기 전용
   if(GAS&&!canEdit()){ if(SHADOW[id]) x.state=normalize(CMAP[id],JSON.parse(JSON.stringify(SHADOW[id]))); renderAll(); askCode(); return; }
-  x.fresh=false; localSave(id); renderAll();
+  x.fresh=false; pendMark(id,true); localSave(id); renderAll();
   if(!x.ref||readOnly){ syncLabel(); return; }
   x.dirty=true; x.err=null; syncLabel(); clearTimeout(x.timer); x.timer=setTimeout(function(){flush(id);},700);
 }
@@ -1473,11 +1478,13 @@ async function flush(id){
       if(code==="permission_denied"){ x.err="수정 권한 없음"; x.saving=false; if(SHADOW[id]) x.state=normalize(CMAP[id],JSON.parse(JSON.stringify(SHADOW[id]))); renderAll(); askCode(); return; }
       if(code==="unavailable"){ await sleep(600+Math.random()*900); try{ await x.ref.set(body); continue; }catch(e2){ code=e2&&e2.code; } }
       if(code==="invalid_argument") readOnly=true;
-      else x.err=code==="quota_exceeded"?"저장 공간 가득 참":"이 기기에만 저장됨";
+      else x.err=code==="quota_exceeded"?"저장 공간 가득 참":"저장 안 됨 · 다시 보내는 중";
+      /* 못 보낸 변경은 버리지 않고 남겨 두었다가 다시 보냄 (그동안 서버 데이터로 덮어쓰지 않음) */
+      if(code!=="invalid_argument"){ x.dirty=true; x.retry=Math.min((x.retry||0)+1,6); clearTimeout(x.rt); x.rt=setTimeout(function(){ flush(id); },[3,6,12,20,30,60][x.retry-1]*1000); }
       x.saving=false; syncLabel(); return;
     }
   }
-  x.saving=false; syncLabel(); saveHistDb(id);
+  x.saving=false; x.retry=0; pendMark(id,false); if(x.err&&/저장 안 됨|이 기기에만/.test(x.err)) x.err=null; syncLabel(); saveHistDb(id);
 }
 async function connect(){
   var db=null;
@@ -1493,6 +1500,14 @@ async function connect(){
     x.ref.onSnapshot(function(snap){
       if(!snap.metadata.fromCache){ x.got=true; clearTimeout(timer); if(x.err&&x.err.indexOf("연결")===0) x.err=null; }
       if(snap.metadata.hasPendingWrites||x.saving||x.dirty) return;
+      /* 처음 받을 때: 이 기기에 서버보다 나중에 고친(못 보낸) 내용이 있으면 덮어쓰지 않고 서버로 올림 */
+      if(GAS&&!x.chk0&&snap.exists&&!snap.metadata.fromCache&&canEdit()&&!PRACTICE){ x.chk0=true;
+        try{ var sd=snap.data(), ls=x.state&&x.state.survey, ss=sd.survey||{};
+          var yfix=EDIT.name==="윤명희"&&!(function(){ try{ return localStorage.getItem("stockmap-yfix1"); }catch(e){ return 1; } })();   /* 한 번만: 윤명희 기기 내용을 기준으로 서버 맞추기 */
+          if(yfix&&!window.__yfixT) window.__yfixT=setTimeout(function(){ try{ localStorage.setItem("stockmap-yfix1","1"); }catch(e){} },30000);
+          if(x.loc0&&!x.fresh&&ls&&ls.date===ss.date&&ls.round===ss.round&&(pendHas(c.id)||yfix)&&!same(x.state,normalize(c,sd))){
+            x.got=true; clearTimeout(timer); x.dirty=true; syncLabel(); flush(c.id); return; }
+        }catch(e){} }
       if(PRACTICE){ if(snap.exists) PRAC_REAL[c.id]=normalize(c,snap.data()); return; } // 연습 중에는 실제 데이터만 따로 받아 둠
       if(snap.exists){ x.state=normalize(c,snap.data()); x.fresh=false; localSave(c.id); renderAll(); }
       else if(GAS&&canEdit()&&!snap.metadata.fromCache){ x.got=true; persistId(c.id); } // 서버에 아직 없으면 지금 데이터를 올림
