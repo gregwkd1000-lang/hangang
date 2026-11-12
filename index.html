@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112093808";</script>
+<script>window.HG_BUILD="20261112101721";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -136,6 +136,7 @@ body.practice .top{box-shadow:inset 0 -4px 0 #f59e0b}
 .box .t3 b{color:var(--ink)}
 .btn.logbtn{background:#1d5fd1;border-color:#1d5fd1;color:#fff;font-weight:700;padding-left:22px;padding-right:22px}
 .brandrow .logbtn{white-space:nowrap;font-size:11.5px;padding:5px 10px;min-height:0;line-height:1.2;border-radius:999px;margin:0;flex:none}
+.qtyreset{display:block;width:100%;margin:14px 0 6px;border-color:var(--warn);font-weight:700}
 .loglist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .logrow{display:flex;gap:10px;padding:8px 10px;border-top:1px solid var(--line);font-size:13px;line-height:1.35}
 .logrow:first-child{border-top:0}
@@ -620,6 +621,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
       <button class="btn" data-sz="r,start,1">+ 위</button><button class="btn" data-sz="r,start,-1">− 위</button><button class="btn" data-sz="r,end,-1">− 아래</button><button class="btn" data-sz="r,end,1">+ 아래</button>
       <div class="insrow"><button class="btn insbtn" id="insBtn">중간에 줄 넣기 · 빼기</button><button class="btn" id="mlBtn">여러 칸 선택</button></div>
     </div>
+    <button class="btn danger qtyreset" id="qtyReset" type="button">수량 초기화</button>
   </section>
 
   <section class="view" id="v-items">
@@ -738,10 +740,10 @@ var COMPANIES=[
   {k:"JK",name:"JK HEV HPCU",seed:"36600-3WCA0|HR01|\n36600-3WCA5|HR02|5\n36600-3WCB0|HR03|12\n#시컨스|"}]},
  {id:"youngsil",name:"영실",unit:16,seedV:1,groups:[
   {k:"JW",name:"JW ICCU",seed:"CBO||\nCCO||\nCB1||\nCA1||\nCA5||\nCB5||\nCA6||73\nCB6||17"}]},
- {id:"fu",name:"에프유",seqLast:true,unit:12,unitV:2,seedV:1,groups:[
+ {id:"fu",name:"에프유",seqLast:true,qtyReset:true,unit:12,unitV:2,seedV:1,groups:[
   {k:"NX",name:"NX4/NX5 HEV HPCU",seed:"E50||1\nE51||2\nE52||2\nE53||1\nE54||1\nE55||\nE56||34\nE57||84|불량1개포함\nE58||6\nE59||\nE60||17\nE61||19\nE62||11\nE63||18\nHPB||59"},
   {k:"RG3",name:"RG3 HEV HPCU",seed:"36600-3WBA0|HPA1|35\n36600-3WBB0|HPB1|14"}]},
- {id:"kangho",name:"강호산업",noteAlways:true,unit:12,seedV:1,groups:[
+ {id:"kangho",name:"강호산업",noteAlways:true,qtyReset:true,unit:12,seedV:1,groups:[
   {k:"A",name:"재고현황",seed:"Y01||6|불량1포함\nY02||10|불량3포함\nY03||7\nY04||11\nY05||1\nY06||1\nY07||5\nY09||8\nY12||17|불량1포함\nY13||86|불량2포함\n#시컨스|44번"}]},
  {id:"jinwoo",name:"진우JIS",unit:12,seedV:1,groups:[
   {k:"A",name:"재고현황",seed:"K01||54\nK03||4\nK04||17\nK05||15\nK07||17\nK08||9"}]},
@@ -1259,6 +1261,9 @@ function renderLog(s){
   Array.prototype.forEach.call($("shBody").querySelectorAll("[data-lf]"),function(x){ x.onclick=function(){ s.f=x.dataset.lf; renderLog(s); }; });
 }
 /* 3공장: 날짜가 바뀌면 시퀀스 갯수 조정값은 지움 (수량을 복사해도) */
+/* 강호산업·에프유: 마감해서 다음 회차로 가거나 날짜가 바뀌면 상자 자리는 그대로, 수량만 비움 */
+function clearQty(st){ st.boxes.forEach(function(b){ b.cur=null; (b.mix||[]).forEach(function(m){ m.cur=null; }); }); }
+function clearQtyRoll(cid,st){ var c=COMPANIES.filter(function(x){return x.id===cid;})[0]; if(c&&c.qtyReset) clearQty(st); }
 function clearSeqDaily(cid,st){ var c=COMPANIES.filter(function(x){return x.id===cid;})[0]; if(!c||!c.seqDaily) return; st.boxes.forEach(function(b){ if(b.mark===SEQ) b.seq=null; }); }
 function seqDed(id,st){ return (st||ST()).boxes.reduce(function(a,b){ return a+(b.mark===SEQ&&b.seq&&b.seq[id]?b.seq[id]:0); },0); }
 function status(it,st){ var t=total(it,st); if(t===null) return "todo"; if(it.kind==="info") return "done"; if(it.prev!==null&&t===it.prev) return "done"; if(it.prev===null&&t===0) return "done"; return "diff"; }
@@ -2568,7 +2573,7 @@ function startRound(copy){
       var t=total(it,st); if(t!==null) it.prev=t; if(!copy) it.cur=null;
     });
     if(!copy) st.boxes.forEach(function(b){ b.cur=null; b.seq=null; (b.mix||[]).forEach(function(m){ m.cur=null; }); });
-    var oldDate=st.survey.date; if(nx.date!==oldDate) clearSeqDaily(id,st);
+    var oldDate=st.survey.date; if(nx.date!==oldDate){ clearSeqDaily(id,st); clearQtyRoll(id,st); }
     nx.filled=true; st.survey=nx; closeSheet(); persist(); toast(fmtDate(nx.date)+" "+nx.round+"차 조사 시작");
     if(nx.date!==oldDate) switchDate(nx.date); // 날짜가 바뀌면 다른 탭도 같은 날짜로
   });
@@ -2587,12 +2592,13 @@ $("summary").addEventListener("click",function(e){
     /* 오늘 1차를 마감하면: 1차는 마감된 채 기록에 남고, 1차 수량 그대로 2차가 바로 시작 */
     if(on&&!PRACTICE&&+sv.round===1&&sv.date===today()&&!sv.manual){
       if(ro()) return;
-      ask(nm+" 조사를 마감할까요? 마감하면 1차 수량 그대로 2차 조사가 바로 시작됩니다. 1차는 기록에 남아 언제든 볼 수 있습니다.","마감",function(){
+      ask(nm+" 조사를 마감할까요? 마감하면 "+(C().qtyReset?"상자 자리는 그대로, 수량은 비운 채로":"1차 수량 그대로")+" 2차 조사가 바로 시작됩니다. 1차는 기록에 남아 언제든 볼 수 있습니다.","마감",function(){
         var id=ui.cid; sv.closed=true; sv.closedAt=Date.now(); sv.closedBy=who();
         var sn=snapOf(id); saveHistLocal(id,sn); saveHistDb(id,sn);
         st.items.forEach(function(it){ if(it.kind==="info"){ if(it.cur!==null) it.prev=it.cur; return; } var t=total(it,st); if(t!==null) it.prev=t; });
-        st.survey={date:sv.date,round:2,filled:true}; ui.moving=null; ui.insMode=false; ui.multi=null; closeSheet(); persist();
-        toast(nm+" 마감 · 2차 조사 시작 (1차 수량으로 채움)");
+        clearQtyRoll(id,st);
+        st.survey={date:sv.date,round:2,filled:!CMAP[id].qtyReset}; ui.moving=null; ui.insMode=false; ui.multi=null; closeSheet(); persist();
+        toast(nm+" 마감 · 2차 조사 시작"+(C().qtyReset?" (수량 비움)":" (1차 수량으로 채움)"));
       },"취소"); return;
     }
     ask(on?nm+" 조사를 마감할까요? 마감하면 상자 배치와 수량을 고칠 수 없습니다.":nm+" 조사 마감을 해제할까요? 다시 고칠 수 있게 됩니다.",on?"마감":"마감 해제",function(){
@@ -2674,7 +2680,7 @@ async function switchDate(d){
         if(it.kind==="info"){ var tv=total(it,st); if(tv!==null) it.prev=tv; it.cur=null; return; }
         var t=total(it,st); if(t!==null) it.prev=t; // 갯수는 지난 조사 그대로
       });
-      clearSeqDaily(c.id,st);
+      clearSeqDaily(c.id,st); clearQtyRoll(c.id,st);
       st.survey={date:d,round:1,manual:manual,filled:true};
     }
     persistId(c.id);
@@ -2792,6 +2798,11 @@ $("delItem").onclick=function(){
   },"취소");
 };
 $("logBtn").onclick=function(){ openSheet({mode:"log"}); };
+$("qtyReset").onclick=function(){
+  if(ro()) return; var st=ST(), n=st.boxes.filter(function(b){ return b.cur!==null||(b.mix||[]).some(function(m){return m.cur!==null;}); }).length;
+  if(!n){ toast("지울 수량이 없습니다"); return; }
+  ask("⚠️ "+C().name+" "+fmtDate(st.survey.date)+" "+st.survey.round+"차의 상자 수량을 모두 지울까요? 상자 "+n+"곳의 입력한 수량이 지워지고, 상자 자리는 그대로 남습니다. 되돌릴 수 없습니다.","예",function(){ clearQty(ST()); persist(); toast("수량을 초기화했습니다"); },"아니오");
+};
 $("addItem").onclick=function(){
   if(ro()) return; var kind=$("newKind").value, raw=$("newCode").value.trim().replace(/\s+/g," ");
   if(!raw){toast("품번이나 항목명을 입력하세요");return;}
@@ -2818,7 +2829,7 @@ function autoRoll(id){
     if(it.kind==="info"){ var tv=total(it,st); if(it.cur!==null||tv!==null) it.prev=tv!==null?tv:it.cur; it.cur=null; return; }
     var t=total(it,st); if(t!==null) it.prev=t; // 갯수는 지난 조사 그대로 채워 둠
   });
-  clearSeqDaily(id,st);
+  clearSeqDaily(id,st); clearQtyRoll(id,st);
   st.survey={date:d,round:1,filled:true};
   persistId(id);
   if(id===ui.cid){ if(ui.snap) ui.snap=null; toast(fmtDate(d)+" 1차 조사로 바뀌었습니다 · 지난 회차는 기록에 저장됨"); }
