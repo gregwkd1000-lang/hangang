@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112231132";</script>
+<script>window.HG_BUILD="20261112231450";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -151,6 +151,7 @@ body.gated>header,body.gated>main{display:none}
 .gatelogo{height:44px;width:auto;margin:0 auto 4px;display:block}
 :root[data-theme="dark"] .gatelogo{background:#fff;border-radius:8px;padding:4px 8px}
 .gatebox input{width:100%;box-sizing:border-box;font:inherit;font-size:18px;padding:12px;border:1px solid var(--line);border-radius:10px;margin:6px 0;background:var(--surface);color:var(--ink)}
+.gatebox .gterr{color:#e5484d;font-weight:700;font-size:14px}
 .gatebox #gtGo{width:100%;padding:12px;font-size:17px}
 .urow{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 0;border-bottom:1px solid var(--line);text-align:left;flex-wrap:wrap}
 .urow .un{font-size:15px;color:var(--ink)}
@@ -1302,16 +1303,34 @@ function showGate(msg){
   if(!GAS) return; document.body.classList.add("gated"); var g=$("gate"); g.hidden=false;
   if(msg) $("gtMsg").textContent=msg; setTimeout(function(){ try{ $("gtName").focus(); }catch(e){} },60);
 }
+/* 로그인 5번 연속 틀리면 5분 제한 (서버가 세고, 서버를 새로 배포하기 전에는 이 기기에서 셈) */
+function lfGet(){ try{ return JSON.parse(localStorage.getItem("stockmap-lf")||"{}"); }catch(e){ return {}; } }
+function lfSet(o){ try{ localStorage.setItem("stockmap-lf",JSON.stringify(o)); }catch(e){} }
+var GT_TIMER=null;
+function gateLocked(nm,until){
+  var m=$("gtMsg"), go=$("gtGo"); clearInterval(GT_TIMER);
+  var tick=function(){ var left=Math.ceil((until-Date.now())/1000);
+    if(left<=0){ clearInterval(GT_TIMER); go.disabled=false; m.className="hint"; m.textContent="다시 로그인할 수 있습니다"; return; }
+    go.disabled=true; m.className="hint gterr"; m.innerHTML="5회 연속 틀려 로그인이 제한되었습니다<br>"+Math.floor(left/60)+"분 "+("0"+left%60).slice(-2)+"초 뒤에 다시 해 주세요"; };
+  tick(); GT_TIMER=setInterval(tick,1000);
+}
 async function gateGo(){
-  var nm=$("gtName").value.trim(), c=$("gtCode").value.trim(), m=$("gtMsg");
+  var nm=$("gtName").value.trim(), c=$("gtCode").value.trim(), m=$("gtMsg"); m.className="hint";
   if(!nm){ m.textContent="이름을 넣어 주세요"; $("gtName").focus(); return; } if(!c){ m.textContent="비밀번호를 넣어 주세요"; $("gtCode").focus(); return; }
+  var lf=lfGet(), me=lf[nm]||{n:0,until:0};
+  if(me.until>Date.now()){ gateLocked(nm,me.until); return; }
   $("gtGo").disabled=true; m.textContent="확인 중…";
   try{ var r=await apiPost({action:"auth",name:nm,code:c});
     if(r.ok&&r.name&&r.name!==nm) r={ok:false};
-    if(r.ok){ EDIT={code:c,name:r.name,admin:!!r.admin,role:r.role||(r.admin?"admin":"edit")}; try{ localStorage.setItem("stockmap-editor",JSON.stringify(EDIT)); }catch(e){}
+    if(r.ok){ delete lf[nm]; lfSet(lf); clearInterval(GT_TIMER);
+      EDIT={code:c,name:r.name,admin:!!r.admin,role:r.role||(r.admin?"admin":"edit")}; try{ localStorage.setItem("stockmap-editor",JSON.stringify(EDIT)); }catch(e){}
       freshView(); $("gate").hidden=true; document.body.classList.remove("gated"); $("gtCode").value=""; m.textContent="";
-      toast(r.name+"님 환영합니다"+(EDIT.role==="view"?" · 조회 전용":"")); renderAll(); POLL.busy=false; POLL.tick(true); }
-    else m.textContent="이름이나 비밀번호가 맞지 않습니다";
+      toast(r.name+"님 환영합니다"+(EDIT.role==="view"?" · 조회 전용":"")); renderAll(); POLL.busy=false; POLL.tick(true); return; }
+    if(r.error==="locked"){ var u=+r.until||Date.now()+300000; lf[nm]={n:0,until:u}; lfSet(lf); $("gtCode").value=""; gateLocked(nm,u); return; }
+    var n=r.fails?+r.fails:(me.n||0)+1;
+    if(n>=5){ var u2=Date.now()+300000; lf[nm]={n:0,until:u2}; lfSet(lf); $("gtCode").value=""; gateLocked(nm,u2); return; }
+    lf[nm]={n:n,until:0}; lfSet(lf);
+    m.className="hint gterr"; m.innerHTML="("+n+"/5) 비밀번호가 틀렸습니다<br>5회 연속 틀리면 이용이 제한됩니다"; $("gtCode").value=""; $("gtCode").focus();
   }catch(e){ m.textContent="연결이 안 됩니다. 잠시 후 다시 해 보세요"; }
   $("gtGo").disabled=false;
 }

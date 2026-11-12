@@ -192,9 +192,18 @@ function doPost(e) {
   try { b = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: 'bad' }); }
   try { migrate_(); migrate3_(); migrate4_(); } catch (err) {}
   if (b.action === 'auth') {
-    if (!String(b.name || '').trim()) return out_({ ok: false, error: 'name' });   // 이름과 코드를 둘 다 넣어야 로그인
+    const nm = String(b.name || '').trim();
+    if (!nm) return out_({ ok: false, error: 'name' });   // 이름과 코드를 둘 다 넣어야 로그인
+    // 5번 연속 틀리면 5분 동안 로그인 막기 (성공하면 틀린 횟수 0으로)
+    const ck = CacheService.getScriptCache(), fk = 'fail_' + nm, lk = 'lock_' + nm, now = Date.now();
+    const until = +ck.get(lk) || 0;
+    if (until > now) return out_({ ok: false, error: 'locked', until: until });
     const a = who_(b.code, b.name);
-    return out_({ ok: !!a, name: a ? a.name : '', admin: a ? a.admin : false, role: a ? a.role : '' });
+    if (a) { ck.remove(fk); return out_({ ok: true, name: a.name, admin: a.admin, role: a.role }); }
+    const n = (+ck.get(fk) || 0) + 1;
+    if (n >= 5) { const u = now + 5 * 60 * 1000; ck.put(lk, String(u), 300); ck.remove(fk); return out_({ ok: false, error: 'locked', fails: 5, until: u }); }
+    ck.put(fk, String(n), 21600);
+    return out_({ ok: false, fails: n });
   }
   const me = who_(b.code, b.name);
   if (!me) return out_({ ok: false, error: 'auth' });
