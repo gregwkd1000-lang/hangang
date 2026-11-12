@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113065111";</script>
+<script>window.HG_BUILD="20261113065407";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1596,10 +1596,10 @@ function addLog(o,n){ if(SKIPLOG) return;
   o.items.forEach(function(a){ if(!n.items.some(function(i){return i.id===a.id;})) out.push(["품목 삭제",label(a)]); });
   var lg=(n.log||[]).filter(function(e){return e.k===key;});
   out.forEach(function(e){
-    /* 같은 상자 수량을 같은 사람이 3분 안에 연달아 바꾸면 한 줄로 합침 (4→3→2→1 → "4 → 1") */
+    /* 같은 상자 수량을 같은 사람이 연달아 바꾸면 시간과 상관없이 바로 한 줄로 합침 (4→3→2→1 → "4 → 1") */
     if(e[0]==="수량"&&e[3]){ var m=e[3];
       for(var j=lg.length-1;j>=0&&j>=lg.length-60;j--){ var o2=lg[j]; if(o2.k!==key) continue;
-        if(o2.a==="수량"&&o2.u&&o2.u.bid===e[2].bid&&o2.by===by&&!o2.done&&now-o2.t<180000&&o2.q0!==undefined){
+        if(o2.a==="수량"&&o2.u&&o2.u.bid===e[2].bid&&o2.by===by&&!o2.done&&o2.q0!==undefined){
           if(o2.q0===m.q1) lg.splice(j,1); else { o2.x=m.pfx+" "+o2.q0+" → "+m.q1; o2.t=now; lg.push(lg.splice(j,1)[0]); }
           return; }
         if(o2.u&&o2.u.bid===e[2].bid) break; } }
