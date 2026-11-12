@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113065407";</script>
+<script>window.HG_BUILD="20261113073337";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -164,6 +164,7 @@ body.gated>header,body.gated>main{display:none}
 .urow .upw[hidden]{display:none}
 .urow .upw input{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 #dmPw{background:#2f6fde;border-color:#2f6fde;color:#fff}
+#dmLogins{background:#0f766e;border-color:#0f766e;color:#fff}
 #dmOut{background:#e5484d;border-color:#e5484d;color:#fff}
 #dmPrac{background:#f7c6d6;border-color:#e89ab4;color:#7a1f42}
 .iltab{width:100%;border-collapse:collapse;font-size:13px}
@@ -1093,7 +1094,8 @@ var POLL={refs:{},timer:null,busy:false,
     this.busy=true;
     try{
       if(first){
-        var r=await apiGet({action:"all"}); if(r&&r.error==="auth"){ self.busy=false; logoutTo("로그인 정보가 맞지 않습니다. 다시 로그인해 주세요"); return; } if(!r.ok) throw r; roleSync(r.role);
+        var qa={action:"all"}; if(!OPEN_LOGGED&&!JUST_LOGGED){ qa.open="1"; qa.dev=devName(); } OPEN_LOGGED=true;
+        var r=await apiGet(qa); if(r&&r.error==="auth"){ self.busy=false; logoutTo("로그인 정보가 맞지 않습니다. 다시 로그인해 주세요"); return; } if(!r.ok) throw r; roleSync(r.role);
         Object.keys(self.refs).forEach(function(cid){ var d=r.docs[cid]; if(d){ VER[cid]=d.v; SHADOW[cid]=d.data; } self.refs[cid]._emit(d?d.data:null); });
       } else {
         var rv=await apiGet({action:"ver"}); if(rv&&rv.error==="auth"){ self.busy=false; logoutTo("로그인 정보가 바뀌었습니다. 다시 로그인해 주세요"); return; } if(!rv.ok) throw rv; roleSync(rv.role);
@@ -1213,7 +1215,7 @@ function openDataMenu(){
   var who=GAS?(EDIT.code?'<p style="text-align:left"><b>'+esc(EDIT.name||"")+'</b>님 · '+(EDIT.role==="view"?'조회 권한 (보기만)':EDIT.admin?'마스터':'관리자 (수정 가능)')+'</p>':'<p style="text-align:left">지금은 <b>보기 전용</b>입니다. 수정하려면 수정 코드를 넣으세요.</p>'):'';
   $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">저장 · 백업</h3>'+who+
     '<div class="toolbar" style="flex-direction:column;align-items:stretch;gap:8px">'+
-    (GAS&&EDIT.code&&EDIT.admin?'<button class="btn primary" id="dmUser">회원등록</button>':'')+(GAS?(EDIT.code?'<button class="btn" id="dmPw">비밀번호 변경</button><button class="btn" id="dmOut">로그아웃</button>':'<button class="btn primary" id="dmCode">로그인 (이름·비밀번호)</button>'):'')+
+    (GAS&&EDIT.code&&EDIT.admin?'<button class="btn primary" id="dmUser">회원등록</button><button class="btn" id="dmLogins">로그인 내역</button>':'')+(GAS?(EDIT.code?'<button class="btn" id="dmPw">비밀번호 변경</button><button class="btn" id="dmOut">로그아웃</button>':'<button class="btn primary" id="dmCode">로그인 (이름·비밀번호)</button>'):'')+
     (PRACTICE?'<button class="btn primary" id="dmPrac">연습 끝내기 · 일시중단</button>':'<button class="btn" id="dmPrac">'+(pracSaved()?'연습 모드 이어서 하기 (저장 안 됨)':'연습 모드 시작 (저장 안 됨)')+'</button>')+
     (PRACTICE||!EDIT.admin?'':'<button class="btn" id="dmBackup">전체 백업 파일 받기</button>')+
     (EDIT.admin&&canEdit()&&!PRACTICE?'<button class="btn" id="dmRestore">백업 파일 불러오기</button><input type="file" id="dmFile" accept=".json,application/json,text/plain" hidden>':'')+
@@ -1224,6 +1226,7 @@ function openDataMenu(){
   if($("dmCode")) $("dmCode").onclick=function(){ closeDlg(); askCode(); };
   if($("dmPw")) $("dmPw").onclick=askPw;
   if($("dmUser")) $("dmUser").onclick=askUser;
+  if($("dmLogins")) $("dmLogins").onclick=openLogins;
   if($("dmOut")) $("dmOut").onclick=function(){ logoutTo("로그아웃했습니다"); };
   $("dmPrac").onclick=function(){ if(PRACTICE){ endPractice(); } else { closeDlg(); startPractice(); } };
   if($("dmBackup")) $("dmBackup").onclick=function(){ makeBackup(this); };
@@ -1356,15 +1359,31 @@ function gateLocked(nm,until){
     go.disabled=true; m.className="hint gterr"; m.innerHTML="5회 연속 틀려 로그인이 제한되었습니다<br>"+Math.floor(left/60)+"분 "+("0"+left%60).slice(-2)+"초 뒤에 다시 해 주세요"; };
   tick(); GT_TIMER=setInterval(tick,1000);
 }
+var OPEN_LOGGED=false, JUST_LOGGED=false;
+function devName(){ var u=navigator.userAgent||""; return /iPhone/.test(u)?"아이폰":/iPad/.test(u)?"아이패드":/Android/.test(u)?(/SM-|Samsung/i.test(u)?"갤럭시":"안드로이드"):/Mac/.test(u)?"맥":/Windows/.test(u)?"PC":"기타"; }
+/* 마스터: 모든 회원 로그인 내역 */
+async function openLogins(){
+  var dlg=$("imgDlg"); $("imgBox").innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px"><h3 style="margin:0">로그인 내역</h3><button class="btn" id="lgX" type="button" style="padding:6px 12px">닫기 ✕</button></div><div class="filters" id="lgF" style="margin-bottom:6px"></div><div id="lgList" class="hint">불러오는 중…</div>';
+  dlg.classList.add("on"); $("lgX").onclick=closeDlg;
+  try{ var r=await apiPost({action:"loginLog",name:EDIT.name,code:EDIT.code});
+    if(!r.ok){ $("lgList").textContent=r.error==="admin"?"마스터만 볼 수 있습니다":"불러오지 못했습니다 (서버를 새 버전으로 배포했는지 확인)"; return; }
+    var L=r.items||[], names=[]; L.forEach(function(e){ if(names.indexOf(e.name)<0) names.push(e.name); }); var f="";
+    var draw=function(){ $("lgF").innerHTML=['<button class="chipbtn" data-lg="" aria-pressed="'+(f==="")+'">전체</button>'].concat(names.map(function(n){ return '<button class="chipbtn" data-lg="'+esc(n)+'" aria-pressed="'+(f===n)+'">'+esc(n)+'</button>'; })).join("");
+      var rows=L.filter(function(e){ return !f||e.name===f; });
+      $("lgList").innerHTML=rows.length?'<table class="iltab"><tr><th>언제</th><th>누가</th><th>내용</th></tr>'+rows.map(function(e){ var bad=/실패/.test(e.x); return '<tr><td>'+hmOf(e.t)+'</td><td>'+esc(e.name)+'</td><td'+(bad?' style="color:#e5484d;font-weight:700"':'')+'>'+esc(e.x)+'</td></tr>'; }).join("")+'</table><p class="hint">최근 500건까지 보입니다. "접속"은 저장된 로그인으로 앱을 연 것입니다.</p>':'<p class="hint">아직 내역이 없습니다. 지금부터 로그인하면 여기에 남습니다.</p>';
+      Array.prototype.forEach.call(document.querySelectorAll("#lgF [data-lg]"),function(b){ b.onclick=function(){ f=b.dataset.lg; draw(); }; }); };
+    draw();
+  }catch(e){ $("lgList").textContent="연결이 안 됩니다"; }
+}
 async function gateGo(){
   var nm=$("gtName").value.trim(), c=$("gtCode").value.trim(), m=$("gtMsg"); m.className="hint";
   if(!nm){ m.textContent="이름을 넣어 주세요"; $("gtName").focus(); return; } if(!c){ m.textContent="비밀번호를 넣어 주세요"; $("gtCode").focus(); return; }
   var lf=lfGet(), me=lf[nm]||{n:0,until:0};
   if(me.until>Date.now()){ gateLocked(nm,me.until); return; }
   $("gtGo").disabled=true; m.textContent="확인 중…";
-  try{ var r=await apiPost({action:"auth",name:nm,code:c});
+  try{ var r=await apiPost({action:"auth",name:nm,code:c,dev:devName()});
     if(r.ok&&r.name&&r.name!==nm) r={ok:false};
-    if(r.ok){ delete lf[nm]; lfSet(lf); clearInterval(GT_TIMER);
+    if(r.ok){ delete lf[nm]; lfSet(lf); clearInterval(GT_TIMER); JUST_LOGGED=true;
       EDIT={code:c,name:r.name,admin:!!r.admin,role:r.role||(r.admin?"admin":"edit")}; try{ localStorage.setItem("stockmap-editor",JSON.stringify(EDIT)); }catch(e){}
       freshView(); $("gate").hidden=true; document.body.classList.remove("gated"); $("gtCode").value=""; m.textContent="";
       toast(r.name+"님 환영합니다"+(EDIT.role==="view"?" · 조회 전용":"")); renderAll(); POLL.busy=false; POLL.tick(true); return; }
@@ -1395,7 +1414,7 @@ function askCode(){
   dlg.classList.add("on"); setTimeout(function(){ try{ $("nameIn").focus(); }catch(e){} },50);
   $("codeCancel").onclick=function(){ dlg.classList.remove("on"); $("imgBox").innerHTML=""; };
   async function go(){ var nm=$("nameIn").value.trim(), c=$("codeIn").value.trim(); if(!nm){ $("codeMsg").textContent="이름을 넣어 주세요"; $("nameIn").focus(); return; } if(!c){ $("codeMsg").textContent="비밀번호를 넣어 주세요"; $("codeIn").focus(); return; } $("codeGo").disabled=true; $("codeMsg").textContent="확인 중…";
-    try{ var r=await apiPost({action:"auth",name:nm,code:c});
+    try{ var r=await apiPost({action:"auth",name:nm,code:c,dev:devName()});
       if(r.ok&&r.name&&r.name!==nm) r={ok:false};
       if(r.ok){ EDIT={code:c,name:r.name,admin:!!r.admin}; try{ localStorage.setItem("stockmap-editor",JSON.stringify(EDIT)); }catch(e){} dlg.classList.remove("on"); $("imgBox").innerHTML=""; toast(r.name+"님, 이제 고칠 수 있습니다"); renderAll(); rollAll(); COMPANIES.forEach(function(c2){ if(!SHADOW[c2.id]&&S[c2.id].got) persistId(c2.id); }); }
       else { $("codeMsg").textContent="이름이나 비밀번호가 맞지 않습니다"; $("codeGo").disabled=false; } }

@@ -20,6 +20,7 @@ function sheet_(name, header) {
 }
 function docsSheet_() { return sheet_('docs', ['탭', '버전', '저장시각', '저장한 사람', '조각수', '데이터']); }
 function logSheet_()  { return sheet_('log', ['시각', '이름', '탭', '내용']); }
+function loginLog_(name, what, dev) { try { logSheet_().appendRow([new Date(), name, '로그인', what + (dev ? ' · ' + String(dev).slice(0, 40) : '')]); } catch (e) {} }
 function editSheet_() { return sheet_('수정권한', ['이름', '코드', '권한']); }
 
 /** 처음 한 번 실행: 시트를 만들고 관리자 코드를 하나 만들어 둡니다. */
@@ -238,7 +239,7 @@ function doGet(e) {
     const me = p.action ? who_(p.code, p.name) : null, role = me ? me.role : '';
     switch (p.action) {
       case 'ver':  return out_({ ok: true, vers: versions_(), role: role });
-      case 'all':  return out_({ ok: true, docs: readDocs_(), role: role });
+      case 'all':  if (p.open === '1' && me) loginLog_(me.name, '접속 (자동 로그인)', p.dev); return out_({ ok: true, docs: readDocs_(), role: role });
       case 'docs': return out_({ ok: true, docs: readDocs_(String(p.cids || '').split(',')) });
       case 'hist': return out_({ ok: true, items: readHist_(String(p.cid || ''), Math.min(+p.limit || 60, 150)) });
       case 'histDay': return out_({ ok: true, byTab: readDay_(String(p.date || '')) });
@@ -259,8 +260,9 @@ function doPost(e) {
     const until = +ck.get(lk) || 0;
     if (until > now) return out_({ ok: false, error: 'locked', until: until });
     const a = who_(b.code, b.name);
-    if (a) { ck.remove(fk); return out_({ ok: true, name: a.name, admin: a.admin, role: a.role }); }
+    if (a) { ck.remove(fk); loginLog_(a.name, '로그인', b.dev); return out_({ ok: true, name: a.name, admin: a.admin, role: a.role }); }
     const n = (+ck.get(fk) || 0) + 1;
+    loginLog_(nm, '로그인 실패 (' + Math.min(n, 5) + '/5)', b.dev);
     if (n >= 5) { const u = now + 5 * 60 * 1000; ck.put(lk, String(u), 300); ck.remove(fk); return out_({ ok: false, error: 'locked', fails: 5, until: u }); }
     ck.put(fk, String(n), 21600);
     return out_({ ok: false, fails: n });
@@ -269,6 +271,16 @@ function doPost(e) {
   if (!me) return out_({ ok: false, error: 'auth' });
   const name = me.name;
   if ((b.action === 'set' || b.action === 'hist' || b.action === 'histBulk') && me.role === 'view') return out_({ ok: false, error: 'view' });
+  if (b.action === 'loginLog') {        // 로그인 내역: 마스터만
+    if (!me.admin) return out_({ ok: false, error: 'admin' });
+    const sh = logSheet_(), n = sh.getLastRow(), from = Math.max(2, n - 3000);
+    const v = n < 2 ? [] : sh.getRange(from, 1, n - from + 1, 4).getValues(), out = [];
+    for (let i = v.length - 1; i >= 0 && out.length < 500; i--) {
+      const t = String(v[i][3]); if (String(v[i][2]) !== '로그인' || !/^(로그인|접속)/.test(t)) continue;
+      out.push({ t: v[i][0] instanceof Date ? v[i][0].getTime() : +new Date(v[i][0]), name: String(v[i][1]), x: t });
+    }
+    return out_({ ok: true, items: out });
+  }
   if (b.action === 'addUser') {         // 회원 등록: 관리자만
     if (!me.admin) return out_({ ok: false, error: 'admin' });
     const nn = String(b.newName || '').trim(), nc = String(b.newCode || '').trim();
