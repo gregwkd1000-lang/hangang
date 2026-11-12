@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113002719";</script>
+<script>window.HG_BUILD="20261113003245";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -467,7 +467,11 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .box.notop .t3{font-size:13px;font-weight:800;color:var(--ink)}
 .box.notop .t3 b{font-weight:900}
 .box.notop .t3 .pl{font-size:.82em;opacity:1;font-weight:800;margin-left:0}
-#grid .box.notop .t3{font-size:max(8px,calc(var(--cell) * .18));letter-spacing:-.03em}
+#grid .box.notop .t3{font-size:max(7px,calc(var(--cell) * .16));letter-spacing:-.03em;padding-right:max(3px,calc(var(--cell) * .07))}
+#grid .box.notop .t3.q7{font-size:max(8px,calc(var(--cell) * .2))}
+#grid .box.notop .t3.q9{font-size:max(7.5px,calc(var(--cell) * .175))}
+#grid .box.notop .t3.q11{font-size:max(7px,calc(var(--cell) * .155))}
+#grid .box.notop .t3.q13{font-size:max(6.5px,calc(var(--cell) * .135))}
 #grid .box.half.notop .t3{font-size:max(7.5px,calc(var(--cell) * .18))}
 .box.colored.notop .t3,.box.colored.notop .t3 b{opacity:1}
 #grid .box.notop .stripe{height:max(5px,calc(var(--cell) * .1))}
@@ -1721,8 +1725,9 @@ function renderMap(){ PALC=null; try{ renderGlog(); }catch(e){}
     var bc=b.bg?"":colorOf(it), noTop=!mixN&&["plant2","plant5"].indexOf(ui.cid)<0;   /* 2공장·5공장 말고는 위 작은 글씨 빼고 가운데 글씨 크게 */
     if(noTop){ var L2=0; for(var ci=0;ci<sp[1].length;ci++) L2+=sp[1].charCodeAt(ci)>=0x1100?1.75:1;   /* 한글은 폭이 넓어서 1.75자로 셈 */
       sz=" n"+(L2<=3?3:L2<=4?4:L2<=5.5?5:L2<=7?7:9); }
+    var L3=String(line).replace(/<[^>]+>/g,"").length, l3=noTop?" q"+(L3<=7?7:L3<=9?9:L3<=11?11:13):"";   /* 아래 숫자도 길이에 맞춰 칸 안에 들어가게 */
     return '<button class="cell box'+(noTop?" notop":"")+half+(b.fixed?" fixed":"")+' '+(stt==="todo"?"":stt)+((mine!==null||mixHas)?" has":"")+(mixN?" mixed":"")+(isTwo(mp,r)?" twobox":"")+(bc?" colored c-"+bc:"")+pc+sel+'" style="--grp:'+grp(it.group).color+'" data-b="'+b.id+'" aria-label="'+esc(label(it))+'">'+
-       tl+'<span class="stripe"></span>'+(noTop?'':'<span class="t1">'+(mixN?'<b class="mixt1">혼합+'+mixN+'</b>':esc(sp[0]))+'</span>')+'<span class="t2'+sz+'">'+esc(sp[1])+'</span><span class="t3">'+line+'</span>'+
+       tl+'<span class="stripe"></span>'+(noTop?'':'<span class="t1">'+(mixN?'<b class="mixt1">혼합+'+mixN+'</b>':esc(sp[0]))+'</span>')+'<span class="t2'+sz+'">'+esc(sp[1])+'</span><span class="t3'+l3+'">'+line+'</span>'+
        (it.note?'<span class="flag">!</span>':'')+(b.chk&&b.chk===chkKey()?'<span class="donemark" aria-label="확인함">✓</span>':'')+'</button>';
   }
   for(var ri=0;ri<mp.rows;ri++) for(var ci=0;ci<mp.cols;ci++){ var r=fl.v?mp.rows-1-ri:ri, c=fl.h?mp.cols-1-ci:ci;
