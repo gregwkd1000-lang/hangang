@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112221139";</script>
+<script>window.HG_BUILD="20261112221248";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1107,14 +1107,14 @@ async function restoreBackup(file){
 /* 회원등록 (관리자만): 이름 + 비밀번호 → 그 이름·비밀번호로 로그인 가능 */
 function askUser(){
   var ip='style="width:100%;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin:4px 0;box-sizing:border-box;background:var(--surface);color:var(--ink)"';
-  $("imgBox").innerHTML='<h3 style="margin:4px 0 8px;text-align:left">회원등록</h3><p class="hint" style="text-align:left">등록한 이름과 비밀번호로 바로 로그인할 수 있습니다. <b>조회</b>는 보기만, <b>수정</b>은 보기+고치기, <b>관리자</b>는 고치기+백업+회원등록까지 됩니다.</p>'+
+  $("imgBox").innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px"><h3 style="margin:0;text-align:left">회원등록</h3><button class="btn" id="nuX2" type="button" style="padding:6px 12px">닫기 ✕</button></div><p class="hint" style="text-align:left">등록한 이름과 비밀번호로 바로 로그인할 수 있습니다. <b>조회</b>는 보기만, <b>수정</b>은 보기+고치기, <b>관리자</b>는 고치기+백업+회원등록까지 됩니다.</p>'+
     '<input id="nuName" type="text" autocomplete="off" placeholder="이름 (예: 홍길동)" '+ip+'>'+
     '<input id="nuCode" type="text" inputmode="numeric" autocomplete="off" placeholder="비밀번호 (4자리 이상)" '+ip+'>'+
     '<p class="hint" style="text-align:left;margin:8px 0 4px">권한</p><div class="filters" id="nuRole" style="margin-bottom:4px"><button class="chipbtn" data-nr="view" aria-pressed="false">조회만 가능</button><button class="chipbtn" data-nr="edit" aria-pressed="true">수정 가능</button><button class="chipbtn" data-nr="admin" aria-pressed="false">관리자</button></div>'+
     '<p class="hint" id="nuMsg" style="min-height:1.2em;text-align:left"></p><div class="toolbar" style="justify-content:center"><button class="btn primary" id="nuGo">등록</button><button class="btn" id="nuX">닫기</button></div>'+
     '<h3 style="margin:16px 0 4px;text-align:left">회원 목록 · 권한 바꾸기</h3><p class="hint" style="text-align:left">버튼을 누르면 바로 바뀝니다. 바뀐 권한은 그 사람 화면에 1분 안에 적용됩니다.</p><div id="nuList" class="hint">불러오는 중…</div>';
   $("imgDlg").classList.add("on"); setTimeout(function(){ try{ $("nuName").focus(); }catch(e){} },50);
-  $("nuX").onclick=closeDlg; var nrole="edit"; loadUsers();
+  $("nuX").onclick=closeDlg; $("nuX2").onclick=closeDlg; var nrole="edit"; loadUsers();
   Array.prototype.forEach.call(document.querySelectorAll("#nuRole [data-nr]"),function(x){ x.onclick=function(){ nrole=x.dataset.nr; Array.prototype.forEach.call(document.querySelectorAll("#nuRole [data-nr]"),function(y){ y.setAttribute("aria-pressed",y===x); }); }; });
   $("nuGo").onclick=async function(){
     var n=$("nuName").value.trim(), c=$("nuCode").value.trim(), m=$("nuMsg"), btn=this;
