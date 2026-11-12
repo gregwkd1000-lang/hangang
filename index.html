@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113052536";</script>
+<script>window.HG_BUILD="20261113054357";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -140,6 +140,8 @@ body.practice>header{background:#fbe0ea}
 .box .t2.s{font-size:12px} .box .t2.xs{font-size:10px}
 .box .t3{font-size:11px;padding:0 4px 3px;line-height:1.15;font-family:var(--font-num);color:var(--muted);white-space:nowrap}
 .box .t3 b{color:var(--ink)}
+.box .t3 b.mp2,.box.colored .t3 b.mp2{color:#e5141b!important;font-weight:900}
+.box.colored.c-blue .t3 b.mp2,.box.colored.c-red .t3 b.mp2,.box.colored.c-black .t3 b.mp2,.box.colored.c-green .t3 b.mp2,.box.colored.c-purple .t3 b.mp2,.box.colored.c-teal .t3 b.mp2,.box.colored.c-navy .t3 b.mp2,.box.colored.c-brown .t3 b.mp2,.box.colored.c-olive .t3 b.mp2,.box.colored.c-maroon .t3 b.mp2{color:#ffd60a!important}  /* 어두운 상자에서는 빨강 대신 진한 노랑 */
 .btn.logbtn{background:#1d5fd1;border-color:#1d5fd1;color:#fff;font-weight:700;padding-left:22px;padding-right:22px}
 .brandrow .logbtn{white-space:nowrap;font-size:11.5px;padding:5px 10px;min-height:0;line-height:1.2;border-radius:999px;margin:0;flex:none}
 .qtyreset{display:block;width:100%;margin:14px 0 6px;border-color:var(--warn);font-weight:700}
@@ -1734,7 +1736,8 @@ function renderMap(){ PALC=null; try{ renderGlog(); }catch(e){}
     var sp=splitCode(it), t=total(it), stt=status(it), sz=sp[1].length>7?" xs":sp[1].length>5?" s":"";
     var mixN=(b.mix||[]).length, mixSum=(b.mix||[]).reduce(function(a,m){return a+(m.cur?sumA(m.cur):0);},0), mixHas=(b.mix||[]).some(function(m){return m.cur!==null;});
     var multi=boxesOf(it.id).length>1||it.cur!==null||seqDed(it.id)!==0||mixOf(it.id).length>0, mine=b.cur===null?null:sumA(b.cur), line;
-    if(mine!==null) line=multi?('<b>'+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>'):('<b>'+mine+'</b>'+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>');
+    var bp=mine!==null?palletsOf(b.cur,it):0, mb=bp>=2?'<b class="mp2">':'<b>';   /* 한 상자에 2파렛트 이상이면 숫자 빨갛게 */
+    if(mine!==null) line=multi?(mb+mine+'</b>/'+t+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>'):(mb+mine+'</b>'+'<span class="pl">('+palletsOf(b.cur,it)+'/'+palCache(it.id)+')</span>');
     else line=t===null?('이전 <b>'+(it.prev===null?"-":it.prev)+'</b>'):('–/'+t);
     if(mine===null&&!mixHas) stt="todo";
     var bc=b.bg?"":colorOf(it), noTop=!mixN&&["plant2","plant5"].indexOf(ui.cid)<0;   /* 2공장·5공장 말고는 위 작은 글씨 빼고 가운데 글씨 크게 */
