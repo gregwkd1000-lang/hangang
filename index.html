@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112221543";</script>
+<script>window.HG_BUILD="20261112221755";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -898,10 +898,12 @@ var PRACTICE=false, PRAC_REAL={};
 /* Claude 앱은 이제 입구(보기 전용) — 입력은 GitHub 링크에서 */
 var APP_URL="https://gregwkd1000-lang.github.io/hangang/?v=3";
 function retired(){ return !!(window.claude&&window.claude.use); }
-function snapLocked(){ return !!ui.snap&&(!!ui.snap.none||!ui.snap.state.survey.reopened||!!ui.snap.state.survey.closed); }
+/* 지난 날짜(하루 지난) 마감 기록은 관리자만 마감 해제·수정 가능 */
+function oldAdminOnly(date){ return typeof GAS!=="undefined"&&GAS&&!PRACTICE&&!EDIT.admin&&!!date&&date<today(); }
+function snapLocked(){ return !!ui.snap&&(!!ui.snap.none||!ui.snap.state.survey.reopened||!!ui.snap.state.survey.closed||oldAdminOnly(ui.snap.date)); }
 function locked(){ if(PRACTICE) return false; if(ui.snap) return snapLocked(); return !!(S[ui.cid].state.survey&&S[ui.cid].state.survey.closed); }
 function viewOnly(){ return !!(ui.snap&&ui.snap.none)||(retired()&&!PRACTICE)||locked()||(!PRACTICE&&typeof GAS!=="undefined"&&GAS&&!canEdit()); }
-function ro(){ if(retired()&&!PRACTICE){ showMoved(); return true; } if(!PRACTICE&&GAS&&!canEdit()){ askCode(); return true; } if(ui.snap&&ui.snap.none){ toast("이 날짜에는 이 탭 기록이 없습니다"); return true; } if(locked()){ toast(ui.snap?"마감된 기록입니다. 마감 해제 후 고칠 수 있습니다":"마감된 회차입니다. 마감 해제 후 고칠 수 있습니다"); return true; } return false; }
+function ro(){ if(retired()&&!PRACTICE){ showMoved(); return true; } if(!PRACTICE&&GAS&&!canEdit()){ askCode(); return true; } if(ui.snap&&ui.snap.none){ toast("이 날짜에는 이 탭 기록이 없습니다"); return true; } if(locked()){ var od=ui.snap?ui.snap.date:S[ui.cid].state.survey.date; toast(oldAdminOnly(od)?"하루 지난 마감 기록은 관리자만 고칠 수 있습니다":ui.snap?"마감된 기록입니다. 마감 해제 후 고칠 수 있습니다":"마감된 회차입니다. 마감 해제 후 고칠 수 있습니다"); return true; } return false; }
 function MAP(){ var ms=ST().maps, id=ui.map[ui.cid]; for(var i=0;i<ms.length;i++) if(ms[i].id===id) return ms[i]; return ms[0]; }
 function mapName(id){ var ms=ST().maps; for(var i=0;i<ms.length;i++) if(ms[i].id===id) return ms[i].name; return ""; }
 var dbReady=false, readOnly=false;
@@ -2734,10 +2736,12 @@ $("summary").addEventListener("click",function(e){
   if(e.target.closest("#closeRound")){
     if(ui.snap){ if(ui.snap.none) return; if(retired()){ showMoved(); return; } if(GAS&&!canEdit()){ askCode(); return; }
       var ssv=ui.snap.state.survey, son=!snapLocked(), snm=fmtDate(ui.snap.date)+" "+ui.snap.round+"차 기록";
+      if(oldAdminOnly(ui.snap.date)){ toast("하루 지난 마감 기록은 관리자만 마감 해제할 수 있습니다"); return; }
       ask(son?snm+"을 마감할까요? 마감하면 고칠 수 없습니다.":snm+" 마감을 해제할까요? 지난 기록을 고칠 수 있게 됩니다.",son?"마감":"마감 해제",function(){
         ssv.closed=son; ssv.reopened=!son; ssv.closedAt=son?Date.now():null; ssv.closedBy=son?who():""; ui.moving=null; ui.insMode=false; closeSheet(); persist(); toast(son?snm+"을 마감했습니다":snm+" 마감을 해제했습니다 · 이제 고칠 수 있습니다");
       },"취소"); return; }
     var st=S[ui.cid].state, sv=st.survey, on=!sv.closed, nm=fmtDate(sv.date)+" "+sv.round+"차";
+    if(!on&&oldAdminOnly(sv.date)){ toast("하루 지난 마감 기록은 관리자만 마감 해제할 수 있습니다"); return; }
     /* 오늘 1차를 마감하면: 1차는 마감된 채 기록에 남고, 1차 수량 그대로 2차가 바로 시작 */
     if(on&&!PRACTICE&&+sv.round===1&&sv.date===today()&&!sv.manual){
       if(ro()) return;
