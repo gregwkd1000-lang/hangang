@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113073337";</script>
+<script>window.HG_BUILD="20261113074130";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1346,6 +1346,7 @@ function freshView(){ try{ ui.snap=null; ui.vdate=null; ui.moving=null; ui.multi
 function logoutTo(msg){ if(PRACTICE) leavePractice(true); freshView(); EDIT={}; try{ localStorage.removeItem("stockmap-editor"); }catch(e){} closeDlg(); showGate(msg); }
 function showGate(msg){
   if(!GAS) return; document.body.classList.add("gated"); var g=$("gate"); g.hidden=false;
+  clearInterval(GT_TIMER); $("gtGo").disabled=false; $("gtMsg").className="hint";   /* 로그아웃 뒤에도 로그인 버튼 누를 수 있게 */
   if(msg) $("gtMsg").textContent=msg; setTimeout(function(){ try{ $("gtName").focus(); }catch(e){} },60);
 }
 /* 로그인 5번 연속 틀리면 5분 제한 (서버가 세고, 서버를 새로 배포하기 전에는 이 기기에서 셈) */
@@ -1385,7 +1386,7 @@ async function gateGo(){
     if(r.ok&&r.name&&r.name!==nm) r={ok:false};
     if(r.ok){ delete lf[nm]; lfSet(lf); clearInterval(GT_TIMER); JUST_LOGGED=true;
       EDIT={code:c,name:r.name,admin:!!r.admin,role:r.role||(r.admin?"admin":"edit")}; try{ localStorage.setItem("stockmap-editor",JSON.stringify(EDIT)); }catch(e){}
-      freshView(); $("gate").hidden=true; document.body.classList.remove("gated"); $("gtCode").value=""; m.textContent="";
+      freshView(); $("gate").hidden=true; document.body.classList.remove("gated"); $("gtCode").value=""; m.textContent=""; $("gtGo").disabled=false;
       toast(r.name+"님 환영합니다"+(EDIT.role==="view"?" · 조회 전용":"")); renderAll(); POLL.busy=false; POLL.tick(true); return; }
     if(r.error==="locked"){ var u=+r.until||Date.now()+300000; lf[nm]={n:0,until:u}; lfSet(lf); $("gtCode").value=""; gateLocked(nm,u); return; }
     var n=r.fails?+r.fails:(me.n||0)+1;
