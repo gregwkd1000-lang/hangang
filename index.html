@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112224252";</script>
+<script>window.HG_BUILD="20261112224929";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -936,29 +936,30 @@ function qsnap(st){ var q={}, ic={}; st.boxes.forEach(function(b){ var mx=(b.mix
 function qsnapEmpty(p){ return !Object.keys(p.q).length&&!Object.keys(p.ic).length; }
 function gsnap(st){ var ic={}; st.items.forEach(function(i){ if(i.cur!==null&&i.cur!==undefined) ic[i.id]=i.cur; }); return JSON.parse(JSON.stringify({maps:st.maps,boxes:st.boxes,ic:ic})); }
 var GKEEP=7*86400000;   /* 복구는 최근 7일치까지 */
-function glogAdd(st,x,pre,kind,mname){ if(!st||PRACTICE||ui.snap) return; var e={t:Date.now(),by:who(),x:x,k:kind||"grid",m:mname!==undefined?mname:((MAP()||{}).name||""),s:pre};
+function glogAdd(st,x,pre,kind,mname){ if(!st||PRACTICE) return; var e={t:Date.now(),by:who(),x:x,k:kind||"grid",m:mname!==undefined?mname:((MAP()||{}).name||""),s:pre};
   var L=(st.glog||[]).concat([e]), old=Date.now()-GKEEP, keep=0; for(var i=L.length-1;i>=0;i--){ if(!L[i].s) continue; if(L[i].t<old){ delete L[i].s; continue; } keep++; if(keep>40) delete L[i].s; } st.glog=L.slice(-200); }
 function glogUndo(cid,t){
-  if(!EDIT.admin){ toast("마스터만 할 수 있습니다"); return; } if(PRACTICE){ toast("연습모드를 끝낸 뒤에 해 주세요"); return; } if(ui.snap){ toast("지난 기록 보기를 닫고 해 주세요"); return; }
-  var st=S[cid].state, e=(st.glog||[]).filter(function(x){return x.t===+t;})[0]; if(!e||!e.s) return;
+  if(!EDIT.admin){ toast("마스터만 할 수 있습니다"); return; } if(PRACTICE){ toast("연습모드를 끝낸 뒤에 해 주세요"); return; }
+  var isSnap=!!ui.snap&&cid===ui.cid, st=isSnap?ui.snap.state:S[cid].state, e=(st.glog||[]).filter(function(x){return x.t===+t;})[0]; if(!e||!e.s) return;
   if(e.t<Date.now()-GKEEP){ toast("7일이 지난 내역은 복구할 수 없습니다"); return; }
   if(e.s.q){ /* 수량 복구: 상자 자리는 그대로, 수량만 그때 값으로 */
-    if(st.survey&&st.survey.closed){ toast("지금 회차가 마감되어 있습니다. 마감 해제 후 복구하세요"); return; }
+    if(isSnap?locked():(st.survey&&st.survey.closed)){ toast((isSnap?"이 기록이":"지금 회차가")+" 마감되어 있습니다. 마감 해제 후 복원하세요"); return; }
     ask("「"+e.x+"」 전의 수량을 지금 "+fmtDate(st.survey.date)+" "+st.survey.round+"차 상자에 다시 넣을까요? 상자 자리는 그대로이고, 그때 수량이 있던 상자만 그 값으로 바뀝니다.","복원",function(){
       var pre=qsnap(st), n=0; st.boxes.forEach(function(b){ var v=e.s.q[b.id]; if(!v) return; n++; b.cur=JSON.parse(JSON.stringify(v[0]));
         if(v[1]&&b.mix) v[1].forEach(function(p){ b.mix.forEach(function(m){ if(m.itemId===p[0]) m.cur=JSON.parse(JSON.stringify(p[1])); }); }); if(v[2]) b.seq=JSON.parse(JSON.stringify(v[2])); });
       st.items.forEach(function(i){ if(e.s.ic[i.id]!==undefined) i.cur=JSON.parse(JSON.stringify(e.s.ic[i.id])); });
-      e.done=1; glogAdd(st,"수량 복원: "+e.x,pre,"qty",""); S[cid].state=normalize(CMAP[cid],st); persistId(cid); toast("수량을 복원했습니다 · 상자 "+n+"곳");
+      e.done=1; glogAdd(st,"수량 복원: "+e.x,pre,"qty",""); if(isSnap){ persist(); } else { S[cid].state=normalize(CMAP[cid],st); persistId(cid); } toast("수량을 복원했습니다 · 상자 "+n+"곳");
     },"취소"); return; }
   ask("「"+e.x+"」 하기 전 상태로 약도를 되돌릴까요? 그 뒤에 이 탭 약도에서 바꾼 상자 위치·수량도 그때 상태로 돌아갑니다.","복구",function(){
     var pre=gsnap(st); st.maps=JSON.parse(JSON.stringify(e.s.maps)); st.boxes=JSON.parse(JSON.stringify(e.s.boxes));
     if(e.k==="qty") st.items.forEach(function(i){ if(e.s.ic[i.id]!==undefined) i.cur=JSON.parse(JSON.stringify(e.s.ic[i.id])); });
-    e.done=1; glogAdd(st,"복구: "+e.x,pre,e.k); S[cid].state=normalize(CMAP[cid],st); persistId(cid); toast("복구했습니다");
+    if(isSnap&&locked()){ toast("이 기록이 마감되어 있습니다. 마감 해제 후 복구하세요"); return; }
+    e.done=1; glogAdd(st,"복구: "+e.x,pre,e.k); if(isSnap){ persist(); } else { S[cid].state=normalize(CMAP[cid],st); persistId(cid); } toast("복구했습니다");
   },"취소");
 }
 function renderGlog(){
   var card=$("glogCard"); if(!card) return; var show=!!(EDIT&&EDIT.admin); card.hidden=!show; if(!show||!card.open) return;
-  var st=S[ui.cid].state, L=(st.glog||[]).slice().reverse(), p=function(n){return (n<10?"0":"")+n;};
+  var st=ST(), L=(st.glog||[]).slice().reverse(), p=function(n){return (n<10?"0":"")+n;};
   $("glogList").innerHTML=L.length?'<table class="iltab"><tr><th>언제</th><th>누가</th><th>내용</th><th></th></tr>'+L.map(function(e){ var d=new Date(e.t);
     return '<tr><td>'+(d.getMonth()+1)+'/'+d.getDate()+'<br>'+p(d.getHours())+':'+p(d.getMinutes())+'</td><td>'+esc(e.by||"-")+'</td><td>'+(e.m&&st.maps.length>1?'<small>'+esc(e.m)+' · </small>':'')+esc(e.x)+'</td><td class="ilbt">'+(e.s&&e.t>=Date.now()-GKEEP?'<button class="ilb res" data-gu="'+e.t+'">'+(e.s.q?(e.done?'다시 복원':'수량 복원'):(e.done?'다시 복구':'복구'))+'</button>':'<small class="hint">'+(e.s||e.t<Date.now()-GKEEP?'7일 지남':'-')+'</small>')+'</td></tr>'; }).join("")+'</table><p class="hint">복구·복원은 최근 7일치까지 할 수 있습니다. 수량 복원은 상자 자리는 그대로 두고 수량만 되돌립니다.</p>':'<p class="hint">아직 내역이 없습니다. 지금부터 가로·세로 칸 조절, 중간 줄 넣기·빼기, 수량 초기화(회차·날짜가 바뀔 때 자동 초기화 포함)를 하면 여기에 남습니다.</p>';
 }
@@ -1373,6 +1374,7 @@ function persist(){
   if(ui.snap&&!PRACTICE){ /* 지난 기록 고치기: 그 기록에 그대로 저장 */
     var sp=ui.snap; if(sp.none||retired()){ renderAll(); return; } if(GAS&&!canEdit()){ askCode(); renderAll(); return; }
     var fp=editFp(sp.state); if(sp.fp!==undefined&&sp.fp!==fp){ sp.state.survey.editedAt=Date.now(); sp.state.survey.editedBy=who(); } sp.fp=fp;
+    try{ if(sp.base) addLog(normalize(C(),sp.base),sp.state); }catch(e){} sp.base=JSON.parse(JSON.stringify(sp.state));   /* 지난 기록 고친 것도 약도 수정 이력에 */
     var k=countsSt(sp.state), sn={id:sp.id,date:sp.date,round:sp.round,savedAt:Date.now(),done:k.done+k.diff,diff:k.diff,n:k.n,state:JSON.parse(JSON.stringify(sp.state))};
     saveHistLocal(ui.cid,sn); saveHistDb(ui.cid,sn); renderAll(); return;
   }
@@ -2955,7 +2957,7 @@ function applyVdate(round){
   var st=S[ui.cid].state, recs=recsOn(ui.cid,d);
   if(st.survey.date===d&&(!round||+round===+st.survey.round)) return; // 그날이 지금 진행 중인 회차면 그대로
   var v=round?recs.filter(function(r){return +r.round===+round;})[0]:recs[0];
-  if(v){ var ns=normalize(C(),JSON.parse(JSON.stringify(v.state))); ui.snap={id:v.id,date:v.date,round:v.round,state:ns,fp:editFp(ns)}; return; }
+  if(v){ var ns=normalize(C(),JSON.parse(JSON.stringify(v.state))); ui.snap={id:v.id,date:v.date,round:v.round,state:ns,fp:editFp(ns),base:JSON.parse(JSON.stringify(ns))}; return; }
   var e=normalize(C(),JSON.parse(JSON.stringify(st))); e.boxes=[]; e.items.forEach(function(it){ it.cur=null; it.prev=null; }); e.survey={date:d,round:0,closed:true};
   ui.snap={id:null,date:d,round:0,state:e,none:true};
 }
@@ -3016,7 +3018,7 @@ function renderItemInfo(s){
     (ed?'<button class="btn primary" id="iiSave" style="width:100%;margin-bottom:12px">이름·특이사항 저장</button>':'')+
     '<p class="hint" style="margin:0 0 4px"><b>약도 위치</b> · 총 <b>'+pal+'</b>파렛트'+(has?' · '+qty+'개':'')+(rows.length?' · '+rows.length+'곳':'')+'</p>'+
     (rows.length?'<div class="spots">'+rows.map(function(x){ return '<div class="spot"><span>'+esc(spotName(x.b))+'</span><b>'+(x.cur===null?'미입력':x.n+'파렛 · '+sumA(x.cur)+'개')+'</b></div>'; }).join("")+'</div>':'<p class="hint">약도에 놓인 상자가 없습니다.</p>')+
-    (ed?'<button class="iidel" id="iiDel" type="button">품목 삭제</button>':'')+
+    (ed&&EDIT.admin?'<button class="iidel" id="iiDel" type="button">품목 삭제</button>':'')+
     '';
   $("shBody").innerHTML=h;
   function prev(){ var c=$("iiCode").value.trim(), a=$("iiAlias").value.trim(); $("iiPrev").textContent=c.toUpperCase()+(a?" ("+a+")":""); }
