@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112101721";</script>
+<script>window.HG_BUILD="20261112105338";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1262,7 +1262,8 @@ function renderLog(s){
 }
 /* 3공장: 날짜가 바뀌면 시퀀스 갯수 조정값은 지움 (수량을 복사해도) */
 /* 강호산업·에프유: 마감해서 다음 회차로 가거나 날짜가 바뀌면 상자 자리는 그대로, 수량만 비움 */
-function clearQty(st){ st.boxes.forEach(function(b){ b.cur=null; (b.mix||[]).forEach(function(m){ m.cur=null; }); }); }
+/* 고정한 상자는 수량도 그대로 둠 */
+function clearQty(st){ st.boxes.forEach(function(b){ if(b.fixed) return; b.cur=null; (b.mix||[]).forEach(function(m){ m.cur=null; }); }); }
 function clearQtyRoll(cid,st){ var c=COMPANIES.filter(function(x){return x.id===cid;})[0]; if(c&&c.qtyReset) clearQty(st); }
 function clearSeqDaily(cid,st){ var c=COMPANIES.filter(function(x){return x.id===cid;})[0]; if(!c||!c.seqDaily) return; st.boxes.forEach(function(b){ if(b.mark===SEQ) b.seq=null; }); }
 function seqDed(id,st){ return (st||ST()).boxes.reduce(function(a,b){ return a+(b.mark===SEQ&&b.seq&&b.seq[id]?b.seq[id]:0); },0); }
@@ -2572,7 +2573,7 @@ function startRound(copy){
       if(it.kind==="info"){ if(it.cur!==null) it.prev=it.cur; if(!copy) it.cur=null; return; }
       var t=total(it,st); if(t!==null) it.prev=t; if(!copy) it.cur=null;
     });
-    if(!copy) st.boxes.forEach(function(b){ b.cur=null; b.seq=null; (b.mix||[]).forEach(function(m){ m.cur=null; }); });
+    if(!copy) st.boxes.forEach(function(b){ if(b.fixed) return; b.cur=null; b.seq=null; (b.mix||[]).forEach(function(m){ m.cur=null; }); });
     var oldDate=st.survey.date; if(nx.date!==oldDate){ clearSeqDaily(id,st); clearQtyRoll(id,st); }
     nx.filled=true; st.survey=nx; closeSheet(); persist(); toast(fmtDate(nx.date)+" "+nx.round+"차 조사 시작");
     if(nx.date!==oldDate) switchDate(nx.date); // 날짜가 바뀌면 다른 탭도 같은 날짜로
@@ -2799,9 +2800,9 @@ $("delItem").onclick=function(){
 };
 $("logBtn").onclick=function(){ openSheet({mode:"log"}); };
 $("qtyReset").onclick=function(){
-  if(ro()) return; var st=ST(), n=st.boxes.filter(function(b){ return b.cur!==null||(b.mix||[]).some(function(m){return m.cur!==null;}); }).length;
-  if(!n){ toast("지울 수량이 없습니다"); return; }
-  ask("⚠️ "+C().name+" "+fmtDate(st.survey.date)+" "+st.survey.round+"차의 상자 수량을 모두 지울까요? 상자 "+n+"곳의 입력한 수량이 지워지고, 상자 자리는 그대로 남습니다. 되돌릴 수 없습니다.","예",function(){ clearQty(ST()); persist(); toast("수량을 초기화했습니다"); },"아니오");
+  if(ro()) return; var st=ST(), n=st.boxes.filter(function(b){ return !b.fixed&&(b.cur!==null||(b.mix||[]).some(function(m){return m.cur!==null;})); }).length, nf=st.boxes.filter(function(b){return b.fixed;}).length;
+  if(!n){ toast("지울 수량이 없습니다"+(nf?" (고정한 상자는 그대로)":"")); return; }
+  ask("⚠️ "+C().name+" "+fmtDate(st.survey.date)+" "+st.survey.round+"차의 상자 수량을 모두 지울까요? 상자 "+n+"곳의 입력한 수량이 지워지고, 상자 자리는 그대로 남습니다."+(nf?" 고정한 상자 "+nf+"곳의 수량은 지우지 않습니다.":"")+" 되돌릴 수 없습니다.","예",function(){ clearQty(ST()); persist(); toast("수량을 초기화했습니다"); },"아니오");
 };
 $("addItem").onclick=function(){
   if(ro()) return; var kind=$("newKind").value, raw=$("newCode").value.trim().replace(/\s+/g," ");
