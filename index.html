@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112111650";</script>
+<script>window.HG_BUILD="20261112112621";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1561,7 +1561,7 @@ function renderSheet(){
   var quick=u?(alt.length?pal.concat([u-1,1]):[u,u-1,u-2,1]):[1,5,10,20], tg=b?b:it;
   var h='<div class="prevbox"><div class="prevnum"><label for="pPrev">이전재고</label><input id="pPrev" inputmode="numeric" value="'+(it.prev===null?"":it.prev)+'" placeholder="-"></div>'+
     '<div class="notebox'+(it.note?"":" emp")+'"><label for="pNote">특이사항</label><input id="pNote" value="'+esc(it.note)+'" placeholder="없음 (눌러서 입력)"></div></div>'+
-    '<div class="unitrow"><label for="pUnit">파렛트 기준</label><input id="pUnit" inputmode="numeric" value="'+(u||"")+'" placeholder="미정"><span>개</span><button id="pUnitAll">'+esc(g.name)+' 전체 적용</button></div>'+
+
     '<div id="curArea"></div>'+
     '<div class="quick">'+quick.filter(function(n){return n>0;}).map(function(n,i){ var isP=u&&i<pal.length&&pal.indexOf(n)>=0; return '<button class="btn'+(isP?" primary":"")+'" data-add="'+n+'">+ '+(isP?"파렛트 ":"")+n+'</button>';}).join("")+'</div>'+
     '<div class="manual"><input id="pQty" inputmode="numeric" placeholder="수량 직접 (예: 3)" aria-label="수량 직접 입력"><button class="btn" id="pQtyAdd">'+(u?"낱개 파렛트 추가":"수량 추가")+'</button></div>'+
@@ -1572,8 +1572,8 @@ function renderSheet(){
   $("shBody").innerHTML=h; updateCurArea(it,b); if(b) bindMix(b,it);
   $("pPrev").onchange=function(){ var v=this.value.trim(); it.prev=v===""?null:Math.max(0,parseInt(v,10)||0); this.blur(); persist(); };
   $("pNote").onchange=function(){ it.note=this.value.trim(); this.blur(); persist(); };
-  $("pUnit").onchange=function(){ var v=parseInt(this.value,10); it.unit=v>0?v:null; this.blur(); persist(); };
-  $("pUnitAll").onclick=function(){ var v=parseInt($("pUnit").value,10); var n=v>0?v:null; ST().items.forEach(function(x){ if(x.group===it.group&&x.kind!=="info") x.unit=n; }); persist(); toast(g.name+" 전체 "+(n?n+"개 기준":"기준 없음")); };
+  if($("pUnit")) $("pUnit").onchange=function(){ var v=parseInt(this.value,10); it.unit=v>0?v:null; this.blur(); persist(); };
+  if($("pUnitAll")) $("pUnitAll").onclick=function(){ var v=parseInt($("pUnit").value,10); var n=v>0?v:null; ST().items.forEach(function(x){ if(x.group===it.group&&x.kind!=="info") x.unit=n; }); persist(); toast(g.name+" 전체 "+(n?n+"개 기준":"기준 없음")); };
   each("[data-add]",function(btn){ btn.onclick=function(){ var n=+btn.dataset.add; if(tg.cur===null) tg.cur=[]; tg.cur.push(n); persist(); }; });
   $("pQtyAdd").onclick=function(){ var n=parseInt($("pQty").value,10); if(!(n>0)){ toast("수량을 숫자로 입력하세요"); return; } if(tg.cur===null) tg.cur=[]; tg.cur.push(n); $("pQty").value=""; $("pQty").blur(); persist(); };
   $("pZero").onclick=function(){ tg.cur=[]; persist(); };
