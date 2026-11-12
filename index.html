@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112230520";</script>
+<script>window.HG_BUILD="20261112231132";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -941,9 +941,9 @@ function qsnap(st){ var q={}, ic={}; st.boxes.forEach(function(b){ var mx=(b.mix
   return JSON.parse(JSON.stringify({q:q,ic:ic})); }
 function qsnapEmpty(p){ return !Object.keys(p.q).length&&!Object.keys(p.ic).length; }
 function gsnap(st){ var ic={}; st.items.forEach(function(i){ if(i.cur!==null&&i.cur!==undefined) ic[i.id]=i.cur; }); return JSON.parse(JSON.stringify({maps:st.maps,boxes:st.boxes,ic:ic})); }
-var GKEEP=7*86400000;   /* 복구는 최근 7일치까지 */
+var GKEEP=Infinity;   /* 복구 기간 제한 없음 (칸·줄 복구용 약도 사본만 최근 40개 보관) */
 function glogAdd(st,x,pre,kind,mname){ if(!st||PRACTICE) return; var e={t:Date.now(),by:who(),x:x,k:kind||"grid",m:mname!==undefined?mname:((MAP()||{}).name||""),s:pre};
-  var L=(st.glog||[]).concat([e]), old=Date.now()-GKEEP, keep=0; for(var i=L.length-1;i>=0;i--){ if(!L[i].s) continue; if(L[i].t<old){ delete L[i].s; continue; } keep++; if(keep>40) delete L[i].s; } st.glog=L.slice(-200); }
+  var L=(st.glog||[]).concat([e]), old=Date.now()-GKEEP, keep=0; for(var i=L.length-1;i>=0;i--){ if(!L[i].s) continue; if(L[i].t<old){ delete L[i].s; continue; } if(L[i].k==="qty") continue; keep++; if(keep>40) delete L[i].s; } st.glog=L.slice(-200); }
 function glogUndo(cid,t){
   if(!EDIT.admin){ toast("마스터만 할 수 있습니다"); return; } if(PRACTICE){ toast("연습모드를 끝낸 뒤에 해 주세요"); return; }
   var isSnap=!!ui.snap&&cid===ui.cid, st=isSnap?ui.snap.state:S[cid].state, e=(st.glog||[]).filter(function(x){return x.t===+t;})[0]; if(!e||!e.s) return;
@@ -967,7 +967,7 @@ function renderGlog(){
   var card=$("glogCard"); if(!card) return; var show=!!(EDIT&&EDIT.admin); card.hidden=!show; if(!show||!card.open) return;
   var st=ST(), L=(st.glog||[]).slice().reverse(), p=function(n){return (n<10?"0":"")+n;};
   $("glogList").innerHTML=L.length?'<table class="iltab"><tr><th>언제</th><th>누가</th><th>내용</th><th></th></tr>'+L.map(function(e){ var d=new Date(e.t);
-    return '<tr><td>'+(d.getMonth()+1)+'/'+d.getDate()+'<br>'+p(d.getHours())+':'+p(d.getMinutes())+'</td><td>'+esc(e.by||"-")+'</td><td>'+(e.m&&st.maps.length>1?'<small>'+esc(e.m)+' · </small>':'')+esc(e.x)+'</td><td class="ilbt">'+(e.s&&e.t>=Date.now()-GKEEP?'<button class="ilb res" data-gu="'+e.t+'">'+(e.s.q?(e.done?'다시 복원':'수량 복원'):(e.done?'다시 복구':'복구'))+'</button>':'<small class="hint">'+(e.s||e.t<Date.now()-GKEEP?'7일 지남':'-')+'</small>')+'</td></tr>'; }).join("")+'</table><p class="hint">복구·복원은 최근 7일치까지 할 수 있습니다. 수량 복원은 상자 자리는 그대로 두고 수량만 되돌립니다.</p>':'<p class="hint">아직 내역이 없습니다. 지금부터 가로·세로 칸 조절, 중간 줄 넣기·빼기, 수량 초기화(회차·날짜가 바뀔 때 자동 초기화 포함)를 하면 여기에 남습니다.</p>';
+    return '<tr><td>'+(d.getMonth()+1)+'/'+d.getDate()+'<br>'+p(d.getHours())+':'+p(d.getMinutes())+'</td><td>'+esc(e.by||"-")+'</td><td>'+(e.m&&st.maps.length>1?'<small>'+esc(e.m)+' · </small>':'')+esc(e.x)+'</td><td class="ilbt">'+(e.s&&e.t>=Date.now()-GKEEP?'<button class="ilb res" data-gu="'+e.t+'">'+(e.s.q?(e.done?'다시 복원':'수량 복원'):(e.done?'다시 복구':'복구'))+'</button>':'<small class="hint">'+(e.s||e.t<Date.now()-GKEEP?'-':'-')+'</small>')+'</td></tr>'; }).join("")+'</table><p class="hint">수량 복원은 상자 자리는 그대로 두고 수량만 되돌립니다. 칸·줄 복구는 최근 40건까지 됩니다.</p>':'<p class="hint">아직 내역이 없습니다. 지금부터 가로·세로 칸 조절, 중간 줄 넣기·빼기, 수량 초기화(회차·날짜가 바뀔 때 자동 초기화 포함)를 하면 여기에 남습니다.</p>';
 }
 /* 품목 지우기 (약도 상자는 빈 상자로, 섞인 상자에서는 그 품목만 빠짐) */
 function removeItem(st,it){
@@ -1471,7 +1471,7 @@ function seqInfos(st){ return (st||ST()).items.filter(function(it){ return it.ki
 function seqInfoOf(b,st){ var a=seqInfos(st); if(!a.length) return null; if(b.seqInfo){ for(var i=0;i<a.length;i++) if(a[i].id===b.seqInfo) return a[i]; } return a[0]; }
 function seqNoOf(b,st){ var it=seqInfoOf(b,st); return it&&it.cur!==null&&String(it.cur).trim()!==""?String(it.cur):""; }
 /* 이번 회차 수정 이력: 저장할 때마다 바로 전 상태와 비교해서 한 줄씩 남김 (회차가 바뀌면 새로 시작) */
-var LKEEP=3*86400000;   /* 약도 수정 이력 건별 복구: 최근 3일 */
+var LKEEP=Infinity;   /* 약도 수정 이력 건별 복구: 기간 제한 없음 */
 function logUndo(id){
   if(!EDIT.admin){ toast("마스터만 할 수 있습니다"); return; } if(PRACTICE){ toast("연습모드를 끝낸 뒤에 해 주세요"); return; }
   var st=ST(), e=(st.log||[]).filter(function(x){return x.id===id;})[0]; if(!e||!e.u) return;
@@ -1521,7 +1521,7 @@ function addLog(o,n){
   o.items.forEach(function(a){ if(!n.items.some(function(i){return i.id===a.id;})) out.push(["품목 삭제",label(a)]); });
   var lg=(n.log||[]).filter(function(e){return e.k===key;});
   out.forEach(function(e){ var x={id:uid(),k:key,t:now,by:by,a:e[0],x:e[1]}; if(e[2]) x.u=e[2]; lg.push(x); });
-  var old=now-LKEEP; lg.forEach(function(e){ if(e.u&&e.t<old) delete e.u; });   /* 되돌리기 정보는 3일만 보관 */
+
   n.log=lg.slice(-500);
 }
 function renderLog(s){
@@ -1539,7 +1539,7 @@ function renderLog(s){
   $("shBody").innerHTML=h;
   Array.prototype.forEach.call($("shBody").querySelectorAll("[data-lf]"),function(x){ x.onclick=function(){ s.f=x.dataset.lf; renderLog(s); }; });
   Array.prototype.forEach.call($("shBody").querySelectorAll("[data-lu]"),function(x){ x.onclick=function(){ logUndo(x.dataset.lu); }; });
-  if(EDIT.admin) $("shBody").insertAdjacentHTML("beforeend",'<p class="hint">마스터는 최근 3일 이내 이력을 한 건씩 복구할 수 있습니다.</p>');
+  if(EDIT.admin) $("shBody").insertAdjacentHTML("beforeend",'<p class="hint">마스터는 이력을 한 건씩 복구할 수 있습니다.</p>');
 }
 /* 3공장: 날짜가 바뀌면 시퀀스 갯수 조정값은 지움 (수량을 복사해도) */
 /* 강호산업·에프유: 마감해서 다음 회차로 가거나 날짜가 바뀌면 상자 자리는 그대로, 수량만 비움 */
