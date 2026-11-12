@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112232803";</script>
+<script>window.HG_BUILD="20261112233324";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -2995,7 +2995,8 @@ function renderHist(){
     var fdt=function(ms){ var d=new Date(ms); return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
     var who2=vs&&vs.closedBy?'마감 · <b>'+esc(vs.closedBy)+'</b>'+(vs.closedAt?' ('+fdt(vs.closedAt)+')':''):(v.date<today()?'일자 지남에 따라 자동 마감':'다음 회차 시작으로 마감');
     var ed2=(vs&&vs.editedAt)||v.savedAt?'마지막 수정 '+fdt((vs&&vs.editedAt)||v.savedAt)+(vs&&vs.editedAt&&vs.editedBy?' · '+esc(vs.editedBy):''):'';
-    out+='<div class="row hrow'+(vc?' hclosed':'')+'"><span class="code">'+v.round+'차'+(vc?' <span class="hcl">마감됨</span>':'')+'<small class="hmeta">'+(ed2?ed2+'<br>':'')+(vc?who2:'마감 해제됨')+'</small><small>입력 '+(v.done||0)+'/'+(v.n||0)+(v.diff?' · 차이 '+v.diff:'')+' · '+hm+'</small></span><span class="hbtns"><button class="btn" data-snapview="'+esc(v.id)+'">보기</button></span></div>';
+    var autoC=vc&&!(vs&&vs.closedBy)&&v.date<today();   /* 일자 지나 자동 마감: 배경색은 그대로, "마감됨"만 노랗게 */
+    out+='<div class="row hrow'+(vc&&!autoC?' hclosed':'')+'"><span class="code">'+v.round+'차'+(vc?' <span class="hcl">마감됨</span>':'')+'<small class="hmeta">'+(ed2?ed2+'<br>':'')+(vc?who2:'마감 해제됨')+'</small><small>입력 '+(v.done||0)+'/'+(v.n||0)+(v.diff?' · 차이 '+v.diff:'')+' · '+hm+'</small></span><span class="hbtns"><button class="btn" data-snapview="'+esc(v.id)+'">보기</button></span></div>';
   });
   if(lastDate!==null) out+='</div>';
   $("shBody").innerHTML=out;
