@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112085455";</script>
+<script>window.HG_BUILD="20261112093808";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -121,7 +121,7 @@ body.practice .top{box-shadow:inset 0 -4px 0 #f59e0b}
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0 0}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 
-.mapwrap{overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 8px 72px;max-height:calc(100vh - 250px);max-height:calc(100dvh - 250px);min-height:300px}
+.mapwrap{overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 8px 72px;min-height:300px}
 .grid{display:grid;gap:4px;width:max-content}
 .cell{width:var(--cell);height:var(--cell);border-radius:8px;border:1px dashed var(--line);background:transparent;padding:0;position:relative}
 .cell.empty::after{content:"";position:absolute;inset:50% auto auto 50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:var(--line)}
@@ -1858,7 +1858,10 @@ function moveDrag(x,y){
   function sp(d){ return Math.round(1+5*Math.min(1,Math.max(0,d)/m)); }
   /* 가장자리 칸을 집자마자 화면이 밀리지 않게: 그쪽으로 30px 이상 끌고 갔을 때만 넘어감 */
   var T=30;
-  if(y<wr.top+m&&drag.sy-y>T) w.scrollTop-=sp(wr.top+m-y); else if(y>wr.bottom-m&&y-drag.sy>T) w.scrollTop+=sp(y-(wr.bottom-m));
+  /* 위아래: 약도 칸이 세로로 안 넘치면(한 화면 스크롤) 페이지 자체를 움직임 */
+  var vw=w.scrollHeight>w.clientHeight+2?w:null, top=vw?wr.top:0, bot=vw?wr.bottom:window.innerHeight;
+  if(y<top+m&&drag.sy-y>T){ if(vw) vw.scrollTop-=sp(top+m-y); else window.scrollBy(0,-sp(top+m-y)); }
+  else if(y>bot-m&&y-drag.sy>T){ if(vw) vw.scrollTop+=sp(y-(bot-m)); else window.scrollBy(0,sp(y-(bot-m))); }
   if(x<wr.left+m&&drag.sx-x>T) w.scrollLeft-=sp(wr.left+m-x); else if(x>wr.right-m&&x-drag.sx>T) w.scrollLeft+=sp(x-(wr.right-m));
 }
 function endDrag(){
@@ -2932,7 +2935,7 @@ document.addEventListener("visibilitychange",function(){ if(!document.hidden) ro
     b.addEventListener("click",function(){ h=!h; apply(h); try{ localStorage.setItem("hg-hidelbl",h?"1":"0"); }catch(e){} });
   })();
   (function(){ var hd=document.querySelector("header"); if(!hd) return;
-    function chk(){ var t=hd.offsetHeight>window.innerHeight*0.45; document.body.classList.toggle("tallhdr",t); }
+    function chk(){ document.body.classList.add("tallhdr"); } /* 위쪽(로고·탭)과 아래 내용을 한 화면으로 같이 스크롤 */
     chk(); window.addEventListener("resize",chk); if(window.ResizeObserver) new ResizeObserver(chk).observe(hd);
   })();
   /* GitHub 사이트: 새 버전이 올라오면 자동으로 새로 불러오기 (카톡·사파리 캐시 대비) */
