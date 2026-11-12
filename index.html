@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113000201";</script>
+<script>window.HG_BUILD="20261113002127";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -454,13 +454,18 @@ body.android #grid .box,body.android #ovGrid .box{touch-action:none}
 .box .flag + .donemark{right:21px}
 #grid .donemark{top:max(3px,calc(var(--cell) * .1));width:max(10px,calc(var(--cell) * .242));height:max(10px,calc(var(--cell) * .242));font-size:max(7px,calc(var(--cell) * .152))}
 .box.notop .t2{font-weight:800}
-.box.notop .t2.n3{font-size:20px} .box.notop .t2.n4{font-size:17px} .box.notop .t2.n5{font-size:14.5px} .box.notop .t2.n7{font-size:12px} .box.notop .t2.n9{font-size:10px}
-#grid .box.notop .t2.n3{font-size:max(9px,calc(var(--cell) * .30))}
-#grid .box.notop .t2.n4{font-size:max(8.5px,calc(var(--cell) * .255))}
-#grid .box.notop .t2.n5{font-size:max(8px,calc(var(--cell) * .215))}
-#grid .box.notop .t2.n7{font-size:max(7px,calc(var(--cell) * .175))}
+.box.notop .t2.n3{font-size:24px} .box.notop .t2.n4{font-size:20px} .box.notop .t2.n5{font-size:14.5px} .box.notop .t2.n7{font-size:12px} .box.notop .t2.n9{font-size:10px}
+#grid .box.notop .t2.n3{font-size:max(10px,calc(var(--cell) * .36))}
+#grid .box.notop .t2.n4{font-size:max(9px,calc(var(--cell) * .30))}
+#grid .box.notop .t2.n5{font-size:max(8.5px,calc(var(--cell) * .24))}
+#grid .box.notop .t2.n7{font-size:max(7.5px,calc(var(--cell) * .19))}
 #grid .box.notop .t2.n9{font-size:max(6.5px,calc(var(--cell) * .14))}
-.box.notop{justify-content:center}
+.box.notop{justify-content:flex-start}
+.box.notop .t2{margin:auto 0 0}
+.box.notop .t3{margin-bottom:auto}
+.box.notop .stripe{height:7px}
+#grid .box.notop .stripe{height:max(5px,calc(var(--cell) * .1))}
+.box.half.notop .stripe{height:5px}
 #grid .box .t1,#grid .box .t2,#grid .box .t3{padding-left:max(2px,calc(var(--cell) * .06));padding-right:max(2px,calc(var(--cell) * .06))}
 .box.half .flag,.box.half .donemark{width:14px;height:14px;min-width:14px;font-size:9px}
 .box.half.mark,.box.half.unset{font-size:11px}
