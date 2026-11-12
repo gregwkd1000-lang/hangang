@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113074130";</script>
+<script>window.HG_BUILD="20261113074701";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -2201,6 +2201,8 @@ function recentAll(){ try{ return JSON.parse(localStorage.getItem("stockmap-rece
 var RECENT=recentAll();
 function recentOf(cid){ return Array.isArray(RECENT[cid])?RECENT[cid]:[]; }
 function useRecent(cid,id){ var a=recentOf(cid).filter(function(x){return x!==id;}); a.unshift(id); RECENT[cid]=a.slice(0,10); try{ localStorage.setItem("stockmap-recent",JSON.stringify(RECENT)); }catch(e){} }
+/* 상자 자리의 칸 색칠(여러 칸 선택으로 칠한 색)도 지우기 */
+function clearPaint(b){ try{ var mp=ST().maps.filter(function(m){return m.id===b.mapId;})[0]; if(mp&&mp.paint) delete mp.paint[b.r+","+b.c+","+(b.t||0)]; }catch(e){} }
 function renderPicker(b){
   $("shTitle").innerHTML='품목 선택<small>'+esc(C().name)+(b?' · '+(ST().maps.length>1?esc(mapName(b.mapId))+' ':'')+posTxt(b.r,b.c)+' 상자':'')+'</small>';
   $("shBody").innerHTML='<input class="search" id="pkQ" type="search" placeholder="품번 검색" value="'+esc(pickQ)+'" aria-label="품번 검색"><div id="pkList"></div>'+
@@ -2226,7 +2228,7 @@ function renderPicker(b){
   }
   list();
   $("pkQ").oninput=function(){ pickQ=this.value; list(); };
-  each("[data-bgc]",function(x){ x.onclick=function(){ if(!b||ro()) return; var col=x.dataset.bgc||null; b.bg=col; persist(); renderPicker(b); toast(col?PAL.filter(function(p){return p[0]===col;})[0][1]+"색으로 바꿨습니다":"색을 지웠습니다"); }; });
+  each("[data-bgc]",function(x){ x.onclick=function(){ if(!b||ro()) return; var col=x.dataset.bgc||null; b.bg=col; if(!col) clearPaint(b); persist(); renderPicker(b); toast(col?PAL.filter(function(p){return p[0]===col;})[0][1]+"색으로 바꿨습니다":"색을 지웠습니다"); }; });
   $("mkOwnBtn").onclick=function(){ var w=$("mkOwn"); w.hidden=!w.hidden; if(!w.hidden) $("mkOwnIn").focus(); };
   function mkOwn(){ if(!b) return; var v=$("mkOwnIn").value.trim().replace(/\s+/g," "); if(!v){ toast("표시할 글자를 입력하세요"); return; }
     b.mark=v; b.itemId=null; b.cur=null; if(v!==SEQ) b.seq=null; $("mkOwnIn").blur();
@@ -2234,7 +2236,7 @@ function renderPicker(b){
   $("mkOwnOk").onclick=mkOwn; $("mkOwnIn").onkeydown=function(e){ if(e.key==="Enter"){ e.preventDefault(); mkOwn(); } };
   each("[data-mk]",function(m){ m.onclick=function(){ if(!b||fixedBlock(b)) return; b.mark=m.dataset.mk; b.itemId=null; b.cur=null; if(b.mark!==SEQ) b.seq=null; if(b.mark===SEQ){ seqQ=""; ui.sheet={boxId:b.id,mode:"seq"}; persist(); return; } closeSheet(); persist(); }; });
   if($("pkFix")) $("pkFix").onclick=function(){ toggleFix(b); renderPicker(b); };
-  $("pkDel").onclick=function(){ if(!b||fixedBlock(b)) return; var st=ST(); st.boxes=st.boxes.filter(function(x){return x.id!==b.id;}); closeSheet(); persist(); };
+  $("pkDel").onclick=function(){ if(!b||fixedBlock(b)) return; var st=ST(); st.boxes=st.boxes.filter(function(x){return x.id!==b.id;}); clearPaint(b); closeSheet(); persist(); };
 }
 
 /* ---------- events ---------- */
