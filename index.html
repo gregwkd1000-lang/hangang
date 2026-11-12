@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112221755";</script>
+<script>window.HG_BUILD="20261112221957";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -163,6 +163,12 @@ body.gated>header,body.gated>main{display:none}
 #dmPw{background:#2f6fde;border-color:#2f6fde;color:#fff}
 #dmOut{background:#e5484d;border-color:#e5484d;color:#fff}
 #dmPrac{background:#f7c6d6;border-color:#e89ab4;color:#7a1f42}
+.iltab{width:100%;border-collapse:collapse;font-size:13px}
+.iltab th,.iltab td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.iltab th{color:var(--muted);font-weight:600}
+.iltab td:first-child{white-space:nowrap;font-family:var(--font-num)}
+.ila{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:6px;color:#fff}
+.ila.add{background:#2f9e5b}.ila.del{background:#e5484d}
 .loglist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .logrow{display:flex;gap:10px;padding:8px 10px;border-top:1px solid var(--line);font-size:13px;line-height:1.35}
 .logrow:first-child{border-top:0}
@@ -680,6 +686,11 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
       </div>
       <p class="hint" id="delHint" style="margin:6px 0 0"></p>
     </div>
+    <div class="card" id="ilogCard" hidden>
+      <h2>품목 추가 · 삭제 이력 <small style="font-weight:400;color:var(--muted)">(관리자만 보임)</small></h2>
+      <div class="filters" id="ilogTabs" style="margin-bottom:6px"></div>
+      <div id="ilogList"></div>
+    </div>
   </section>
 
   <section class="view" id="v-share">
@@ -830,6 +841,7 @@ function normalize(c,s){
   var sv=s.survey&&/^\d{4}-\d{2}-\d{2}$/.test(s.survey.date)&&+s.survey.round>0?{date:s.survey.date,round:+s.survey.round,closed:!!s.survey.closed,manual:!!s.survey.manual,filled:!!s.survey.filled,closedAt:+s.survey.closedAt||null,closedBy:s.survey.closedBy?String(s.survey.closedBy):"",editedAt:+s.survey.editedAt||null,editedBy:s.survey.editedBy?String(s.survey.editedBy):"",reopened:!!s.survey.reopened}:{date:today(),round:1};
   var st={v:4,seedV:+s.seedV||1,survey:sv,maps:maps,
     unitV:+s.unitV||1,
+    ilog:(Array.isArray(s.ilog)?s.ilog:[]).filter(function(e){return e&&e.a;}).slice(-300).map(function(e){return {t:+e.t||0,by:String(e.by||""),a:String(e.a),c:String(e.c||""),al:String(e.al||""),g:String(e.g||"")};}),
     log:(Array.isArray(s.log)?s.log:[]).filter(function(e){return e&&e.id&&e.k;}).slice(-600).map(function(e){return {id:String(e.id),k:String(e.k),t:+e.t||0,by:String(e.by||""),a:String(e.a||""),x:String(e.x||"")};}),
     items:s.items.filter(function(i){return i&&i.id&&i.code;}).map(function(i){
       var info=i.kind==="info";
@@ -899,6 +911,19 @@ var PRACTICE=false, PRAC_REAL={};
 var APP_URL="https://gregwkd1000-lang.github.io/hangang/?v=3";
 function retired(){ return !!(window.claude&&window.claude.use); }
 /* 지난 날짜(하루 지난) 마감 기록은 관리자만 마감 해제·수정 가능 */
+/* 품목 추가·삭제 이력 (관리자만 봄) */
+function ilogAdd(st,a,it){ if(!st||!it) return; st.ilog=(st.ilog||[]).concat([{t:Date.now(),by:who(),a:a,c:it.code||"",al:it.alias||"",g:it.group||""}]).slice(-300); }
+var ILOG_ALL=true;
+function renderIlog(){
+  var card=$("ilogCard"); if(!card) return; var show=!!(EDIT&&EDIT.admin)||(typeof GAS!=="undefined"&&!GAS&&false);
+  card.hidden=!show; if(!show) return;
+  $("ilogTabs").innerHTML='<button class="chipbtn" data-il="all" aria-pressed="'+ILOG_ALL+'">모든 탭</button><button class="chipbtn" data-il="cur" aria-pressed="'+!ILOG_ALL+'">'+esc(C().name)+'만</button>';
+  var rows=[]; COMPANIES.forEach(function(c){ if(!ILOG_ALL&&c.id!==ui.cid) return; var st=(PRACTICE&&PRAC_REAL[c.id])?PRAC_REAL[c.id]:S[c.id].state; (st.ilog||[]).forEach(function(e){ rows.push({e:e,c:c}); }); });
+  rows.sort(function(a,b){ return b.e.t-a.e.t; });
+  var gname=function(c,k){ var g=(c.groups||[]).filter(function(x){return x.k===k;})[0]; return g?g.name:""; };
+  $("ilogList").innerHTML=rows.length?'<table class="iltab"><tr><th>언제</th><th>누가</th><th>탭</th><th>내용</th></tr>'+rows.slice(0,300).map(function(r){ var e=r.e, d=new Date(e.t), p=function(n){return (n<10?"0":"")+n;};
+    return '<tr><td>'+(d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes())+'</td><td>'+esc(e.by||"-")+'</td><td>'+esc(r.c.name)+'</td><td><span class="ila '+(e.a==="add"?"add":"del")+'">'+(e.a==="add"?"추가":"삭제")+'</span> '+esc(e.c)+(e.al?' <small>('+esc(e.al)+')</small>':'')+(gname(r.c,e.g)?' <small>· '+esc(gname(r.c,e.g))+'</small>':'')+'</td></tr>'; }).join("")+'</table>':'<p class="hint">아직 이력이 없습니다. 지금부터 품목을 추가·삭제하면 여기에 남습니다.</p>';
+}
 function oldAdminOnly(date){ return typeof GAS!=="undefined"&&GAS&&!PRACTICE&&!EDIT.admin&&!!date&&date<today(); }
 function snapLocked(){ return !!ui.snap&&(!!ui.snap.none||!ui.snap.state.survey.reopened||!!ui.snap.state.survey.closed||oldAdminOnly(ui.snap.date)); }
 function locked(){ if(PRACTICE) return false; if(ui.snap) return snapLocked(); return !!(S[ui.cid].state.survey&&S[ui.cid].state.survey.closed); }
@@ -1031,6 +1056,7 @@ function pracItemSync(id){
     real.items=real.items.filter(function(i){ return i.id!==k; });
     real.boxes=real.boxes.filter(function(b){ return b.itemId!==k; }); real.boxes.forEach(function(b){ if(b.mix) b.mix=b.mix.filter(function(m){ return m.itemId!==k; }); }); ch=true; });
   PRAC_IB[id]=now;
+  if(ch){ var pl=S[id].state.ilog||[], rl=real.ilog||[], lastT=rl.length?rl[rl.length-1].t:0; real.ilog=rl.concat(pl.filter(function(e){ return e.t>lastT; })).slice(-300); }
   if(!ch||retired()||(GAS&&!canEdit())) return;
   try{ localStorage.setItem(lsKey(id),JSON.stringify(real)); }catch(e){}
   var x=S[id]; if(!x.ref||readOnly) return;
@@ -1568,7 +1594,7 @@ function renderUnits(){
     if(ro()) return; var it=item(inp.dataset.u); if(!it) return; var v=parseInt(inp.value,10); it.unit=v>0?v:null; inp.blur(); persist(); toast(it.code+" · "+(unitOf(it)?unitOf(it)+"개 단위":"단위 없음"));
   }; });
 }
-function renderItems(){
+function renderItems(){ try{ renderIlog(); }catch(e){}
   var q=ui.q.trim().toLowerCase().replace(/\s+/g,""), h="";
   var list=ST().items.filter(function(it){
     if(!matchQ(it,q)) return false;
@@ -1773,7 +1799,7 @@ function boxActs(b,it){
     $("bMove").onclick=function(){ if(fixedBlock(b)) return; ui.moving=b.id; closeSheet(); showView("map"); renderMap(); };
     $("bDel").onclick=function(){ if(fixedBlock(b)) return; ask(label(it)+" 상자를 약도에서 지울까요?"+(b.cur!==null?" 이 자리에 입력한 "+sumA(b.cur)+"개도 합계에서 빠집니다.":""),"지우기",function(){ var st=ST(); st.boxes=st.boxes.filter(function(x){return x.id!==b.id;}); closeSheet(); persist(); }); };
   } else if($("iDel")) {
-    $("iDel").onclick=function(){ ask(label(it)+" 항목을 삭제할까요? 약도의 상자도 함께 지워집니다.","삭제",function(){ var st=ST(); st.items=st.items.filter(function(x){return x.id!==it.id;}); st.boxes=st.boxes.filter(function(x){return x.itemId!==it.id;}); closeSheet(); persist(); }); };
+    $("iDel").onclick=function(){ ask(label(it)+" 항목을 삭제할까요? 약도의 상자도 함께 지워집니다.","삭제",function(){ var st=ST(); st.items=st.items.filter(function(x){return x.id!==it.id;}); st.boxes=st.boxes.filter(function(x){return x.itemId!==it.id;}); ilogAdd(st,"del",it); closeSheet(); persist(); }); };
   }
 }
 function renderInfo(it){
@@ -2935,6 +2961,7 @@ function delHint(){ var it=item($("delSel").value), h=$("delHint"); if(!it){ h.t
   var n=ST().boxes.filter(function(b){ return b.itemId===it.id||(b.mix||[]).some(function(m){return m.itemId===it.id;}); }).length;
   h.textContent=n?"약도에 이 품목 상자가 "+n+"곳 있습니다. 삭제하면 그 칸은 빈렉or타업체 상자로 남습니다.":"약도에 놓인 상자는 없습니다."; }
 $("delSel").onchange=delHint;
+$("ilogTabs").addEventListener("click",function(e){ var b=e.target.closest("[data-il]"); if(!b) return; ILOG_ALL=b.dataset.il==="all"; renderIlog(); });
 $("delItem").onclick=function(){
   if(ro()) return; var it=item($("delSel").value); if(!it){ toast("삭제할 품목을 고르세요"); return; }
   var nm=it.kind==="info"?it.code:label(it);
@@ -2946,7 +2973,7 @@ $("delItem").onclick=function(){
       if(b.seq&&b.seq[it.id]){ delete b.seq[it.id]; if(!Object.keys(b.seq).length) b.seq=null; }
       if(b.seqInfo===it.id) b.seqInfo=null;
     });
-    st.items=st.items.filter(function(x){return x.id!==it.id;});
+    st.items=st.items.filter(function(x){return x.id!==it.id;}); ilogAdd(st,"del",it);
     $("delSel").value=""; persist(); toast(nm+" 삭제했습니다");
   },"취소");
 };
@@ -2964,7 +2991,7 @@ $("addItem").onclick=function(){
   if(st.items.some(function(it){return it.code===code&&it.group===$("newGrp").value;})){toast("같은 구분에 이미 있습니다");return;}
   st.items.push(kind==="info"?{id:uid(),kind:"info",code:code,alias:"",group:$("newGrp").value,prev:null,note:"",cur:null,unit:null}
     :{id:uid(),kind:"stock",code:code,alias:"",group:$("newGrp").value,prev:null,note:"",cur:null,unit:null});
-  $("newCode").value=""; persist(); toast(code+" 추가됨");
+  ilogAdd(st,"add",st.items[st.items.length-1]); $("newCode").value=""; persist(); toast(code+" 추가됨");
 };
 
 var h0=(location.hash||"").slice(1); if(["map","items","share"].indexOf(h0)>=0) showView(h0);
