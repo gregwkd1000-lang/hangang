@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112105914";</script>
+<script>window.HG_BUILD="20261112111650";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1743,7 +1743,7 @@ function renderMulti(){
   var all=Object.keys(ui.multi||{}); if(!all.length){ closeSheet(); return; }
   var keys=all.filter(function(k){return k.indexOf("b:")!==0;}), bkeys=all.filter(function(k){return k.indexOf("b:")===0;});
   $("shTitle").innerHTML=all.length+'칸 한번에 바꾸기<small>'+esc(C().name)+(ST().maps.length>1?' · '+esc(MAP().name):'')+' · 빈칸 '+keys.length+' · 상자 '+bkeys.length+'</small>';
-  $("shBody").innerHTML=(bkeys.length?'<button class="btn primary gmbtn" id="gmStart">고른 상자 '+bkeys.length+'개 한번에 이동</button>':'')+'<p class="hint">배경색 (고른 빈칸·상자 모두)</p><div class="palette">'+PAL.map(function(p){return '<button class="sw p-'+p[0]+'" data-pc="'+p[0]+'">'+p[1]+'</button>';}).join("")+'<button class="sw none" data-pc="">색 없음</button></div>'+
+  $("shBody").innerHTML=(bkeys.length?'<button class="btn primary gmbtn" id="gmStart">고른 상자 '+bkeys.length+'개 한번에 이동</button><button class="btn danger gmbtn" id="gmDel" style="margin-top:8px">고른 상자 '+bkeys.length+'개 한번에 삭제</button>':'')+'<p class="hint">배경색 (고른 빈칸·상자 모두)</p><div class="palette">'+PAL.map(function(p){return '<button class="sw p-'+p[0]+'" data-pc="'+p[0]+'">'+p[1]+'</button>';}).join("")+'<button class="sw none" data-pc="">색 없음</button></div>'+
     (keys.length?'':'<p class="hint">상자만 골랐습니다. 품목·표시 칸은 빈칸을 고를 때 넣을 수 있습니다.</p>')+
     '<div id="mlPlace"'+(keys.length?'':' hidden')+'><p class="hint" style="margin-top:12px">빈칸에 약도 표시용 칸 넣기</p><div class="marks">'+["시퀀스","공용기","통로","기둥","출입구","벽","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mm="'+m+'">'+(m===SEQ?"시컨스":m)+'</button>';}).join("")+'<button class="btn" data-mm="">빈렉or타업체</button></div>'+
     '<div class="manual mkown"><input id="mlOwn" maxlength="12" placeholder="직접입력 (예: 지게차, 랙A)" aria-label="표시 칸 이름 직접 입력"><button class="btn primary" id="mlOwnOk">표시</button></div>'+
@@ -1752,6 +1752,16 @@ function renderMulti(){
     var ids=bkeys.map(function(k){return k.slice(2);}).filter(function(id){return box(id);}), fx=ids.filter(function(id){return box(id).fixed;});
     if(fx.length){ toast("고정된 상자 "+fx.length+"개가 있어 옮길 수 없습니다. 고정 해제 후 다시 고르세요"); return; }
     ui.groupMove=ids; ui.multi=null; closeSheet(); renderMap(); toast("맨 왼쪽 위 상자가 갈 칸을 누르세요");
+  };
+  if($("gmDel")) $("gmDel").onclick=function(){
+    if(ro()) return;
+    var bs=bkeys.map(function(k){return box(k.slice(2));}).filter(function(b){return b;}), fx=bs.filter(function(b){return b.fixed;}), del=bs.filter(function(b){return !b.fixed;});
+    if(!del.length){ toast("고정된 상자는 지울 수 없습니다. 고정 해제 후 다시 고르세요"); return; }
+    var nm=del.slice(0,3).map(function(b){ return b.mark?(b.mark===SEQ?"시컨스":b.mark):(b.itemId&&item(b.itemId)?label(item(b.itemId)):"빈렉or타업체"); }).join(", ")+(del.length>3?" 외 "+(del.length-3)+"개":"");
+    ask("⚠️ 고른 상자 "+del.length+"개("+nm+")를 한번에 삭제할까요? 상자에 넣은 수량도 함께 지워집니다."+(fx.length?" 고정된 상자 "+fx.length+"개는 지우지 않습니다.":""),"예",function(){
+      var ids={}; del.forEach(function(b){ ids[b.id]=1; }); var st=ST(); st.boxes=st.boxes.filter(function(b){ return !ids[b.id]; });
+      ui.multi=null; closeSheet(); persist(); toast("상자 "+del.length+"개를 삭제했습니다");
+    },"아니오");
   };
   each("[data-pc]",function(x){ x.onclick=function(){
     var col=x.dataset.pc||null, mp=MAP(); mp.paint=mp.paint||{};
