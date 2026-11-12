@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261112223205";</script>
+<script>window.HG_BUILD="20261112223455";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -659,6 +659,10 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
       <div class="insrow"><button class="btn insbtn" id="insBtn">중간에 줄 넣기 · 빼기</button><button class="btn" id="mlBtn">여러 칸 선택</button></div>
     </div>
     <button class="btn danger qtyreset" id="qtyReset" type="button">수량 초기화</button>
+    <details class="card" id="glogCard" hidden style="margin-top:12px">
+      <summary><h2 style="display:inline">약도 칸·줄·수량초기화 내역 보기</h2> <small style="color:var(--muted)">(마스터만 보임 · 누르면 열림)</small></summary>
+      <div id="glogList" style="margin-top:8px"></div>
+    </details>
   </section>
 
   <section class="view" id="v-items">
@@ -846,6 +850,7 @@ function normalize(c,s){
   var sv=s.survey&&/^\d{4}-\d{2}-\d{2}$/.test(s.survey.date)&&+s.survey.round>0?{date:s.survey.date,round:+s.survey.round,closed:!!s.survey.closed,manual:!!s.survey.manual,filled:!!s.survey.filled,closedAt:+s.survey.closedAt||null,closedBy:s.survey.closedBy?String(s.survey.closedBy):"",editedAt:+s.survey.editedAt||null,editedBy:s.survey.editedBy?String(s.survey.editedBy):"",reopened:!!s.survey.reopened}:{date:today(),round:1};
   var st={v:4,seedV:+s.seedV||1,survey:sv,maps:maps,
     unitV:+s.unitV||1,
+    glog:(Array.isArray(s.glog)?s.glog:[]).filter(function(e){return e&&e.x;}).slice(-200),
     ilog:(Array.isArray(s.ilog)?s.ilog:[]).filter(function(e){return e&&e.a;}).slice(-300).map(function(e){var o={t:+e.t||0,by:String(e.by||""),a:String(e.a),c:String(e.c||""),al:String(e.al||""),g:String(e.g||"")}; if(e.id) o.id=String(e.id); if(e.it&&typeof e.it==="object") o.it=e.it; if(e.r) o.r=1; return o;}),
     log:(Array.isArray(s.log)?s.log:[]).filter(function(e){return e&&e.id&&e.k;}).slice(-600).map(function(e){return {id:String(e.id),k:String(e.k),t:+e.t||0,by:String(e.by||""),a:String(e.a||""),x:String(e.x||"")};}),
     items:s.items.filter(function(i){return i&&i.id&&i.code;}).map(function(i){
@@ -918,6 +923,25 @@ function retired(){ return !!(window.claude&&window.claude.use); }
 /* 지난 날짜(하루 지난) 마감 기록은 관리자만 마감 해제·수정 가능 */
 /* 품목 추가·삭제 이력 (관리자만 봄) */
 function ilogAdd(st,a,it,undo){ if(!st||!it) return; var e={t:Date.now(),by:who(),a:a,c:it.code||"",al:it.alias||"",g:it.group||"",id:it.id,it:imeta(it)}; if(undo) e.r=1; st.ilog=(st.ilog||[]).concat([e]).slice(-300); }
+/* 약도 칸·줄·수량초기화 내역 (마스터만 봄 · 복구 가능) */
+function gsnap(st){ var ic={}; st.items.forEach(function(i){ if(i.cur!==null&&i.cur!==undefined) ic[i.id]=i.cur; }); return JSON.parse(JSON.stringify({maps:st.maps,boxes:st.boxes,ic:ic})); }
+function glogAdd(st,x,pre,kind){ if(!st||PRACTICE||ui.snap) return; var e={t:Date.now(),by:who(),x:x,k:kind||"grid",m:(MAP()||{}).name||"",s:pre};
+  var L=(st.glog||[]).concat([e]); var keep=0; for(var i=L.length-1;i>=0;i--){ if(L[i].s){ keep++; if(keep>10) delete L[i].s; } } st.glog=L.slice(-200); }
+function glogUndo(cid,t){
+  if(!EDIT.admin){ toast("마스터만 할 수 있습니다"); return; } if(PRACTICE){ toast("연습모드를 끝낸 뒤에 해 주세요"); return; } if(ui.snap){ toast("지난 기록 보기를 닫고 해 주세요"); return; }
+  var st=S[cid].state, e=(st.glog||[]).filter(function(x){return x.t===+t;})[0]; if(!e||!e.s) return;
+  ask("「"+e.x+"」 하기 전 상태로 약도를 되돌릴까요? 그 뒤에 이 탭 약도에서 바꾼 상자 위치·수량도 그때 상태로 돌아갑니다.","복구",function(){
+    var pre=gsnap(st); st.maps=JSON.parse(JSON.stringify(e.s.maps)); st.boxes=JSON.parse(JSON.stringify(e.s.boxes));
+    if(e.k==="qty") st.items.forEach(function(i){ if(e.s.ic[i.id]!==undefined) i.cur=JSON.parse(JSON.stringify(e.s.ic[i.id])); });
+    e.done=1; glogAdd(st,"복구: "+e.x,pre,e.k); S[cid].state=normalize(CMAP[cid],st); persistId(cid); toast("복구했습니다");
+  },"취소");
+}
+function renderGlog(){
+  var card=$("glogCard"); if(!card) return; var show=!!(EDIT&&EDIT.admin); card.hidden=!show; if(!show||!card.open) return;
+  var st=S[ui.cid].state, L=(st.glog||[]).slice().reverse(), p=function(n){return (n<10?"0":"")+n;};
+  $("glogList").innerHTML=L.length?'<table class="iltab"><tr><th>언제</th><th>누가</th><th>내용</th><th></th></tr>'+L.map(function(e){ var d=new Date(e.t);
+    return '<tr><td>'+(d.getMonth()+1)+'/'+d.getDate()+'<br>'+p(d.getHours())+':'+p(d.getMinutes())+'</td><td>'+esc(e.by||"-")+'</td><td>'+(e.m&&st.maps.length>1?'<small>'+esc(e.m)+' · </small>':'')+esc(e.x)+'</td><td class="ilbt">'+(e.s?'<button class="ilb res" data-gu="'+e.t+'">'+(e.done?'다시 복구':'복구')+'</button>':'<small class="hint">-</small>')+'</td></tr>'; }).join("")+'</table><p class="hint">복구는 최근 10건까지 할 수 있습니다.</p>':'<p class="hint">아직 내역이 없습니다. 지금부터 가로·세로 칸 조절, 중간 줄 넣기·빼기, 수량 초기화를 하면 여기에 남습니다.</p>';
+}
 /* 품목 지우기 (약도 상자는 빈 상자로, 섞인 상자에서는 그 품목만 빠짐) */
 function removeItem(st,it){
   st.boxes.forEach(function(b){
@@ -1542,7 +1566,7 @@ function renderHeader(){
   if(keep&&item(keep)) ds.value=keep; delHint();
   $("shareTitle").textContent=c.name+" · 카톡에 붙여넣을 재고 현황";
 }
-function renderMap(){ PALC=null;
+function renderMap(){ PALC=null; try{ renderGlog(); }catch(e){}
   var st=ST();
   var px=curPx(); document.documentElement.style.setProperty("--cell",px+"px");
   $("zLbl").textContent=zLabel(px); $("zOut").disabled=px<=ZMIN+0.5; $("zIn").disabled=px>=ZMAX-0.5;
@@ -2619,7 +2643,7 @@ function setFlip(k){ var f=flipOf(); f[k]=!f[k]; try{ localStorage.setItem(flipK
 function resize(axis,side,delta){
   var side0=side, ff=flipOf(); if((axis==="c"&&ff.h)||(axis==="r"&&ff.v)) side=side==="start"?"end":"start"; // 반전 중엔 화면 기준 방향으로
 
-  if(ro()) return; var mp=MAP(), key=axis==="c"?"cols":"rows", max=axis==="c"?30:60;
+  if(ro()) return; var mp=MAP(), key=axis==="c"?"cols":"rows", max=axis==="c"?30:60, pre=gsnap(ST());
   var bs=ST().boxes.filter(function(b){return b.mapId===mp.id;});
   var sideName=axis==="c"?(side0==="start"?"왼쪽":"오른쪽"):(side0==="start"?"위":"아래");
   if(delta>0){
@@ -2635,6 +2659,7 @@ function resize(axis,side,delta){
     if(axis==="r") shiftTiers(mp,edge,-1); shiftPaint(mp,axis,edge,-1);
     mp[key]--;
   }
+  glogAdd(ST(),(axis==="c"?"가로 ":"세로 ")+sideName+(delta>0?"에 한 줄 추가":" 한 줄 삭제"),pre);
   persist();
   var w=document.querySelector(".mapwrap");
   if(w&&delta>0){ if(axis==="r") w.scrollTop=side0==="start"?0:w.scrollHeight; else w.scrollLeft=side0==="start"?0:w.scrollWidth; }
@@ -2686,8 +2711,8 @@ function renderIns(s){
   $("shBody").innerHTML='<p class="hint">위·아래로 넣기 (가로로 한 줄)</p><div class="quick"><button class="btn primary" data-ins="r,'+up+'">이 칸 위에 한 줄 추가</button><button class="btn primary" data-ins="r,'+dn+'">이 칸 아래에 한 줄 추가</button></div>'+
     '<p class="hint">왼쪽·오른쪽으로 넣기 (세로로 한 줄)</p><div class="quick"><button class="btn primary" data-ins="c,'+lf+'">이 칸 왼쪽에 한 줄 추가</button><button class="btn primary" data-ins="c,'+rt+'">이 칸 오른쪽에 한 줄 추가</button></div>'+
     '<p class="hint">빼기 (그 줄에 상자가 없을 때만)</p><div class="quick"><button class="btn danger" data-del="r,'+r+'">세로 '+(r+1)+'번 줄 빼기</button><button class="btn danger" data-del="c,'+c+'">가로 '+(c+1)+'번 줄 빼기</button></div>';
-  each("[data-ins]",function(x){ x.onclick=function(){ var a=x.dataset.ins.split(","); if(insertLine(a[0],+a[1])){ ui.insMode=false; closeSheet(); persist(); toast("한 줄을 넣었습니다"); } }; });
-  each("[data-del]",function(x){ x.onclick=function(){ var a=x.dataset.del.split(","); if(deleteLine(a[0],+a[1])){ ui.insMode=false; closeSheet(); persist(); toast("한 줄을 뺐습니다"); } }; });
+  each("[data-ins]",function(x){ x.onclick=function(){ var a=x.dataset.ins.split(","); var pre=gsnap(ST()); if(insertLine(a[0],+a[1])){ glogAdd(ST(),"중간 줄 넣기: "+(a[0]==="r"?"세로 "+(+a[1]+1)+"번 자리에 가로줄":"가로 "+(+a[1]+1)+"번 자리에 세로줄"),pre); ui.insMode=false; closeSheet(); persist(); toast("한 줄을 넣었습니다"); } }; });
+  each("[data-del]",function(x){ x.onclick=function(){ var a=x.dataset.del.split(","); var pre=gsnap(ST()); if(deleteLine(a[0],+a[1])){ glogAdd(ST(),"중간 줄 빼기: "+(a[0]==="r"?"세로 ":"가로 ")+(+a[1]+1)+"번 줄",pre); ui.insMode=false; closeSheet(); persist(); toast("한 줄을 뺐습니다"); } }; });
 }
 $("insBtn").onclick=function(){ if(ro()) return; ui.insMode=!ui.insMode; ui.moving=null; renderMap(); if(ui.insMode){ document.querySelector(".mapwrap").scrollIntoView({block:"nearest"}); toast("기준 칸을 누르세요"); } };
 Array.prototype.forEach.call(document.querySelectorAll("[data-sz]"),function(b){ b.onclick=function(){ var a=b.dataset.sz.split(","); resize(a[0],a[1],+a[2]); }; });
@@ -2996,6 +3021,8 @@ function delHint(){ var it=item($("delSel").value), h=$("delHint"); if(!it){ h.t
   var n=ST().boxes.filter(function(b){ return b.itemId===it.id||(b.mix||[]).some(function(m){return m.itemId===it.id;}); }).length;
   h.textContent=n?"약도에 이 품목 상자가 "+n+"곳 있습니다. 삭제하면 그 칸은 빈렉or타업체 상자로 남습니다.":"약도에 놓인 상자는 없습니다."; }
 $("delSel").onchange=delHint;
+$("glogCard").addEventListener("toggle",renderGlog);
+$("glogList").addEventListener("click",function(e){ var b=e.target.closest("[data-gu]"); if(!b) return; glogUndo(ui.cid,b.dataset.gu); });
 $("ilogList").addEventListener("click",function(e){ var b=e.target.closest("[data-ilu]"); if(!b) return; var p=b.dataset.ilu.split("|"); ilogUndo(p[0],p[1]); });
 $("ilogTabs").addEventListener("click",function(e){ var b=e.target.closest("[data-il]"); if(!b) return; ILOG_ALL=b.dataset.il==="all"; renderIlog(); });
 $("delItem").onclick=function(){
@@ -3011,7 +3038,7 @@ $("qtyReset").onclick=function(){
   if(ro()) return; var st=ST(), n=st.boxes.filter(function(b){ return !b.fixed&&(b.cur!==null||!!b.seq||(b.mix||[]).some(function(m){return m.cur!==null;})); }).length, nf=st.boxes.filter(function(b){return b.fixed;}).length;
   if(!n&&st.items.some(function(it){return it.kind==="info"&&/시[퀀컨]스/.test(it.code)&&it.cur!==null;})) n=0.5;
   if(!n){ toast("지울 수량이 없습니다"+(nf?" (고정한 상자는 그대로)":"")); return; }
-  ask("⚠️ "+C().name+" "+fmtDate(st.survey.date)+" "+st.survey.round+"차의 상자 수량을 모두 지울까요? 상자 "+Math.floor(n)+"곳의 입력한 수량과 시컨스 번호·조정값이 지워지고, 상자 자리는 그대로 남습니다."+(nf?" 고정한 상자 "+nf+"곳의 수량은 지우지 않습니다.":"")+" 되돌릴 수 없습니다.","예",function(){ clearQty(ST()); persist(); toast("수량을 초기화했습니다"); },"아니오");
+  ask("⚠️ "+C().name+" "+fmtDate(st.survey.date)+" "+st.survey.round+"차의 상자 수량을 모두 지울까요? 상자 "+Math.floor(n)+"곳의 입력한 수량과 시컨스 번호·조정값이 지워지고, 상자 자리는 그대로 남습니다."+(nf?" 고정한 상자 "+nf+"곳의 수량은 지우지 않습니다.":"")+" 되돌릴 수 없습니다.","예",function(){ var pre=gsnap(ST()); clearQty(ST()); glogAdd(ST(),"수량 초기화 ("+fmtDate(st.survey.date)+" "+st.survey.round+"차)",pre,"qty"); persist(); toast("수량을 초기화했습니다"); },"아니오");
 };
 $("addItem").onclick=function(){
   if(ro()) return; var kind=$("newKind").value, raw=$("newCode").value.trim().replace(/\s+/g," ");
