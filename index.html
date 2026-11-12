@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113003245";</script>
+<script>window.HG_BUILD="20261113003432";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -2103,7 +2103,7 @@ function renderMulti(){
   $("shTitle").innerHTML=all.length+'칸 한번에 바꾸기<small>'+esc(C().name)+(ST().maps.length>1?' · '+esc(MAP().name):'')+' · 빈칸 '+keys.length+' · 상자 '+bkeys.length+'</small>';
   $("shBody").innerHTML=(bkeys.length?'<button class="btn primary gmbtn" id="gmStart">고른 상자 '+bkeys.length+'개 한번에 이동</button><button class="btn danger gmbtn" id="gmDel" style="margin-top:8px">고른 상자 '+bkeys.length+'개 한번에 삭제</button>':'')+'<p class="hint">배경색 (고른 빈칸·상자 모두)</p><div class="palette">'+PAL.map(function(p){return '<button class="sw p-'+p[0]+'" data-pc="'+p[0]+'">'+p[1]+'</button>';}).join("")+'<button class="sw none" data-pc="">색 없음</button></div>'+
     (keys.length?'':'<p class="hint">상자만 골랐습니다. 품목·표시 칸은 빈칸을 고를 때 넣을 수 있습니다.</p>')+
-    '<div id="mlPlace"'+(keys.length?'':' hidden')+'><p class="hint" style="margin-top:12px">빈칸에 약도 표시용 칸 넣기</p><div class="marks">'+["시퀀스","공용기","통로","기둥","출입구","벽","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mm="'+m+'">'+(m===SEQ?"시컨스":m)+'</button>';}).join("")+'<button class="btn" data-mm="">빈렉or타업체</button></div>'+
+    '<div id="mlPlace"'+(keys.length?'':' hidden')+'><p class="hint" style="margin-top:12px">빈칸에 약도 표시용 칸 넣기</p><div class="marks">'+["시퀀스","공용기","기둥","출입구","벽"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mm="'+m+'">'+(m===SEQ?"시컨스":m)+'</button>';}).join("")+'<button class="btn" data-mm="">빈렉or타업체</button></div>'+
     '<div class="manual mkown"><input id="mlOwn" maxlength="12" placeholder="직접입력 (예: 지게차, 랙A)" aria-label="표시 칸 이름 직접 입력"><button class="btn primary" id="mlOwnOk">표시</button></div>'+
     '<p class="hint" style="margin-top:12px">품목으로 채우기</p><input class="search" id="mlQ" type="search" placeholder="품번 검색" value="'+esc(mlQ)+'" aria-label="품번 검색"><div id="mlList"></div></div>';
   if($("gmStart")) $("gmStart").onclick=function(){
@@ -2158,7 +2158,7 @@ function useRecent(cid,id){ var a=recentOf(cid).filter(function(x){return x!==id
 function renderPicker(b){
   $("shTitle").innerHTML='품목 선택<small>'+esc(C().name)+(b?' · '+(ST().maps.length>1?esc(mapName(b.mapId))+' ':'')+posTxt(b.r,b.c)+' 상자':'')+'</small>';
   $("shBody").innerHTML='<input class="search" id="pkQ" type="search" placeholder="품번 검색" value="'+esc(pickQ)+'" aria-label="품번 검색"><div id="pkList"></div>'+
-    '<p class="hint" style="margin-top:12px">약도 표시용 칸</p><div class="marks">'+["시퀀스","공용기","통로","기둥","출입구","벽","?"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mk="'+m+'">'+(m===SEQ?"시컨스":m)+'</button>';}).join("")+'<button class="btn" id="mkOwnBtn">직접입력</button></div>'+
+    '<p class="hint" style="margin-top:12px">약도 표시용 칸</p><div class="marks">'+["시퀀스","공용기","기둥","출입구","벽"].map(function(m){return '<button class="btn'+(m===SEQ?" mkseq":m==="공용기"?" mkgong":"")+'" data-mk="'+m+'">'+(m===SEQ?"시컨스":m)+'</button>';}).join("")+'<button class="btn" id="mkOwnBtn">직접입력</button></div>'+
     '<div class="manual mkown" id="mkOwn" hidden><input id="mkOwnIn" maxlength="12" placeholder="표시할 글자 (예: 지게차, 랙A)" aria-label="표시 칸 이름 직접 입력"><button class="btn primary" id="mkOwnOk">만들기</button></div>'+
     (b?'<p class="hint" style="margin-top:12px">색상 설정 (이 칸 배경색)</p><div class="palette">'+PAL.map(function(p){return '<button class="sw p-'+p[0]+(b.bg===p[0]?' on':'')+'" data-bgc="'+p[0]+'" aria-label="'+p[1]+'색">'+p[1]+'</button>';}).join("")+'<button class="sw none'+(!b.bg?' on':'')+'" data-bgc="">색 없음</button></div>':'')+
     '<div class="acts" style="margin-top:12px">'+(b?'<button class="btn fixbtn'+(b.fixed?" on":"")+'" id="pkFix">'+(b.fixed?"고정 해제":"고정")+'</button>':'')+'<button class="btn danger" id="pkDel">이 상자 삭제</button></div>';
