@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113100955";</script>
+<script>window.HG_BUILD="20261113114428";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -2713,7 +2713,7 @@ async function downloadShots(shots){
 function showShots(shots){
   var n=shots.length;
   $("imgBox").innerHTML=(n>1?'<div class="shotbar"><b id="shotLbl">'+esc(shots[0].name)+'</b><span id="shotNo">1 / '+n+'</span></div>':'')+
-    '<div class="shots" id="shots">'+shots.map(function(s,i){ return '<figure class="shot"><img alt="'+esc(s.name)+' 약도 이미지" src="'+s.cv.toDataURL("image/png")+'"></figure>'; }).join("")+'</div>'+
+    '<div class="shots" id="shots">'+shots.map(function(s,i){ return '<figure class="shot"><img alt="'+esc(s.name)+' 약도 이미지" src="'+(s.blob&&window.URL&&URL.createObjectURL?URL.createObjectURL(s.blob):s.cv.toDataURL("image/png"))+'"></figure>'; }).join("")+'</div>'+
     (n>1?'<div class="shotdots">'+shots.map(function(s,i){ return '<button data-shot="'+i+'" aria-label="'+esc(s.name)+'"'+(i?'':' aria-current="true"')+'>'+esc(s.name)+'</button>'; }).join("")+'</div>':'')+
     '<p class="hint">'+(n>1?'옆으로 넘겨서 보세요 · ':'')+'사진을 누르면 크게 볼 수 있어요 · 길게 눌러도 저장됩니다</p>'+
     '<div class="toolbar" style="justify-content:center"><button class="btn primary" id="shotDl">'+(n>1?n+'장 모두 다운로드':'다운로드')+'</button><button class="btn" id="imgClose">닫기</button></div>';
