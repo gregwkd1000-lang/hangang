@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113114428";</script>
+<script>window.HG_BUILD="20261113124016";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1575,11 +1575,14 @@ function seqNoOf(b,st){ var it=seqInfoOf(b,st); return it&&it.cur!==null&&String
 var LKEEP=Infinity;   /* 약도 수정 이력 건별 복구: 기간 제한 없음 */
 function logUndo(id){
   if(!EDIT.admin){ toast("마스터만 할 수 있습니다"); return; } if(PRACTICE){ toast("연습모드를 끝낸 뒤에 해 주세요"); return; }
-  var st=ST(), e=(st.log||[]).filter(function(x){return x.id===id;})[0]; if(!e||!e.u) return;
+  var ids=String(id).split(","), st=ST(), e=(st.log||[]).filter(function(x){return x.id===ids[0];})[0]; if(!e||!e.u) return;
+  var rest=(st.log||[]).filter(function(x){ return ids.indexOf(x.id)>0; });
   if(e.t<Date.now()-LKEEP){ toast("3일이 지난 이력은 복구할 수 없습니다"); return; }
   if(ro()) return;
   var u=e.u, B=function(){ return st.boxes.filter(function(b){return b.id===u.bid;})[0]; }, cp=function(v){ return v===null||v===undefined?null:JSON.parse(JSON.stringify(v)); };
-  ask("이 한 건을 되돌릴까요?\n["+e.a+"] "+e.x,"복구",function(){
+  var lastE=rest.length?rest[rest.length-1]:e, mx=/^(.*) (\S+) → (\S+)$/.exec(e.x||""), ml=/^(.*) (\S+) → (\S+)$/.exec(lastE.x||"");
+  var showX=rest.length&&mx&&ml?mx[1]+" "+mx[2]+" → "+ml[3]:e.x;
+  ask("이 한 건을 되돌릴까요?\n["+e.a+"] "+showX,"복구",function(){
     var b=u.bid?B():null, ok=true;
     if(e.a==="추가"){ if(b) st.boxes=st.boxes.filter(function(x){return x.id!==u.bid;}); else ok=false; }
     else if(e.a==="삭제"){ if(st.boxes.some(function(x){return x.id===u.box.id;})) ok=false;
@@ -1593,7 +1596,7 @@ function logUndo(id){
     else if(e.a==="혼합") b.mix=cp(u.mix)||[];
     else if(e.a==="시컨스 조정") b.seq=cp(u.seq);
     if(!ok){ toast("이미 없는 상자라 되돌릴 수 없습니다"); return; }
-    e.done=1; e.db=who(); e.dt=Date.now(); SKIPLOG=true; try{ persist(); } finally { SKIPLOG=false; } if(ui.sheet&&ui.sheet.mode==="log") renderSheet(); toast("복구했습니다");
+    e.done=1; e.db=who(); e.dt=Date.now(); rest.forEach(function(x){ x.done=1; x.db=e.db; x.dt=e.dt; }); SKIPLOG=true; try{ persist(); } finally { SKIPLOG=false; } if(ui.sheet&&ui.sheet.mode==="log") renderSheet(); toast("복구했습니다");
   },"취소");
 }
 var SKIPLOG=false;
@@ -1634,15 +1637,31 @@ function addLog(o,n){ if(SKIPLOG) return;
 
   n.log=lg.slice(-500);
 }
+/* 보여 줄 때도 같은 상자 수량을 같은 사람이 연달아 바꾼 줄은 한 줄로 (예전에 쌓인 이력 포함: 5→4→3→2→1 → "5 → 1") */
+function mergeQtyLog(list){
+  var out=[], last={}, touch={};
+  list.forEach(function(e){
+    var m=/^(.*) (\S+) → (\S+)$/.exec(e.x||""), bk=(e.u&&e.u.bid)||(m?m[1]:e.x);
+    if(e.a==="수량"&&m){
+      var j=last[bk];
+      if(j!==undefined&&touch[bk]===j&&out[j].by===e.by&&!!out[j].done===!!e.done){
+        var g=out[j]; g.x=m[1]+" "+g.q0m+" → "+m[3]; g.t=e.t; g.ids.push(e.id);
+        if(g.q0m===m[3]) g.gone=true; else g.gone=false;
+        return; }
+      var c={}; for(var k in e) c[k]=e[k]; c.ids=[e.id]; c.q0m=e.q0!==undefined?e.q0:m[2]; out.push(c); last[bk]=out.length-1; touch[bk]=out.length-1; return; }
+    var c2={}; for(var k2 in e) c2[k2]=e[k2]; c2.ids=[e.id]; out.push(c2); touch[bk]=out.length-1; if(e.u&&e.u.box) touch[e.u.box.id]=out.length-1;
+  });
+  return out.filter(function(e){ return !e.gone; });
+}
 function renderLog(s){
   var st=ST(), key=st.survey.date+"_"+st.survey.round, f=s.f||"all";
-  var L=(st.log||[]).filter(function(e){return e.k===key;}).slice().reverse();
+  var L=mergeQtyLog((st.log||[]).filter(function(e){return e.k===key;})).reverse();
   var grpOf=function(a){ return a==="수량"||a==="혼합"||a==="시컨스 조정"||a==="정보"?"qty":a==="이동"?"move":"box"; };
   var shown=L.filter(function(e){ return f==="all"||grpOf(e.a)===f; });
   $("shTitle").innerHTML='약도 수정 이력<small>'+esc(C().name+" · "+fmtDate(st.survey.date)+" "+st.survey.round+"차 · "+L.length+"건")+'</small>';
   var h='<div class="filters" style="margin-bottom:8px">'+[["all","전체"],["qty","수량 입력·수정"],["move","이동"],["box","상자 추가·삭제·변경"]].map(function(x){ return '<button class="chipbtn" data-lf="'+x[0]+'" aria-pressed="'+(f===x[0])+'">'+x[1]+'</button>'; }).join("")+'</div>';
   h+=shown.length?'<div class="loglist">'+shown.map(function(e){ var d=new Date(e.t), hm=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
-      var ub=e.done?'<span class="lgu dnbox"><span class="dn">복구됨</span>'+(e.db?'<small class="hint dnw">'+esc(e.db)+(e.dt?' '+hmOf(e.dt):'')+'</small>':'')+'</span>':EDIT.admin&&e.u&&e.t>=Date.now()-LKEEP?'<button class="ilb res lgu" data-lu="'+esc(e.id)+'">복구</button>':'';
+      var ub=e.done?'<span class="lgu dnbox"><span class="dn">복구됨</span>'+(e.db?'<small class="hint dnw">'+esc(e.db)+(e.dt?' '+hmOf(e.dt):'')+'</small>':'')+'</span>':EDIT.admin&&e.u&&e.t>=Date.now()-LKEEP?'<button class="ilb res lgu" data-lu="'+esc(e.ids.join(","))+'">복구</button>':'';
       return '<div class="logrow"><div class="lt"><b>'+hm+'</b><span>'+esc(e.by||"이름 없음")+'</span></div><div class="lx"><span class="la la-'+grpOf(e.a)+({"추가":" a-add","삭제":" a-del","이동":" a-mv","품목 변경":" a-chg"}[e.a]||"")+'">'+esc(e.a)+'</span> '+esc(e.x)+'</div>'+ub+'</div>'; }).join("")+'</div>'
     :'<p class="hint">이번 회차에 남은 수정 이력이 없습니다.</p>';
   h+='<p class="hint" style="margin-top:10px">이번 회차('+esc(fmtDate(st.survey.date)+" "+st.survey.round+"차")+')의 이력입니다. 회차가 바뀌면 새로 쌓이고, 지난 회차 이력은 지난 기록을 열면 볼 수 있습니다.</p>';
