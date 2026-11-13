@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113100425";</script>
+<script>window.HG_BUILD="20261113100955";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1864,7 +1864,7 @@ function areaTotal(it,mapId){
 }
 function inArea(it,mapId){ return ST().boxes.some(function(b){ return sendMap(b)===mapId&&(b.itemId===it.id||(b.mix||[]).some(function(m){return m.itemId===it.id;})||(b.mark===SEQ&&b.seq&&b.seq[it.id])); }); }
 /* 보내기 내용 직접 고치기: 이번 회차에만 유지 (마감해서 다음 회차로 넘어가거나 날짜가 바뀌면 자동 내용으로) */
-var OUT_SCOPE="", OUT_AUTO="";
+var OUT_SCOPE="", OUT_AUTO="", OUT_ED=false;
 function outKey(){ var sv=ST().survey; return sv.date+"_"+sv.round; }
 function outSet(auto,scope){
   var st=ST(), e=st.outEdit, ta=$("out"), nt=$("outEdNote"); OUT_SCOPE=scope; OUT_AUTO=auto;
@@ -2919,7 +2919,7 @@ function renderIns(s){
 $("insBtn").onclick=function(){ if(ro()) return; ui.insMode=!ui.insMode; ui.moving=null; renderMap(); if(ui.insMode){ document.querySelector(".mapwrap").scrollIntoView({block:"nearest"}); toast("기준 칸을 누르세요"); } };
 Array.prototype.forEach.call(document.querySelectorAll("[data-sz]"),function(b){ b.onclick=function(){ var a=b.dataset.sz.split(","); resize(a[0],a[1],+a[2]); }; });
 
-function showView(v){
+function showView(v){ if(v!=="share"&&OUT_ED){ var ta0=$("out"); ta0.blur(); ta0.readOnly=true; ta0.classList.remove("editing"); OUT_ED=false; }
   ui.view=v;
   ["map","items","share"].forEach(function(x){ $("v-"+x).classList.toggle("on",x===v); $("tab-"+x).setAttribute("aria-selected",x===v); });
   if(v==="items") renderItems(); if(v==="share") renderShare();
@@ -2984,10 +2984,13 @@ $("outImg").onclick=async function(){
   btn.disabled=false; btn.textContent="이미지로 저장";
 };
 (function(){ var ta=$("out"), tmr=0;
+  ta.addEventListener("focus",function(){ if(ta.readOnly) setTimeout(function(){ if(ta.readOnly) ta.blur(); },0); });   /* 읽기 전용일 때 잡힌 포커스는 풀어 두어야 나중에 키보드가 뜸 */
   ta.addEventListener("click",function(){ if(!ta.readOnly) return; if(GAS&&!canEdit()){ toast("조회 권한은 고칠 수 없습니다"); return; }
-    ask("보낼 내용을 직접 고칠까요? 고친 내용은 이번 회차에만 쓰이고, 다음 회차·다음 날에는 자동 내용으로 돌아갑니다.","예",function(){ ta.readOnly=false; ta.classList.add("editing"); ta.focus(); try{ ta.setSelectionRange(ta.value.length,ta.value.length); }catch(e){} toast("직접 고칠 수 있습니다"); },"아니오"); });
+    ask("보낼 내용을 직접 고칠까요? 고친 내용은 이번 회차에만 쓰이고, 다음 회차·다음 날에는 자동 내용으로 돌아갑니다.","예",function(){ ta.blur(); ta.readOnly=false; ta.removeAttribute("readonly"); ta.classList.add("editing"); OUT_ED=true; ta.focus(); try{ ta.setSelectionRange(ta.value.length,ta.value.length); }catch(e){}
+      toast("고칠 곳을 누르면 키보드가 열립니다"); },"아니오"); });
   ta.addEventListener("input",function(){ if(ta.readOnly) return; clearTimeout(tmr); tmr=setTimeout(function(){ var st=ST(); st.outEdit=ta.value===OUT_AUTO?null:{k:outKey(),s:OUT_SCOPE,v:ta.value,by:who(),t:Date.now()}; persist(); },700); });
-  ta.addEventListener("blur",function(){ if(ta.readOnly) return; clearTimeout(tmr); var st=ST(); st.outEdit=ta.value===OUT_AUTO?null:{k:outKey(),s:OUT_SCOPE,v:ta.value,by:who(),t:Date.now()}; ta.readOnly=true; ta.classList.remove("editing"); persist(); });
+  ta.addEventListener("blur",function(){ if(ta.readOnly) return; clearTimeout(tmr); var st=ST(), nv=ta.value===OUT_AUTO?null:{k:outKey(),s:OUT_SCOPE,v:ta.value,by:who(),t:Date.now()};
+    if(JSON.stringify(nv&&nv.v)!==JSON.stringify(st.outEdit&&st.outEdit.v)){ st.outEdit=nv; persist(); } });   /* 고치는 동안은 칸을 계속 열어 둠 (다른 탭으로 가거나 새로 그릴 때 닫힘) */
 })();
 $("copyBtn").onclick=function(){
   var txt=$("out").value;
