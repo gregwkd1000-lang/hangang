@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113074701";</script>
+<script>window.HG_BUILD="20261113090121";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -1969,7 +1969,7 @@ function renderSheet(){
     '<div id="curArea"></div>'+
     '<div class="quick">'+quick.filter(function(n){return n>0;}).map(function(n,i){ var isP=u&&i<pal.length&&pal.indexOf(n)>=0; return '<button class="btn'+(isP?" primary":"")+'" data-add="'+n+'">+ '+(isP?"파렛트 ":"")+n+'</button>';}).join("")+'</div>'+
     '<div class="manual"><input id="pQty" inputmode="numeric" placeholder="수량 직접 (예: 3)" aria-label="수량 직접 입력"><button class="btn" id="pQtyAdd">'+(u?"낱개 파렛트 추가":"수량 추가")+'</button></div>'+
-    '<div class="quick"><button class="btn" id="pZero">재고 없음 (0)</button><button class="btn" id="pSame"'+(it.prev===null?" disabled":"")+'>'+(boxesOf(it.id).length>1||(b&&it.cur!==null)?"나머지 채우기":"이전과 같음")+'</button><button class="btn danger" id="pReset">입력 지우기</button></div>';
+    '<div class="quick"><button class="btn" id="pSame"'+(it.prev===null?" disabled":"")+'>'+(boxesOf(it.id).length>1||(b&&it.cur!==null)?"나머지 채우기":"이전과 같음")+'</button><button class="btn danger" id="pReset">입력 지우기</button></div>';
   if(b) h+=mixSection(b,it);
   if(b){ h+='<div class="acts"><button class="btn fixbtn'+(b.fixed?" on":"")+'" id="bFix">'+(b.fixed?"고정 해제":"고정")+'</button><button class="btn" id="bChange">품목 변경</button><button class="btn" id="bMove">위치 이동</button><button class="btn danger" id="bDel">상자 삭제</button></div>'; }
   else { var pc=placedCount(it.id); h+='<p class="hint">'+(pc?'배치: '+esc(placedText(it.id)):'약도에 아직 배치하지 않은 품목입니다. 약도 탭에서 빈칸을 눌러 배치하세요.')+'</p><div class="acts"><button class="btn danger" id="iDel">품목 삭제</button></div>'; }
@@ -1980,7 +1980,7 @@ function renderSheet(){
   if($("pUnitAll")) $("pUnitAll").onclick=function(){ var v=parseInt($("pUnit").value,10); var n=v>0?v:null; ST().items.forEach(function(x){ if(x.group===it.group&&x.kind!=="info") x.unit=n; }); persist(); toast(g.name+" 전체 "+(n?n+"개 기준":"기준 없음")); };
   each("[data-add]",function(btn){ btn.onclick=function(){ var n=+btn.dataset.add; if(tg.cur===null) tg.cur=[]; tg.cur.push(n); persist(); }; });
   $("pQtyAdd").onclick=function(){ var n=parseInt($("pQty").value,10); if(!(n>0)){ toast("수량을 숫자로 입력하세요"); return; } if(tg.cur===null) tg.cur=[]; tg.cur.push(n); $("pQty").value=""; $("pQty").blur(); persist(); };
-  $("pZero").onclick=function(){ tg.cur=[]; persist(); };
+  if($("pZero")) $("pZero").onclick=function(){ tg.cur=[]; persist(); };
   $("pSame").onclick=function(){ if(it.prev===null) return; var others=(total(it)||0)-sumA(tg.cur), rest=Math.max(0,it.prev-others); tg.cur=u?splitToPallets(rest,u):(rest>0?[rest]:[]); persist(); toast(others?"나머지 "+rest+"개로 입력 (합계 "+it.prev+")":"이전재고 "+it.prev+"개로 입력"); };
   $("pReset").onclick=function(){ tg.cur=null; persist(); };
   boxActs(b,it);
