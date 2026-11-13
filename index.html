@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.HG_BUILD="20261113090121";</script>
+<script>window.HG_BUILD="20261113100425";</script>
 <script src="config.js"></script>
 <script>try{var _t=localStorage.getItem("hg-theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -187,6 +187,11 @@ body.gated>header,body.gated>main{display:none}
 .ilb{font:inherit;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;border:0;color:#fff;cursor:pointer}
 .ilb.del{background:#e5484d}.ilb.res{background:#2f6fde}
 .ila.add{background:#2f9e5b}.ila.del{background:#e5484d}
+#out.editing{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+#out.edited{background:#fffbe6}
+:root[data-theme="dark"] #out.edited{background:#2e2a14}
+.outednote{font-size:12px;color:#8a6d00;margin:0 0 6px;line-height:1.5}
+.outednote .btn{padding:4px 10px;font-size:12px;margin-left:4px}
 .loglist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .logrow{display:flex;gap:10px;padding:8px 10px;border-top:1px solid var(--line);font-size:13px;line-height:1.35}
 .logrow:first-child{border-top:0}
@@ -763,6 +768,7 @@ body.nojs #staticView{display:block;padding:12px 14px 40px}
         <button class="chipbtn" aria-pressed="false" id="noNote">괄호 특이사항 빼기</button>
         <button class="chipbtn" aria-pressed="false" id="noGong" hidden>공용기 멘트 빼기</button>
       </div>
+      <div id="outEdNote" class="outednote" hidden></div>
       <textarea id="out" readonly aria-label="보낼 내용"></textarea>
       <div class="toolbar" style="margin:10px 0 0"><button class="btn primary" id="copyBtn">복사하기</button><button class="btn kakaobtn" id="outShare">공유하기 (카톡)</button><button class="btn" id="outImg">이미지로 저장</button></div>
     </div>
@@ -896,6 +902,7 @@ function normalize(c,s){
   var sv=s.survey&&/^\d{4}-\d{2}-\d{2}$/.test(s.survey.date)&&+s.survey.round>0?{date:s.survey.date,round:+s.survey.round,closed:!!s.survey.closed,manual:!!s.survey.manual,filled:!!s.survey.filled,closedAt:+s.survey.closedAt||null,closedBy:s.survey.closedBy?String(s.survey.closedBy):"",editedAt:+s.survey.editedAt||null,editedBy:s.survey.editedBy?String(s.survey.editedBy):"",reopened:!!s.survey.reopened}:{date:today(),round:1};
   var st={v:4,seedV:+s.seedV||1,survey:sv,maps:maps,
     unitV:+s.unitV||1,
+    outEdit:(s.outEdit&&typeof s.outEdit==="object"&&s.outEdit.k)?{k:String(s.outEdit.k),s:String(s.outEdit.s||""),v:String(s.outEdit.v||""),by:String(s.outEdit.by||""),t:+s.outEdit.t||0}:null,
     glog:(Array.isArray(s.glog)?s.glog:[]).filter(function(e){return e&&e.x;}).slice(-200),
     ilog:(Array.isArray(s.ilog)?s.ilog:[]).filter(function(e){return e&&e.a;}).slice(-300).map(function(e){var o={t:+e.t||0,by:String(e.by||""),a:String(e.a),c:String(e.c||""),al:String(e.al||""),g:String(e.g||"")}; if(e.id) o.id=String(e.id); if(e.it&&typeof e.it==="object") o.it=e.it; if(e.r) o.r=1; if(e.done){ o.done=1; o.db=String(e.db||""); o.dt=+e.dt||0; } return o;}),
     log:(Array.isArray(s.log)?s.log:[]).filter(function(e){return e&&e.id&&e.k;}).slice(-600).map(function(e){var o={id:String(e.id),k:String(e.k),t:+e.t||0,by:String(e.by||""),a:String(e.a||""),x:String(e.x||"")}; if(e.u&&typeof e.u==="object") o.u=e.u; if(e.q0!==undefined) o.q0=String(e.q0); if(e.done){ o.done=1; o.db=String(e.db||""); o.dt=+e.dt||0; } return o;}),
@@ -1856,6 +1863,18 @@ function areaTotal(it,mapId){
   return has?sum:null;
 }
 function inArea(it,mapId){ return ST().boxes.some(function(b){ return sendMap(b)===mapId&&(b.itemId===it.id||(b.mix||[]).some(function(m){return m.itemId===it.id;})||(b.mark===SEQ&&b.seq&&b.seq[it.id])); }); }
+/* 보내기 내용 직접 고치기: 이번 회차에만 유지 (마감해서 다음 회차로 넘어가거나 날짜가 바뀌면 자동 내용으로) */
+var OUT_SCOPE="", OUT_AUTO="";
+function outKey(){ var sv=ST().survey; return sv.date+"_"+sv.round; }
+function outSet(auto,scope){
+  var st=ST(), e=st.outEdit, ta=$("out"), nt=$("outEdNote"); OUT_SCOPE=scope; OUT_AUTO=auto;
+  if(e&&e.k!==outKey()){ st.outEdit=null; e=null; }
+  var use=e&&e.s===scope;
+  if(document.activeElement!==ta||ta.readOnly) ta.value=use?e.v:auto;
+  ta.classList.toggle("edited",!!use);
+  if(nt){ nt.hidden=!use; if(use) nt.innerHTML='✏️ 직접 고친 내용입니다'+(e.by?' ('+esc(e.by)+')':'')+' · 다음 회차·다음 날에는 자동 내용으로 돌아갑니다 <button class="btn" id="outRevert" type="button">자동 내용으로 되돌리기</button>';
+    if(use) $("outRevert").onclick=function(){ if(ro()) return; ask("직접 고친 내용을 지우고 자동으로 만든 내용으로 되돌릴까요?","되돌리기",function(){ ST().outEdit=null; $("out").readOnly=true; persist(); renderShare(); toast("자동 내용으로 되돌렸습니다"); },"취소"); }; }
+}
 function renderShare(){
   var c=C(), lines=[], maps=ST().maps, om=outMaps[ui.cid]||"";
   if(om&&!maps.some(function(m){return m.id===om;})) om="";
@@ -1875,7 +1894,7 @@ function renderShare(){
     ofd.innerHTML='<button class="chipbtn" aria-pressed="'+(!ui.outFind)+'" data-of="0">전체 보내기</button><button class="chipbtn" aria-pressed="'+(!!ui.outFind)+'" data-of="1">검색한 파렛트만 ('+nb+'개)</button>';
     Array.prototype.forEach.call(ofd.querySelectorAll("[data-of]"),function(x){ x.onclick=function(){ ui.outFind=x.dataset.of==="1"; renderShare(); }; });
   } else { ofd.hidden=true; ofd.innerHTML=""; ui.outFind=false; }
-  if(fq&&ui.outFind){ $("out").value=findText(fq,om,areaName); return; }
+  if(fq&&ui.outFind){ return outSet(findText(fq,om,areaName),om+"|f:"+fq); }
   var tail=[]; /* 에프유: 시퀀스는 맨 밑으로 */
   c.groups.forEach(function(g){
     var rows=ST().items.filter(function(it){return it.group===g.k&&(!om||it.kind==="info"||inArea(it,om));}); if(!rows.some(function(it){return it.kind!=="info";})&&om) return; if(!rows.length) return;
@@ -1896,7 +1915,7 @@ function renderShare(){
   $("noGong").hidden=!gn;
   $("noGong").setAttribute("aria-pressed",!!ui.noGongBy[ui.cid]);
   if(gn&&!ui.noGongBy[ui.cid]){ if(lines.length) lines.push(""); lines.push(gmsg.replace("{n}",gn)); }
-  $("out").value=lines.join("\n");
+  outSet(lines.join("\n"),om+"|"+(ui.out||""));
 }
 /* 검색한 파렛트만: 상자 위치별 한 줄 + 품목 합계 */
 function findText(fq,om,areaName){
@@ -2964,6 +2983,12 @@ $("outImg").onclick=async function(){
   }catch(e){ toast("이미지를 만들지 못했습니다"); }
   btn.disabled=false; btn.textContent="이미지로 저장";
 };
+(function(){ var ta=$("out"), tmr=0;
+  ta.addEventListener("click",function(){ if(!ta.readOnly) return; if(GAS&&!canEdit()){ toast("조회 권한은 고칠 수 없습니다"); return; }
+    ask("보낼 내용을 직접 고칠까요? 고친 내용은 이번 회차에만 쓰이고, 다음 회차·다음 날에는 자동 내용으로 돌아갑니다.","예",function(){ ta.readOnly=false; ta.classList.add("editing"); ta.focus(); try{ ta.setSelectionRange(ta.value.length,ta.value.length); }catch(e){} toast("직접 고칠 수 있습니다"); },"아니오"); });
+  ta.addEventListener("input",function(){ if(ta.readOnly) return; clearTimeout(tmr); tmr=setTimeout(function(){ var st=ST(); st.outEdit=ta.value===OUT_AUTO?null:{k:outKey(),s:OUT_SCOPE,v:ta.value,by:who(),t:Date.now()}; persist(); },700); });
+  ta.addEventListener("blur",function(){ if(ta.readOnly) return; clearTimeout(tmr); var st=ST(); st.outEdit=ta.value===OUT_AUTO?null:{k:outKey(),s:OUT_SCOPE,v:ta.value,by:who(),t:Date.now()}; ta.readOnly=true; ta.classList.remove("editing"); persist(); });
+})();
 $("copyBtn").onclick=function(){
   var txt=$("out").value;
   function fallback(){ var ta=$("out"); ta.removeAttribute("readonly"); ta.select(); var ok=false; try{ok=document.execCommand("copy");}catch(e){} ta.setAttribute("readonly",""); toast(ok?"복사했습니다":"글자를 길게 눌러 복사하세요"); }
